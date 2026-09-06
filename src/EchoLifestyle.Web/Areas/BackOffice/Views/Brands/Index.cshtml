@@ -1,0 +1,111 @@
+@{
+    ViewData["Title"] = "Brands";
+    ViewData["Subtitle"] = "The names on the shelf. Each one gets its own page on the storefront.";
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0 small text-muted" for="statusFilter">Showing</label>
+        <select id="statusFilter" class="form-select form-select-sm" style="width: auto;">
+            <option value="Active" selected>Active brands</option>
+            <option value="Inactive">Inactive brands</option>
+            <option value="All">All brands</option>
+        </select>
+    </div>
+
+    @if (CurrentUser.HasPermission(Permissions.Catalog.BrandEdit))
+    {
+        <a class="btn btn-echo btn-sm" asp-action="Create">New brand</a>
+    }
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="brandsGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>Brand</th>
+                    <th>Origin</th>
+                    <th>Products</th>
+                    <th>Featured</th>
+                    <th>Order</th>
+                    <th>Status</th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var canEdit = @Json.Serialize(CurrentUser.HasPermission(Permissions.Catalog.BrandEdit));
+            var editUrlTemplate = "@Url.Action("Edit", new { id = "__id__" })";
+
+            var grid = echo.grid("#brandsGrid", {
+                url: "@Url.Action("Data")",
+                order: [[0, "asc"]],
+                emptyMessage: "No brands yet. Add one before creating products.",
+                searchPlaceholder: "Search brand or country...",
+
+                filters: function () {
+                    return { status: $("#statusFilter").val() };
+                },
+
+                columns: [
+                    {
+                        data: "name",
+                        name: "name",
+                        render: function (name, type, row) {
+                            // The slug is shown under the name because it is a
+                            // public address - people need to see it without
+                            // opening the form.
+                            return echo.escape(name) +
+                                '<div class="text-muted small">/' + echo.escape(row.slug) + "</div>";
+                        }
+                    },
+                    { data: "originCountry", name: "origin", render: echo.escape },
+                    {
+                        data: "productCount",
+                        orderable: false,
+                        render: function (count) {
+                            return count
+                                ? count
+                                : '<span class="text-muted small">None yet</span>';
+                        }
+                    },
+                    {
+                        data: "isFeatured",
+                        name: "featured",
+                        render: function (featured) {
+                            return featured ? echo.render.badge("Featured", "info") : "";
+                        }
+                    },
+                    { data: "displayOrder", name: "order" },
+                    {
+                        data: "isActive",
+                        name: "isActive",
+                        render: function (active) {
+                            return active
+                                ? echo.render.badge("Active", "success")
+                                : echo.render.badge("Inactive", "secondary");
+                        }
+                    },
+                    {
+                        data: "id",
+                        orderable: false,
+                        className: "text-end",
+                        render: function (id) {
+                            return canEdit
+                                ? echo.render.editLink(editUrlTemplate.replace("__id__", id))
+                                : "";
+                        }
+                    }
+                ]
+            });
+
+            echo.bindFilters(grid, "#statusFilter");
+        })();
+    </script>
+}

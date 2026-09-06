@@ -61,9 +61,17 @@ public static class Roles
                 Permissions.Administration.WarehouseView,
                 Permissions.Catalog.ProductView,
                 Permissions.Catalog.ProductEdit,
+                Permissions.Catalog.ProductPublish,
+                Permissions.Catalog.BrandView,
+                Permissions.Catalog.CategoryView,
+                Permissions.Catalog.BrandEdit,
+                Permissions.Catalog.CategoryEdit,
+                Permissions.Catalog.UnitOfMeasureEdit,
                 Permissions.Catalog.CostPriceView,
                 Permissions.Catalog.PriceEdit,
+                Permissions.Catalog.PriceListEdit,
                 Permissions.Inventory.StockView,
+                Permissions.Inventory.BatchView,
                 Permissions.Inventory.TransferApprove,
                 Permissions.Inventory.AdjustmentApprove,
                 Permissions.Procurement.SupplierView,
@@ -105,6 +113,8 @@ public static class Roles
             [StoreManager] =
             [
                 Permissions.Catalog.ProductView,
+                Permissions.Catalog.BrandView,
+                Permissions.Catalog.CategoryView,
                 Permissions.Inventory.StockView,
                 Permissions.Inventory.TransferCreate,
                 Permissions.Inventory.TransferApprove,
@@ -120,6 +130,8 @@ public static class Roles
             [Salesperson] =
             [
                 Permissions.Catalog.ProductView,
+                Permissions.Catalog.BrandView,
+                Permissions.Catalog.CategoryView,
                 Permissions.Inventory.StockView,
                 Permissions.Sales.OrderView,
                 Permissions.Sales.OrderCreate,
@@ -129,11 +141,15 @@ public static class Roles
             [WarehouseManager] =
             [
                 Permissions.Catalog.ProductView,
+                Permissions.Catalog.BrandView,
+                Permissions.Catalog.CategoryView,
                 Permissions.Inventory.StockView,
+                Permissions.Inventory.BatchView,
                 Permissions.Inventory.TransferCreate,
                 Permissions.Inventory.TransferApprove,
                 Permissions.Inventory.AdjustmentCreate,
                 Permissions.Inventory.AdjustmentApprove,
+                Permissions.Inventory.BalanceRebuild,
                 Permissions.Procurement.GoodsReceiptCreate,
                 Permissions.Reporting.InventoryReportsView,
             ],
@@ -141,7 +157,10 @@ public static class Roles
             [InventoryOfficer] =
             [
                 Permissions.Catalog.ProductView,
+                Permissions.Catalog.BrandView,
+                Permissions.Catalog.CategoryView,
                 Permissions.Inventory.StockView,
+                Permissions.Inventory.BatchView,
                 Permissions.Inventory.TransferCreate,
                 Permissions.Inventory.AdjustmentCreate,
                 Permissions.Procurement.GoodsReceiptCreate,
@@ -151,8 +170,11 @@ public static class Roles
             [PurchaseOfficer] =
             [
                 Permissions.Catalog.ProductView,
+                Permissions.Catalog.BrandView,
+                Permissions.Catalog.CategoryView,
                 Permissions.Catalog.CostPriceView,
                 Permissions.Inventory.StockView,
+                Permissions.Inventory.BatchView,
                 Permissions.Procurement.SupplierView,
                 Permissions.Procurement.SupplierEdit,
                 Permissions.Procurement.PurchaseOrderCreate,
@@ -162,6 +184,8 @@ public static class Roles
             [CustomerService] =
             [
                 Permissions.Catalog.ProductView,
+                Permissions.Catalog.BrandView,
+                Permissions.Catalog.CategoryView,
                 Permissions.Inventory.StockView,
                 Permissions.Sales.OrderView,
                 Permissions.Sales.OrderCreate,
@@ -174,6 +198,10 @@ public static class Roles
             [MarketingManager] =
             [
                 Permissions.Catalog.ProductView,
+                Permissions.Catalog.BrandView,
+                Permissions.Catalog.CategoryView,
+                Permissions.Catalog.BrandEdit,
+                Permissions.Catalog.CategoryEdit,
                 Permissions.Crm.CustomerView,
                 Permissions.Reporting.SalesReportsView,
             ],
@@ -182,6 +210,11 @@ public static class Roles
             [
                 Permissions.Catalog.ProductView,
                 Permissions.Catalog.ProductEdit,
+                Permissions.Catalog.ProductPublish,
+                Permissions.Catalog.BrandView,
+                Permissions.Catalog.CategoryView,
+                Permissions.Catalog.BrandEdit,
+                Permissions.Catalog.CategoryEdit,
                 Permissions.Catalog.PriceEdit,
                 Permissions.Inventory.StockView,
                 Permissions.Sales.OrderView,
@@ -197,6 +230,8 @@ public static class Roles
                 Permissions.Security.UserView,
                 Permissions.Security.RoleView,
                 Permissions.Catalog.ProductView,
+                Permissions.Catalog.BrandView,
+                Permissions.Catalog.CategoryView,
                 Permissions.Catalog.CostPriceView,
                 Permissions.Inventory.StockView,
                 Permissions.Procurement.SupplierView,

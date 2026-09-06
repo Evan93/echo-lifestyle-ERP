@@ -1,0 +1,192 @@
+@using EchoLifestyle.Application.Catalog.Brands
+@using EchoLifestyle.Application.Catalog.Categories
+@{
+    ViewData["Title"] = "Products";
+    ViewData["Subtitle"] = "Everything the business buys and sells. Prices shown are the current retail price.";
+
+    var brands = ViewData["Brands"] as IReadOnlyList<BrandOption> ?? [];
+    var categories = ViewData["Categories"] as IReadOnlyList<CategoryOption> ?? [];
+}
+
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-end gap-2 flex-wrap">
+        <div>
+            <label class="form-label mb-1 small text-muted" for="statusFilter">Showing</label>
+            <select id="statusFilter" class="form-select form-select-sm" style="width: auto;">
+                <option value="Active" selected>Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="All">All</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="form-label mb-1 small text-muted" for="brandFilter">Brand</label>
+            <select id="brandFilter" class="form-select form-select-sm" style="width: auto;">
+                <option value="">All brands</option>
+                @foreach (var brand in brands)
+                {
+                    <option value="@brand.Id">@brand.Name</option>
+                }
+            </select>
+        </div>
+
+        <div>
+            <label class="form-label mb-1 small text-muted" for="categoryFilter">Category</label>
+            <select id="categoryFilter" class="form-select form-select-sm" style="width: auto;">
+                <option value="">All categories</option>
+                @foreach (var category in categories)
+                {
+                    <option value="@category.Id">@category.IndentedName</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    @if (CurrentUser.HasPermission(Permissions.Catalog.ProductEdit))
+    {
+        <a class="btn btn-echo btn-sm" asp-action="Create">New product</a>
+    }
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="productsGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>Product</th>
+                    <th>Brand</th>
+                    <th>Category</th>
+                    <th>Variants</th>
+                    <th class="text-end">Price</th>
+                    <th>Storefront</th>
+                    <th>Status</th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<p class="text-muted small mt-3 mb-0">
+    Selecting a category includes everything filed beneath it.
+</p>
+
+@section Scripts {
+    <script>
+        (function () {
+            var canEdit = @Json.Serialize(CurrentUser.HasPermission(Permissions.Catalog.ProductEdit));
+            var editUrlTemplate = "@Url.Action("Edit", new { id = "__id__" })";
+
+            function money(value) {
+                if (value === null || typeof value === "undefined") {
+                    return "";
+                }
+
+                return "৳ " + Number(value).toLocaleString("en-BD", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            var grid = echo.grid("#productsGrid", {
+                url: "@Url.Action("Data")",
+                order: [[0, "asc"]],
+                emptyMessage: "No products yet.",
+                searchPlaceholder: "Search name, code, brand, SKU or barcode...",
+
+                filters: function () {
+                    return {
+                        status: $("#statusFilter").val(),
+                        brandId: $("#brandFilter").val(),
+                        categoryId: $("#categoryFilter").val()
+                    };
+                },
+
+                columns: [
+                    {
+                        data: "name",
+                        name: "name",
+                        render: function (name, type, row) {
+                            var line = echo.escape(name) +
+                                '<div class="text-muted small">' + echo.escape(row.code);
+
+                            if (row.isBatchTracked) {
+                                line += ' &middot; batch tracked';
+                            }
+
+                            return line + "</div>";
+                        }
+                    },
+                    { data: "brandName", name: "brand", render: echo.escape },
+                    {
+                        data: "primaryCategoryName",
+                        orderable: false,
+                        render: function (value) {
+                            return value
+                                ? echo.escape(value)
+                                : '<span class="text-muted small">Uncategorised</span>';
+                        }
+                    },
+                    {
+                        data: "variantCount",
+                        orderable: false,
+                        render: function (count) {
+                            return count === 1 ? "1" : count;
+                        }
+                    },
+                    {
+                        data: "priceFrom",
+                        orderable: false,
+                        className: "text-end",
+                        render: function (from, type, row) {
+                            if (from === null || typeof from === "undefined") {
+                                // Worth seeing plainly: an unpriced product
+                                // cannot be published or sold.
+                                return '<span class="text-warning-emphasis small">Not priced</span>';
+                            }
+
+                            if (row.priceTo !== null && row.priceTo !== from) {
+                                return money(from) + ' <span class="text-muted small">&ndash; ' +
+                                    money(row.priceTo) + "</span>";
+                            }
+
+                            return money(from);
+                        }
+                    },
+                    {
+                        data: "isPublished",
+                        name: "isPublished",
+                        render: function (published) {
+                            return published
+                                ? echo.render.badge("Live", "info")
+                                : '<span class="text-muted small">Not published</span>';
+                        }
+                    },
+                    {
+                        data: "isActive",
+                        name: "isActive",
+                        render: function (active) {
+                            return active
+                                ? echo.render.badge("Active", "success")
+                                : echo.render.badge("Inactive", "secondary");
+                        }
+                    },
+                    {
+                        data: "id",
+                        orderable: false,
+                        className: "text-end",
+                        render: function (id) {
+                            return canEdit
+                                ? echo.render.editLink(editUrlTemplate.replace("__id__", id))
+                                : "";
+                        }
+                    }
+                ]
+            });
+
+            // One comma-separated selector rather than three calls - jQuery
+            // handles the grouping and the helper keeps a single debounce.
+            echo.bindFilters(grid, "#statusFilter, #brandFilter, #categoryFilter");
+        })();
+    </script>
+}

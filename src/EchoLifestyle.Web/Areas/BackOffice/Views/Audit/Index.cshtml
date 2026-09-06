@@ -1,0 +1,209 @@
+@{
+    ViewData["Title"] = "Audit trail";
+    ViewData["Subtitle"] = "Security- and business-sensitive actions, newest first. Append-only.";
+
+    var actions = ViewData["RecordedActions"] as IReadOnlyList<string> ?? [];
+    var modules = actions.Select(a => a.Split('.')[0]).Distinct().OrderBy(m => m).ToList();
+
+    var today = Clock.BusinessNow.Date;
+}
+
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1" for="fromDate">From</label>
+                <input type="date" id="fromDate" class="form-control form-control-sm"
+                       value="@today.AddDays(-7).ToString("yyyy-MM-dd")" />
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1" for="toDate">To</label>
+                <input type="date" id="toDate" class="form-control form-control-sm"
+                       value="@today.ToString("yyyy-MM-dd")" />
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1" for="moduleFilter">Module</label>
+                <select id="moduleFilter" class="form-select form-select-sm">
+                    <option value="">All modules</option>
+                    @foreach (var module in modules)
+                    {
+                        <option value="@module">@module</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-4">
+                <label class="form-label small text-muted mb-1" for="actionFilter">Action</label>
+                <select id="actionFilter" class="form-select form-select-sm">
+                    <option value="">All actions</option>
+                    @foreach (var action in actions)
+                    {
+                        <option value="@action">@action</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-12 col-lg-2 d-flex align-items-end">
+                <button type="button" id="resetFilters" class="btn btn-outline-secondary btn-sm w-100">
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        @* Dates are business dates in Asia/Dhaka. The server converts them to a
+           UTC range, so an entry at 02:00 Dhaka lands on the day people expect. *@
+        <p class="form-text mb-0 mt-2">
+            Dates are business dates in Asia/Dhaka.
+        </p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="auditGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 2rem;"></th>
+                    <th>When</th>
+                    <th>Who</th>
+                    <th>Action</th>
+                    <th>Entity</th>
+                    <th>Summary</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            function detailRow(row) {
+                var parts = [];
+
+                if (row.detailJson) {
+                    var pretty = row.detailJson;
+                    try {
+                        pretty = JSON.stringify(JSON.parse(row.detailJson), null, 2);
+                    } catch (e) {
+                        // Not valid JSON - show it as stored rather than hiding it.
+                        pretty = row.detailJson;
+                    }
+
+                    parts.push(
+                        '<div class="mb-2"><div class="text-muted small text-uppercase mb-1">Detail</div>' +
+                        '<pre class="small mb-0 p-2 bg-body-tertiary border rounded">' +
+                        echo.escape(pretty) + "</pre></div>");
+                }
+
+                var meta = [];
+                if (row.traceId) {
+                    meta.push("Trace: <code>" + echo.escape(row.traceId) + "</code>");
+                }
+                if (row.ipAddress) {
+                    meta.push("IP: <code>" + echo.escape(row.ipAddress) + "</code>");
+                }
+                if (row.entityId) {
+                    meta.push("Entity id: <code>" + echo.escape(row.entityId) + "</code>");
+                }
+
+                if (meta.length > 0) {
+                    parts.push('<div class="small text-muted">' + meta.join(" &middot; ") + "</div>");
+                }
+
+                if (parts.length === 0) {
+                    return '<div class="small text-muted">No further detail was recorded.</div>';
+                }
+
+                return '<div class="p-2">' + parts.join("") + "</div>";
+            }
+
+            var grid = echo.grid("#auditGrid", {
+                url: "@Url.Action("Data")",
+                order: [[1, "desc"]],
+                pageLength: 50,
+                emptyMessage: "Nothing recorded in this period.",
+                searchPlaceholder: "Search action, summary or user...",
+
+                filters: function () {
+                    return {
+                        fromDate: $("#fromDate").val() || null,
+                        toDate: $("#toDate").val() || null,
+                        module: $("#moduleFilter").val() || null,
+                        action: $("#actionFilter").val() || null
+                    };
+                },
+
+                columns: [
+                    {
+                        data: null,
+                        orderable: false,
+                        className: "dt-control text-muted",
+                        defaultContent: "",
+                        render: function () {
+                            return '<span class="js-expand" style="cursor:pointer;">&#9656;</span>';
+                        }
+                    },
+                    { data: "occurredAtLocal", name: "occurredAtLocal", render: echo.escape },
+                    {
+                        data: "userName",
+                        name: "userName",
+                        render: function (user) {
+                            return user
+                                ? echo.escape(user)
+                                : '<span class="text-muted small">system</span>';
+                        }
+                    },
+                    {
+                        data: "action",
+                        name: "action",
+                        render: function (action, type, row) {
+                            // Sign-in failures and anything that weakens a control
+                            // are worth spotting without reading every line.
+                            var variant = "light border";
+                            if (action.indexOf("Failed") >= 0 || action.indexOf("LockedOut") >= 0) {
+                                variant = "danger";
+                            } else if (action.indexOf("Permissions") >= 0
+                                || action.indexOf("NegativeStock") >= 0
+                                || action.indexOf("PasswordReset") >= 0
+                                || action.indexOf("Vat") >= 0) {
+                                variant = "warning";
+                            }
+
+                            return echo.render.badge(row.module, variant) +
+                                ' <span class="small">' +
+                                echo.escape(action.substring(row.module.length + 1)) + "</span>";
+                        }
+                    },
+                    { data: "entityName", render: echo.escape },
+                    { data: "summary", render: echo.escape }
+                ]
+            });
+
+            // Expandable detail: the structured JSON is where before/after values
+            // live, but it would drown the table if shown inline.
+            $("#auditGrid tbody").on("click", "td.dt-control", function () {
+                var tr = $(this).closest("tr");
+                var row = grid.row(tr);
+
+                if (row.child.isShown()) {
+                    row.child.hide();
+                    tr.find(".js-expand").html("&#9656;");
+                } else {
+                    row.child(detailRow(row.data())).show();
+                    tr.find(".js-expand").html("&#9662;");
+                }
+            });
+
+            echo.bindFilters(grid, "#fromDate, #toDate, #moduleFilter, #actionFilter");
+
+            $("#resetFilters").on("click", function () {
+                $("#fromDate, #toDate").val("");
+                $("#moduleFilter, #actionFilter").val("");
+                grid.search("").draw();
+            });
+        })();
+    </script>
+}

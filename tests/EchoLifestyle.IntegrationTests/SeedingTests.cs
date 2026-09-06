@@ -10,12 +10,16 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace EchoLifestyle.IntegrationTests;
 
-[Collection(DatabaseCollection.Name)]
+/// <summary>
+/// Runs against its own database - see SeedingFixture for why. Every assertion
+/// here is about the state of a whole database, so it cannot share one.
+/// </summary>
+[Collection(SeedingCollection.Name)]
 public class SeedingTests : IAsyncLifetime
 {
-    private readonly DatabaseFixture _fixture;
+    private readonly SeedingFixture _fixture;
 
-    public SeedingTests(DatabaseFixture fixture)
+    public SeedingTests(SeedingFixture fixture)
     {
         _fixture = fixture;
     }
@@ -65,16 +69,20 @@ public class SeedingTests : IAsyncLifetime
 
         var db = scope.ServiceProvider.GetRequiredService<EchoDbContext>();
 
-        // Counts are scoped to the seeded company. Other test classes in this
-        // collection create their own companies and branches, so a global count
-        // here would pass or fail depending on which class happened to run first.
-        var company = await db.Companies.SingleAsync(c => c.Name == "Echo Lifestyle");
+        // Global counts, deliberately: "seeding twice creates nothing extra" is
+        // a claim about the database, and this fixture gives the class one of
+        // its own so the claim can be made honestly.
+        var company = await db.Companies.SingleAsync();
 
-        Assert.Equal(1, await db.Companies.CountAsync(c => c.Name == "Echo Lifestyle"));
-        Assert.Equal(1, await db.Branches.CountAsync(b => b.CompanyId == company.Id));
-        Assert.Equal(1, await db.Warehouses.CountAsync(w => w.CompanyId == company.Id));
+        Assert.Equal("Echo Lifestyle", company.Name);
+        Assert.Equal(1, await db.Branches.CountAsync());
+        Assert.Equal(1, await db.Warehouses.CountAsync());
         Assert.Equal(2, await db.Users.CountAsync());
         Assert.Equal(Roles.All.Count, await db.Roles.CountAsync());
+
+        // The catalogue baseline is seeded too, and is just as idempotent.
+        Assert.Equal(1, await db.PriceLists.CountAsync(p => p.IsDefault));
+        Assert.Equal(5, await db.UnitsOfMeasure.CountAsync());
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using EchoLifestyle.Application.Administration.Branches;
 using EchoLifestyle.Application.Common.Authorization;
+using EchoLifestyle.Application.Common.Filters;
 using EchoLifestyle.Web.Areas.BackOffice.Models.Branches;
 using EchoLifestyle.Web.Grids;
 using Microsoft.AspNetCore.Authorization;
@@ -24,7 +25,7 @@ public class BranchesController : BackOfficeControllerBase
     [HttpPost]
     public async Task<IActionResult> Data(
         GridRequest request,
-        BranchStatusFilter status,
+        StatusFilter status,
         CancellationToken cancellationToken)
     {
         var page = await _branches.ListAsync(

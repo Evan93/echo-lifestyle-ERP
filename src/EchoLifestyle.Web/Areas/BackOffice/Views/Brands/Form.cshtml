@@ -1,0 +1,202 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Catalog
+@model BrandFormModel
+@{
+    ViewData["Subtitle"] = Model.IsNew
+        ? "Add a brand before creating products under it"
+        : "Edit this brand";
+
+    var action = Model.IsNew ? "Create" : "Edit";
+}
+
+<form asp-action="@action" asp-route-id="@(Model.IsNew ? null : (long?)Model.Id)" method="post" novalidate>
+    <input type="hidden" asp-for="Id" />
+
+    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+    {
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Details</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-7">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" id="brandName" autocomplete="off" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-5">
+                            <label asp-for="OriginCountry" class="form-label"></label>
+                            <input asp-for="OriginCountry" class="form-control" list="originSuggestions" />
+                            <datalist id="originSuggestions">
+                                <option value="South Korea"></option>
+                                <option value="Japan"></option>
+                                <option value="France"></option>
+                                <option value="United States"></option>
+                                <option value="United Kingdom"></option>
+                                <option value="India"></option>
+                                <option value="Bangladesh"></option>
+                                <option value="Thailand"></option>
+                            </datalist>
+                            <div class="form-text">Shoppers filter on this - "Korean skincare" is a real search.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Slug" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text text-muted">/brand/</span>
+                                <input asp-for="Slug" class="form-control" id="brandSlug" autocomplete="off" />
+                            </div>
+                            <span asp-validation-for="Slug" class="text-danger small"></span>
+                            <div class="form-text">
+                                @if (Model.IsNew)
+                                {
+                                    <text>Leave blank and one is made from the name.</text>
+                                }
+                                else
+                                {
+                                    <text>
+                                        This is a public address. Changing it breaks every existing link to
+                                        this brand's page - rename the brand freely, but change this only
+                                        deliberately.
+                                    </text>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                            <div class="form-text">Shown on the brand's storefront page.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Artwork</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label asp-for="LogoPath" class="form-label"></label>
+                            <input asp-for="LogoPath" class="form-control" placeholder="/uploads/brands/logo.png" />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label asp-for="BannerPath" class="form-label"></label>
+                            <input asp-for="BannerPath" class="form-control" placeholder="/uploads/brands/banner.jpg" />
+                        </div>
+                        <div class="col-12">
+                            <div class="form-text">
+                                Paths for now - upload arrives with the product image manager. Anything under
+                                <code>wwwroot</code> works.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Storefront</div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input asp-for="IsFeatured" class="form-check-input" role="switch" />
+                        <label asp-for="IsFeatured" class="form-check-label"></label>
+                        <div class="form-text">Appears in the "shop by brand" row on the home page.</div>
+                    </div>
+
+                    <label asp-for="DisplayOrder" class="form-label"></label>
+                    <input asp-for="DisplayOrder" class="form-control" style="max-width: 8rem;" />
+                    <span asp-validation-for="DisplayOrder" class="text-danger small"></span>
+                    <div class="form-text">Lower numbers come first. Equal numbers fall back to name order.</div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Status</div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input asp-for="IsActive" class="form-check-input" role="switch" />
+                        <label asp-for="IsActive" class="form-check-label"></label>
+                        <div class="form-text">
+                            Deactivating hides the brand from the storefront and from the product form.
+                            Products already filed under it keep working.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!Model.IsNew)
+            {
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold">Catalogue</div>
+                    <div class="card-body">
+                        @if (Model.ProductCount == 0)
+                        {
+                            <p class="text-muted small">No products under this brand yet.</p>
+
+                            @if (CurrentUser.HasPermission(Permissions.Catalog.BrandEdit))
+                            {
+                                <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
+                                      onsubmit="return confirm('Delete this brand?');">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete brand</button>
+                                </form>
+                            }
+                        }
+                        else
+                        {
+                            <p class="mb-0 small">
+                                <strong>@Model.ProductCount</strong>
+                                product@(Model.ProductCount == 1 ? "" : "s") filed under this brand.
+                                It cannot be deleted while that is true - deactivate it instead.
+                            </p>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-echo" data-submit-once>
+            @(Model.IsNew ? "Create brand" : "Save changes")
+        </button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    @if (Model.IsNew)
+    {
+        <script>
+            // Only on create, and only while the user has not typed a slug of
+            // their own: silently rewriting an address someone chose is worse
+            // than leaving it alone.
+            (function () {
+                var name = document.getElementById("brandName");
+                var slug = document.getElementById("brandSlug");
+
+                if (!name || !slug) {
+                    return;
+                }
+
+                var userEdited = false;
+                slug.addEventListener("input", function () { userEdited = true; });
+
+                name.addEventListener("input", function () {
+                    if (userEdited) {
+                        return;
+                    }
+
+                    slug.value = echo.slugify(name.value);
+                });
+            })();
+        </script>
+    }
+}

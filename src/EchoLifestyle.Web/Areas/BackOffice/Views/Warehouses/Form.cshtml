@@ -1,0 +1,120 @@
+@using EchoLifestyle.Domain.Administration
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Warehouses
+@model WarehouseFormModel
+@{
+    ViewData["Subtitle"] = Model.IsNew
+        ? "Create a stock-holding location"
+        : "Edit this warehouse";
+
+    var action = Model.IsNew ? "Create" : "Edit";
+}
+
+<form asp-action="@action" asp-route-id="@(Model.IsNew ? null : (long?)Model.Id)" method="post" novalidate>
+    <input type="hidden" asp-for="Id" />
+
+    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+    {
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Details</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Code" class="form-label"></label>
+                            <input asp-for="Code" class="form-control text-uppercase" autocomplete="off" />
+                            <span asp-validation-for="Code" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-8">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-5">
+                            <label asp-for="Kind" class="form-label"></label>
+                            <select asp-for="Kind" class="form-select"
+                                    asp-items="Html.GetEnumSelectList<WarehouseKind>()"></select>
+                            <div class="form-text">
+                                Only <strong>Sellable</strong> stock counts toward what the business can sell.
+                                Quarantine, damaged and transit locations are excluded from availability.
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-7">
+                            <label asp-for="City" class="form-label"></label>
+                            <input asp-for="City" class="form-control" />
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="AddressLine1" class="form-label"></label>
+                            <input asp-for="AddressLine1" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Status</div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input asp-for="IsActive" class="form-check-input" role="switch" />
+                        <label asp-for="IsActive" class="form-check-label"></label>
+                        <span asp-validation-for="IsActive" class="text-danger small d-block"></span>
+                        <div class="form-text">
+                            A warehouse that is the primary source for an active branch cannot be
+                            deactivated - point those branches elsewhere first.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!Model.IsNew)
+            {
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold">Linked branches</div>
+                    <div class="card-body">
+                        @if (Model.LinkedBranches.Count == 0)
+                        {
+                            <p class="text-muted small mb-0">
+                                No branch draws from this warehouse yet. Link it from the branch form.
+                            </p>
+                        }
+                        else
+                        {
+                            <ul class="list-unstyled mb-0 small">
+                                @foreach (var branch in Model.LinkedBranches)
+                                {
+                                    <li class="d-flex justify-content-between align-items-center py-1">
+                                        <span>@branch</span>
+                                        @if (Model.PrimaryForBranches.Contains(branch))
+                                        {
+                                            <span class="badge text-bg-light border">Primary</span>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-echo" data-submit-once>
+            @(Model.IsNew ? "Create warehouse" : "Save changes")
+        </button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

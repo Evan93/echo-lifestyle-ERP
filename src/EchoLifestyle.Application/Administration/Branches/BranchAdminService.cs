@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using EchoLifestyle.Application.Common.Filters;
 using EchoLifestyle.Application.Common.Interfaces;
 using EchoLifestyle.Application.Common.Results;
 using EchoLifestyle.Domain.Administration;
@@ -42,7 +43,7 @@ public partial class BranchAdminService
         int take,
         string? sortColumn,
         bool sortDescending,
-        BranchStatusFilter status,
+        StatusFilter status,
         CancellationToken cancellationToken = default)
     {
         var query = _db.Branches.AsNoTracking();
@@ -57,8 +58,8 @@ public partial class BranchAdminService
 
         query = status switch
         {
-            BranchStatusFilter.Active => query.Where(b => b.IsActive),
-            BranchStatusFilter.Inactive => query.Where(b => !b.IsActive),
+            StatusFilter.Active => query.Where(b => b.IsActive),
+            StatusFilter.Inactive => query.Where(b => !b.IsActive),
             _ => query,
         };
 

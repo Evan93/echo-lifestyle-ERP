@@ -1,0 +1,180 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Roles
+@model RoleFormModel
+@{
+    ViewData["Subtitle"] = Model.IsNew
+        ? "Choose the actions this role may perform"
+        : $"{Model.UserCount} account(s) hold this role";
+
+    var action = Model.IsNew ? "Create" : "Edit";
+    var readOnly = Model.PermissionsAreFixed;
+}
+
+<form asp-action="@action" asp-route-id="@(Model.IsNew ? null : (long?)Model.Id)" method="post" novalidate>
+    <input type="hidden" asp-for="Id" />
+
+    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+    {
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    @if (readOnly)
+    {
+        <div class="alert alert-warning small">
+            <strong>Owner holds every permission, always.</strong>
+            This is deliberate: permissions added by a future phase reach Owner automatically, so
+            nobody can end up locked out of the system by a change they did not know about.
+            The list below is shown for reference and cannot be edited.
+        </div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-header fw-semibold">Role</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" readonly="@Model.IsSystemRole" />
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                    @if (Model.IsSystemRole)
+                    {
+                        <div class="form-text">
+                            System roles keep their names - the seeder looks them up by name.
+                        </div>
+                    }
+                </div>
+
+                <div class="col-12 col-md-8">
+                    <label asp-for="Description" class="form-label"></label>
+                    <input asp-for="Description" class="form-control" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+            <span>Permissions</span>
+            <span class="text-muted small fw-normal">
+                <span id="permissionCount">@Model.Permissions.Count</span> of @Permissions.All.Count selected
+            </span>
+        </div>
+
+        <div class="card-body">
+            @foreach (var module in Permissions.ByModule.OrderBy(m => m.Key))
+            {
+                var moduleId = $"module-{module.Key}";
+
+                <div class="mb-4">
+                    <div class="d-flex align-items-center justify-content-between border-bottom pb-1 mb-2">
+                        <h2 class="h6 mb-0">@module.Key</h2>
+
+                        @if (!readOnly)
+                        {
+                            <div class="form-check form-check-inline m-0">
+                                <input class="form-check-input js-module-all" type="checkbox"
+                                       id="@moduleId" data-module="@module.Key" />
+                                <label class="form-check-label small text-muted" for="@moduleId">
+                                    Select all
+                                </label>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="row g-2">
+                        @foreach (var permission in module.Value)
+                        {
+                            var isChecked = Model.Permissions.Contains(permission);
+                            var inputId = "perm-" + permission.Replace('.', '-');
+
+                            // Action is the last dotted segment: "Approve" from
+                            // "Inventory.Transfer.Approve".
+                            var parts = permission.Split('.');
+                            var entity = parts.Length > 1 ? parts[1] : string.Empty;
+                            var verb = parts.Length > 2 ? parts[2] : permission;
+
+                            <div class="col-12 col-md-6 col-xl-4">
+                                <div class="form-check">
+                                    <input class="form-check-input js-permission" type="checkbox"
+                                           name="Permissions" value="@permission" id="@inputId"
+                                           checked="@isChecked"
+                                           disabled="@readOnly"
+                                           data-module="@module.Key" />
+                                    <label class="form-check-label small" for="@inputId">
+                                        <span class="text-muted">@entity</span>
+                                        <span class="fw-semibold">@verb</span>
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (!readOnly)
+    {
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-echo" data-submit-once>
+                @(Model.IsNew ? "Create role" : "Save permissions")
+            </button>
+            <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+        </div>
+    }
+    else
+    {
+        <a class="btn btn-outline-secondary" asp-action="Index">Back to roles</a>
+    }
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var permissions = Array.prototype.slice.call(document.querySelectorAll(".js-permission"));
+            var counter = document.getElementById("permissionCount");
+
+            function refreshCount() {
+                if (counter) {
+                    counter.textContent = permissions.filter(function (p) { return p.checked; }).length;
+                }
+            }
+
+            function refreshModuleToggles() {
+                document.querySelectorAll(".js-module-all").forEach(function (toggle) {
+                    var inModule = permissions.filter(function (p) {
+                        return p.dataset.module === toggle.dataset.module;
+                    });
+
+                    var checked = inModule.filter(function (p) { return p.checked; }).length;
+
+                    toggle.checked = checked === inModule.length && inModule.length > 0;
+
+                    // Partially selected reads as neither on nor off, which is
+                    // the honest state for a mixed module.
+                    toggle.indeterminate = checked > 0 && checked < inModule.length;
+                });
+            }
+
+            document.addEventListener("change", function (event) {
+                var target = event.target;
+
+                if (target.classList.contains("js-module-all")) {
+                    permissions.forEach(function (permission) {
+                        if (permission.dataset.module === target.dataset.module) {
+                            permission.checked = target.checked;
+                        }
+                    });
+                }
+
+                if (target.classList.contains("js-permission") || target.classList.contains("js-module-all")) {
+                    refreshCount();
+                    refreshModuleToggles();
+                }
+            });
+
+            refreshCount();
+            refreshModuleToggles();
+        })();
+    </script>
+}

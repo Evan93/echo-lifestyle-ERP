@@ -1,12 +1,16 @@
 using EchoLifestyle.Application.Common.Interfaces;
 using EchoLifestyle.Domain.Administration;
 using EchoLifestyle.Domain.Auditing;
+using EchoLifestyle.Domain.Catalog;
 using EchoLifestyle.Domain.Common;
+using EchoLifestyle.Domain.Inventory;
+using EchoLifestyle.Domain.Purchasing;
 using EchoLifestyle.Domain.Security;
 using EchoLifestyle.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace EchoLifestyle.Infrastructure.Persistence;
 
@@ -23,10 +27,28 @@ public class EchoDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
     public const string AdminSchema = "admin";
     public const string SecuritySchema = "security";
     public const string AuditSchema = "audit";
+    public const string CatalogSchema = "catalog";
+    public const string InventorySchema = "inventory";
+    public const string PurchasingSchema = "purchasing";
 
     public EchoDbContext(DbContextOptions<EchoDbContext> options)
         : base(options)
     {
+        // Soft delete is implemented by AuditableEntityInterceptor turning a
+        // Deleted entry into a Modified one at save time. By default EF cascades
+        // the moment Remove() is called - long before the interceptor gets a
+        // say - so removing a product whose variants happened to be loaded threw
+        // "the association has been severed" instead of soft-deleting it. The
+        // exception surfaced only when the dependents were tracked, which is to
+        // say: not in a small test, and always in the editor that just loaded
+        // them.
+        //
+        // Deferring both to save time lets the interceptor demote the delete
+        // first, so nothing is left to cascade. Business foreign keys are
+        // Restrict regardless (see ApplyConventions), so this changes when the
+        // check happens, never whether it happens.
+        ChangeTracker.CascadeDeleteTiming = CascadeTiming.OnSaveChanges;
+        ChangeTracker.DeleteOrphansTiming = CascadeTiming.OnSaveChanges;
     }
 
     public DbSet<Company> Companies => Set<Company>();
@@ -40,6 +62,72 @@ public class EchoDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
     public DbSet<UserBranch> UserBranches => Set<UserBranch>();
 
     public DbSet<AuditLogEntry> AuditLog => Set<AuditLogEntry>();
+
+    public DbSet<UnitOfMeasure> UnitsOfMeasure => Set<UnitOfMeasure>();
+
+    public DbSet<Brand> Brands => Set<Brand>();
+
+    public DbSet<Category> Categories => Set<Category>();
+
+    public DbSet<Product> Products => Set<Product>();
+
+    public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
+
+    public DbSet<ProductOption> ProductOptions => Set<ProductOption>();
+
+    public DbSet<ProductOptionValue> ProductOptionValues => Set<ProductOptionValue>();
+
+    public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
+
+    public DbSet<ProductVariantOptionValue> ProductVariantOptionValues => Set<ProductVariantOptionValue>();
+
+    public DbSet<ProductImage> ProductImages => Set<ProductImage>();
+
+    public DbSet<PriceList> PriceLists => Set<PriceList>();
+
+    public DbSet<PriceListItem> PriceListItems => Set<PriceListItem>();
+
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+
+    public DbSet<StockBatch> StockBatches => Set<StockBatch>();
+
+    public DbSet<StockLedgerEntry> StockLedger => Set<StockLedgerEntry>();
+
+    public DbSet<StockBalance> StockBalances => Set<StockBalance>();
+
+    public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
+
+    public DbSet<GoodsReceiptLine> GoodsReceiptLines => Set<GoodsReceiptLine>();
+
+    public DbSet<PurchaseCharge> PurchaseCharges => Set<PurchaseCharge>();
+
+    /// <inheritdoc />
+    public async Task<T> ExecuteInTransactionAsync<T>(
+        Func<CancellationToken, Task<T>> operation,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(operation);
+
+        // Through the execution strategy, not around it. Retry-on-failure is
+        // enabled on this context, and a hand-rolled BeginTransaction throws the
+        // moment it is - a failure that would appear in production and nowhere
+        // else. The strategy owns the retry loop and re-runs the whole
+        // operation, transaction included.
+        var strategy = Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(
+            cancellationToken,
+            async (token) =>
+            {
+                await using var transaction = await Database.BeginTransactionAsync(token);
+
+                var result = await operation(token);
+
+                await transaction.CommitAsync(token);
+
+                return result;
+            });
+    }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -86,6 +174,17 @@ public class EchoDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
         builder.Entity<Company>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<Branch>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<Warehouse>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<Brand>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<Category>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<Product>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<Supplier>().HasQueryFilter(e => !e.IsDeleted);
+
+        // Variants are not soft-deletable themselves, but they are queried
+        // directly all over the system - variant pickers, barcode lookups,
+        // stock reads - and a variant of a deleted product must not surface in
+        // any of them. Filtering through the parent is the only way to get that
+        // without every caller remembering to join.
+        builder.Entity<ProductVariant>().HasQueryFilter(v => !v.Product!.IsDeleted);
     }
 
     /// <summary>

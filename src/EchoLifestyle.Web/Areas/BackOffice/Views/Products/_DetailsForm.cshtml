@@ -1,0 +1,220 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Catalog
+@model ProductFormModel
+@*
+    A partial with its own model rather than fields on the page's model: the
+    POST action binds a bare ProductFormModel, so every input here has to post
+    under a plain name. Nesting it under the page model would prefix each name
+    with "Product." and quietly detach every validation message from its input.
+*@
+
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post" novalidate>
+    <input type="hidden" asp-for="Id" />
+
+    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+    {
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Basics</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Code" class="form-label"></label>
+                            <input asp-for="Code" class="form-control text-uppercase" autocomplete="off" />
+                            <span asp-validation-for="Code" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-8">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Slug" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text text-muted">/product/</span>
+                                <input asp-for="Slug" class="form-control" />
+                            </div>
+                            <span asp-validation-for="Slug" class="text-danger small"></span>
+                            <div class="form-text">
+                                A public address. Renaming the product is safe; changing this breaks
+                                every existing link to it.
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-8">
+                            <label asp-for="BrandId" class="form-label"></label>
+                            <select asp-for="BrandId" class="form-select">
+                                @foreach (var brand in Model.Brands)
+                                {
+                                    <option value="@brand.Id" selected="@(Model.BrandId == brand.Id)">
+                                        @brand.Name@(brand.IsActive ? "" : " (inactive)")
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="BrandId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="UnitOfMeasureId" class="form-label"></label>
+                            <select asp-for="UnitOfMeasureId" class="form-select">
+                                @foreach (var unit in Model.Units)
+                                {
+                                    <option value="@unit.Id" selected="@(Model.UnitOfMeasureId == unit.Id)">
+                                        @unit.Name
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="UnitOfMeasureId" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Storefront content</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="ShortDescription" class="form-label"></label>
+                            <textarea asp-for="ShortDescription" class="form-control" rows="2"></textarea>
+                            <span asp-validation-for="ShortDescription" class="text-danger small"></span>
+                            <div class="form-text">One or two lines, shown under the product name.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="LongDescription" class="form-label"></label>
+                            <textarea asp-for="LongDescription" class="form-control" rows="6"></textarea>
+                            <span asp-validation-for="LongDescription" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="HowToUse" class="form-label"></label>
+                            <textarea asp-for="HowToUse" class="form-control" rows="4"></textarea>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Ingredients" class="form-label"></label>
+                            <textarea asp-for="Ingredients" class="form-control" rows="4"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Categories</div>
+                <div class="card-body">
+                    @if (Model.Categories.Count == 0)
+                    {
+                        <p class="text-muted small mb-0">
+                            No categories exist yet -
+                            <a asp-controller="Categories" asp-action="Create">create one</a>
+                            before saving, or this product will not be findable.
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="d-flex justify-content-between text-muted small mb-2">
+                            <span>Filed under</span>
+                            <span>Primary</span>
+                        </div>
+
+                        <div style="max-height: 20rem; overflow-y: auto;">
+                            @foreach (var category in Model.Categories)
+                            {
+                                var isChecked = Model.CategoryIds.Contains(category.Id);
+
+                                <div class="d-flex justify-content-between align-items-center py-1 js-category-row">
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input js-category" type="checkbox"
+                                               name="CategoryIds" value="@category.Id"
+                                               id="cat-@category.Id" checked="@isChecked" />
+                                        <label class="form-check-label" for="cat-@category.Id">
+                                            <span style="display:inline-block; width:@(category.Depth)rem;"></span>@category.Name
+                                            @if (!category.IsActive)
+                                            {
+                                                <span class="text-muted small">(inactive)</span>
+                                            }
+                                        </label>
+                                    </div>
+
+                                    <input class="form-check-input js-primary" type="radio"
+                                           name="PrimaryCategoryId" value="@category.Id"
+                                           checked="@(Model.PrimaryCategoryId == category.Id)"
+                                           disabled="@(!isChecked)" />
+                                </div>
+                            }
+                        </div>
+
+                        <span asp-validation-for="CategoryIds" class="text-danger small d-block mt-2"></span>
+                        <span asp-validation-for="PrimaryCategoryId" class="text-danger small d-block"></span>
+
+                        <div class="form-text mt-2">
+                            The primary category drives breadcrumbs and category reporting, so a product
+                            filed in three places is still only counted once.
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Tracking</div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input asp-for="IsExpiryTracked" class="form-check-input" role="switch" id="expirySwitch" />
+                        <label asp-for="IsExpiryTracked" class="form-check-label"></label>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        <input asp-for="IsBatchTracked" class="form-check-input" role="switch" id="batchSwitch" />
+                        <label asp-for="IsBatchTracked" class="form-check-label"></label>
+                        <div class="form-text">
+                            Off still creates a batch on every receipt &mdash; it is just generated and
+                            never shown, so traceability exists without the typing.
+                        </div>
+                    </div>
+
+                    <label asp-for="ShelfLifeDays" class="form-label"></label>
+                    <input asp-for="ShelfLifeDays" class="form-control" style="max-width: 8rem;"
+                           type="number" min="1" max="3650" />
+                    <span asp-validation-for="ShelfLifeDays" class="text-danger small"></span>
+                    <div class="form-text">
+                        Used to suggest an expiry date when a supplier gives only a manufacture date.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Status</div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input asp-for="IsActive" class="form-check-input" role="switch" />
+                        <label asp-for="IsActive" class="form-check-label"></label>
+                        <div class="form-text">
+                            Deactivating also removes the product from the storefront &mdash; leaving it
+                            published would advertise something the system refuses to sell.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mb-4">
+        <button type="submit" class="btn btn-echo" data-submit-once>Save details</button>
+
+        @if (CurrentUser.HasPermission(Permissions.Catalog.ProductEdit) && !Model.HasPriceHistory)
+        {
+            <button type="button" class="btn btn-outline-danger ms-auto"
+                    data-bs-toggle="modal" data-bs-target="#deleteProduct">
+                Delete product
+            </button>
+        }
+    </div>
+</form>

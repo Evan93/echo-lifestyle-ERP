@@ -1,0 +1,142 @@
+@using EchoLifestyle.Application.Catalog.Categories
+@using EchoLifestyle.Application.Common.Filters
+@model IReadOnlyList<CategoryNode>
+@{
+    ViewData["Title"] = "Categories";
+    ViewData["Subtitle"] = "How the storefront is browsed. Three levels, children shown under their parent.";
+
+    var status = ViewData["Status"] as StatusFilter? ?? StatusFilter.All;
+    var search = ViewData["Search"] as string;
+    var canEdit = CurrentUser.HasPermission(Permissions.Catalog.CategoryEdit);
+}
+
+<form method="get" class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-end gap-2 flex-wrap">
+        <div>
+            <label class="form-label mb-1 small text-muted" for="status">Showing</label>
+            <select id="status" name="status" class="form-select form-select-sm" style="width: auto;"
+                    onchange="this.form.submit();">
+                <option value="All" selected="@(status == StatusFilter.All)">All categories</option>
+                <option value="Active" selected="@(status == StatusFilter.Active)">Active only</option>
+                <option value="Inactive" selected="@(status == StatusFilter.Inactive)">Inactive only</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="form-label mb-1 small text-muted" for="search">Search</label>
+            <div class="input-group input-group-sm">
+                <input id="search" name="search" value="@search" class="form-control"
+                       placeholder="Category name..." style="width: 14rem;" autocomplete="off" />
+                <button class="btn btn-outline-secondary" type="submit">Find</button>
+                @if (!string.IsNullOrWhiteSpace(search))
+                {
+                    <a class="btn btn-outline-secondary" asp-action="Index" asp-route-status="@status">Clear</a>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (canEdit)
+    {
+        <a class="btn btn-echo btn-sm" asp-action="Create">New category</a>
+    }
+</form>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Category</th>
+                    <th>Address</th>
+                    <th class="text-center">Products</th>
+                    <th class="text-center">In menu</th>
+                    <th>Order</th>
+                    <th>Status</th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            @if (!string.IsNullOrWhiteSpace(search))
+                            {
+                                <text>Nothing matched "@search".</text>
+                            }
+                            else
+                            {
+                                <text>No categories yet. Start with a top-level one such as Skincare.</text>
+                            }
+                        </td>
+                    </tr>
+                }
+
+                @foreach (var node in Model)
+                {
+                    <tr class="@(node.IsActive ? null : "text-muted")">
+                        <td>
+                            <span style="display:inline-block; width:@(node.Depth * 1.5)rem;"></span>
+                            @if (node.Depth > 0)
+                            {
+                                <span class="text-muted me-1">&#8627;</span>
+                            }
+                            <span class="@(node.Depth == 0 ? "fw-semibold" : null)">@node.Name</span>
+                            @if (node.ChildCount > 0)
+                            {
+                                <span class="badge text-bg-light border ms-2">@node.ChildCount sub</span>
+                            }
+                        </td>
+                        <td class="text-muted small">/@node.Slug</td>
+                        <td class="text-center">
+                            @if (node.DirectProductCount == 0)
+                            {
+                                <span class="text-muted small">&mdash;</span>
+                            }
+                            else
+                            {
+                                @node.DirectProductCount
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if (node.ShowInMenu)
+                            {
+                                <span class="badge text-bg-light border">Yes</span>
+                            }
+                        </td>
+                        <td>@node.DisplayOrder</td>
+                        <td>
+                            @if (node.IsActive)
+                            {
+                                <span class="badge text-bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-secondary">Inactive</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            @if (canEdit)
+                            {
+                                @if (node.Depth < 2)
+                                {
+                                    <a class="btn btn-sm btn-outline-secondary me-1"
+                                       asp-action="Create" asp-route-parentId="@node.Id"
+                                       title="Add a sub-category under @node.Name">Add under</a>
+                                }
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   asp-action="Edit" asp-route-id="@node.Id">Edit</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<p class="text-muted small mt-3 mb-0">
+    A category cannot be deleted while it still holds products or sub-categories &mdash; deactivate it
+    instead, which hides it from the storefront without orphaning anything.
+</p>

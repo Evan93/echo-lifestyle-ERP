@@ -1,0 +1,126 @@
+@{
+    ViewData["Title"] = "Users";
+    ViewData["Subtitle"] = "Staff accounts. Customer accounts are managed under Customers.";
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0 small text-muted" for="statusFilter">Showing</label>
+        <select id="statusFilter" class="form-select form-select-sm" style="width: auto;">
+            <option value="Active" selected>Active accounts</option>
+            <option value="Inactive">Deactivated accounts</option>
+            <option value="All">All accounts</option>
+        </select>
+    </div>
+
+    @if (CurrentUser.HasPermission(Permissions.Security.UserCreate))
+    {
+        <a class="btn btn-echo btn-sm" asp-action="Create">New staff account</a>
+    }
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="usersGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>Username</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Roles</th>
+                    <th>Branches</th>
+                    <th>Last sign-in</th>
+                    <th>Status</th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var canEdit = @Json.Serialize(CurrentUser.HasPermission(Permissions.Security.UserEdit));
+            var editUrlTemplate = "@Url.Action("Edit", new { id = "__id__" })";
+
+            var grid = echo.grid("#usersGrid", {
+                url: "@Url.Action("Data")",
+                order: [[0, "asc"]],
+                emptyMessage: "No staff accounts match.",
+                searchPlaceholder: "Search username, name or email...",
+
+                filters: function () {
+                    return { status: $("#statusFilter").val() };
+                },
+
+                columns: [
+                    { data: "userName", name: "userName", render: echo.escape },
+                    { data: "fullName", name: "fullName", render: echo.escape },
+                    { data: "email", name: "email", render: echo.escape },
+                    {
+                        data: "roles",
+                        orderable: false,
+                        render: function (roles) {
+                            if (!roles || roles.length === 0) {
+                                return '<span class="text-muted small">No roles</span>';
+                            }
+
+                            return roles.map(function (role) {
+                                var variant = role === "Owner" ? "warning" : "light border";
+                                return echo.render.badge(role, variant);
+                            }).join(" ");
+                        }
+                    },
+                    {
+                        data: "branchCount",
+                        orderable: false,
+                        render: function (count) {
+                            return count > 0
+                                ? count
+                                : '<span class="text-muted small">All (owner)</span>';
+                        }
+                    },
+                    {
+                        data: "lastLoginAtUtc",
+                        name: "lastLoginAtUtc",
+                        render: function (value) {
+                            if (!value) {
+                                return '<span class="text-muted small">Never</span>';
+                            }
+
+                            // Stored in UTC; shown in the viewer's local time,
+                            // which for this business is Dhaka.
+                            return echo.escape(new Date(value + "Z").toLocaleString());
+                        }
+                    },
+                    {
+                        data: "isActive",
+                        name: "isActive",
+                        render: function (active, type, row) {
+                            if (!active) {
+                                return echo.render.badge("Deactivated", "secondary");
+                            }
+
+                            return row.isLockedOut
+                                ? echo.render.badge("Locked out", "danger")
+                                : echo.render.badge("Active", "success");
+                        }
+                    },
+                    {
+                        data: "id",
+                        orderable: false,
+                        className: "text-end",
+                        render: function (id) {
+                            return canEdit
+                                ? echo.render.editLink(editUrlTemplate.replace("__id__", id))
+                                : "";
+                        }
+                    }
+                ]
+            });
+
+            echo.bindFilters(grid, "#statusFilter");
+        })();
+    </script>
+}

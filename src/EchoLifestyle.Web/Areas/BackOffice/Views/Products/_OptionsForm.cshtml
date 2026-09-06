@@ -1,0 +1,41 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Catalog
+@model OptionsFormModel
+
+<div class="card mb-3">
+    <div class="card-header fw-semibold">Options</div>
+    <div class="card-body">
+        <p class="text-muted small">
+            The axes this product varies along. Saving rebuilds the variant table below so that there
+            is exactly one variant per combination &mdash; existing SKUs and prices are kept wherever
+            the combination still exists.
+        </p>
+
+        <form asp-action="SaveOptions" asp-route-id="@Model.ProductId" method="post">
+            @for (var i = 0; i < Model.Rows.Count; i++)
+            {
+                var index = i;
+
+                <div class="row g-2 align-items-start mb-2">
+                    <div class="col-12 col-md-3">
+                        <input asp-for="Rows[index].Name" class="form-control" autocomplete="off"
+                               placeholder="@(index == 0 ? "Size" : index == 1 ? "Shade" : "Option name")" />
+                    </div>
+                    <div class="col-12 col-md-9">
+                        <input asp-for="Rows[index].Values" class="form-control" autocomplete="off"
+                               placeholder="@(index == 1 ? "Ruby Red #C21807, Coral #FF6F61" : "30ml, 50ml, 100ml")" />
+                    </div>
+                </div>
+            }
+
+            <div class="form-text mb-3">
+                Comma-separated. A shade can carry its swatch colour in the same box &mdash;
+                <code>Ruby Red #C21807</code> &mdash; which is what lets the storefront draw colour
+                circles instead of a dropdown. Clear a row to remove that option.
+            </div>
+
+            <button type="submit" class="btn btn-outline-primary btn-sm" data-submit-once>
+                Save options and rebuild variants
+            </button>
+        </form>
+    </div>
+</div>

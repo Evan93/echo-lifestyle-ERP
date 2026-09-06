@@ -76,10 +76,31 @@ public class BackOfficeMenu
             Icon = "box",
             Children =
             [
-                new NavItem { Text = "Products", Icon = "dot", Permission = Permissions.Catalog.ProductView, ComingInPhase = "2" },
-                new NavItem { Text = "Brands", Icon = "dot", Permission = Permissions.Catalog.ProductView, ComingInPhase = "2" },
-                new NavItem { Text = "Categories", Icon = "dot", Permission = Permissions.Catalog.ProductView, ComingInPhase = "2" },
-                new NavItem { Text = "Price lists", Icon = "dot", Permission = Permissions.Catalog.PriceEdit, ComingInPhase = "2" },
+                new NavItem
+                {
+                    Text = "Products",
+                    Icon = "dot",
+                    Controller = "Products",
+                    Action = "Index",
+                    Permission = Permissions.Catalog.ProductView,
+                },
+                new NavItem
+                {
+                    Text = "Brands",
+                    Icon = "dot",
+                    Controller = "Brands",
+                    Action = "Index",
+                    Permission = Permissions.Catalog.BrandView,
+                },
+                new NavItem
+                {
+                    Text = "Categories",
+                    Icon = "dot",
+                    Controller = "Categories",
+                    Action = "Index",
+                    Permission = Permissions.Catalog.CategoryView,
+                },
+                new NavItem { Text = "Price lists", Icon = "dot", Permission = Permissions.Catalog.PriceListEdit, ComingInPhase = "2" },
             ],
         },
 
@@ -89,7 +110,14 @@ public class BackOfficeMenu
             Icon = "truck",
             Children =
             [
-                new NavItem { Text = "Suppliers", Icon = "dot", Permission = Permissions.Procurement.SupplierView, ComingInPhase = "2" },
+                new NavItem
+                {
+                    Text = "Suppliers",
+                    Icon = "dot",
+                    Controller = "Suppliers",
+                    Action = "Index",
+                    Permission = Permissions.Procurement.SupplierView,
+                },
                 new NavItem { Text = "Quick purchase", Icon = "dot", Permission = Permissions.Procurement.GoodsReceiptCreate, ComingInPhase = "2" },
                 new NavItem { Text = "Purchase orders", Icon = "dot", Permission = Permissions.Procurement.PurchaseOrderCreate, ComingInPhase = "2" },
                 new NavItem { Text = "Goods receipts", Icon = "dot", Permission = Permissions.Procurement.GoodsReceiptCreate, ComingInPhase = "2" },
@@ -174,11 +202,46 @@ public class BackOfficeMenu
                     Action = "Index",
                     Permission = Permissions.Administration.BranchView,
                 },
-                new NavItem { Text = "Warehouses", Icon = "dot", Permission = Permissions.Administration.WarehouseView, ComingInPhase = "1.1" },
-                new NavItem { Text = "Users", Icon = "dot", Permission = Permissions.Security.UserView, ComingInPhase = "1.1" },
-                new NavItem { Text = "Roles & permissions", Icon = "dot", Permission = Permissions.Security.RoleView, ComingInPhase = "1.1" },
-                new NavItem { Text = "Audit trail", Icon = "dot", Permission = Permissions.Security.AuditLogView, ComingInPhase = "1.1" },
-                new NavItem { Text = "Company", Icon = "dot", Permission = Permissions.Administration.CompanyView, ComingInPhase = "1.1" },
+                new NavItem
+                {
+                    Text = "Warehouses",
+                    Icon = "dot",
+                    Controller = "Warehouses",
+                    Action = "Index",
+                    Permission = Permissions.Administration.WarehouseView,
+                },
+                new NavItem
+                {
+                    Text = "Users",
+                    Icon = "dot",
+                    Controller = "Users",
+                    Action = "Index",
+                    Permission = Permissions.Security.UserView,
+                },
+                new NavItem
+                {
+                    Text = "Roles & permissions",
+                    Icon = "dot",
+                    Controller = "Roles",
+                    Action = "Index",
+                    Permission = Permissions.Security.RoleView,
+                },
+                new NavItem
+                {
+                    Text = "Audit trail",
+                    Icon = "dot",
+                    Controller = "Audit",
+                    Action = "Index",
+                    Permission = Permissions.Security.AuditLogView,
+                },
+                new NavItem
+                {
+                    Text = "Company",
+                    Icon = "dot",
+                    Controller = "Company",
+                    Action = "Index",
+                    Permission = Permissions.Administration.CompanyView,
+                },
             ],
         },
     ];

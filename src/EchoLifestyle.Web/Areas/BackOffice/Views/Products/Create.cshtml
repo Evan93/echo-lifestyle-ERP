@@ -1,0 +1,192 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Catalog
+@model QuickProductFormModel
+@{
+    ViewData["Subtitle"] = "The short form. Options, images and the full description come next.";
+}
+
+<form asp-action="Create" method="post" novalidate>
+    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+    {
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">What is it?</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" autocomplete="off" autofocus />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="BrandId" class="form-label"></label>
+                            <select asp-for="BrandId" class="form-select">
+                                <option value="">Choose a brand...</option>
+                                @foreach (var brand in Model.Brands)
+                                {
+                                    <option value="@brand.Id" selected="@(Model.BrandId == brand.Id)">@brand.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="BrandId" class="text-danger small"></span>
+                            @if (Model.Brands.Count == 0)
+                            {
+                                <div class="form-text text-warning-emphasis">
+                                    No brands yet - <a asp-controller="Brands" asp-action="Create">add one first</a>.
+                                </div>
+                            }
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="CategoryId" class="form-label"></label>
+                            <select asp-for="CategoryId" class="form-select">
+                                <option value="">Choose a category...</option>
+                                @foreach (var category in Model.Categories)
+                                {
+                                    <option value="@category.Id" selected="@(Model.CategoryId == category.Id)">
+                                        @category.IndentedName
+                                    </option>
+                                }
+                            </select>
+                            <div class="form-text">Becomes the primary category. More can be added later.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Identifiers and price</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Code" class="form-label"></label>
+                            <input asp-for="Code" class="form-control text-uppercase" autocomplete="off"
+                                   placeholder="auto" />
+                            <span asp-validation-for="Code" class="text-danger small"></span>
+                            <div class="form-text">Blank generates the next one.</div>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Sku" class="form-label"></label>
+                            <input asp-for="Sku" class="form-control text-uppercase" autocomplete="off"
+                                   placeholder="same as code" />
+                            <span asp-validation-for="Sku" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Barcode" class="form-label"></label>
+                            <input asp-for="Barcode" class="form-control" autocomplete="off" />
+                            <span asp-validation-for="Barcode" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Price" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">&#2547;</span>
+                                <input asp-for="Price" class="form-control" type="number" step="0.01" min="0" />
+                            </div>
+                            <span asp-validation-for="Price" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Mrp" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">&#2547;</span>
+                                <input asp-for="Mrp" class="form-control" type="number" step="0.01" min="0" />
+                            </div>
+                            <div class="form-text">Printed on the pack, if different.</div>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="UnitOfMeasureId" class="form-label"></label>
+                            <select asp-for="UnitOfMeasureId" class="form-select">
+                                @foreach (var unit in Model.Units)
+                                {
+                                    <option value="@unit.Id" selected="@(Model.UnitOfMeasureId == unit.Id)">
+                                        @unit.Name
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Tracking</div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input asp-for="IsExpiryTracked" class="form-check-input" role="switch" id="expirySwitch" />
+                        <label asp-for="IsExpiryTracked" class="form-check-label"></label>
+                        <div class="form-text">
+                            Receiving asks for an expiry date. Cosmetics do expire, so this is worth
+                            switching on for anything with a shelf life.
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input asp-for="IsBatchTracked" class="form-check-input" role="switch" id="batchSwitch" />
+                        <label asp-for="IsBatchTracked" class="form-check-label"></label>
+                        <div class="form-text">
+                            Receiving asks for the supplier's batch number. Leave off and one is generated
+                            silently &mdash; you still get traceability, without the typing.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Status</div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input asp-for="IsActive" class="form-check-input" role="switch" />
+                        <label asp-for="IsActive" class="form-check-label"></label>
+                        <div class="form-text">
+                            New products are never published to the storefront automatically &mdash;
+                            that is a separate decision, made once the photography is ready.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-echo" data-submit-once>Create and continue</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // Expiry needs a batch to hang the date on. The server enforces this;
+        // the switch just stops the form contradicting itself on screen.
+        (function () {
+            var expiry = document.getElementById("expirySwitch");
+            var batch = document.getElementById("batchSwitch");
+
+            if (!expiry || !batch) {
+                return;
+            }
+
+            function sync() {
+                if (expiry.checked) {
+                    batch.checked = true;
+                    batch.disabled = true;
+                } else {
+                    batch.disabled = false;
+                }
+            }
+
+            expiry.addEventListener("change", sync);
+            sync();
+        })();
+    </script>
+}

@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using EchoLifestyle.Application;
 using EchoLifestyle.Application.Common.Interfaces;
 using EchoLifestyle.Infrastructure;
+using EchoLifestyle.Infrastructure.Files;
 using EchoLifestyle.Infrastructure.Identity;
 using EchoLifestyle.Infrastructure.Persistence;
 using EchoLifestyle.Infrastructure.Persistence.Seed;
@@ -38,6 +39,18 @@ builder.Services.AddScoped<DbSeeder>();
 builder.Services.Configure<SeedOptions>(builder.Configuration.GetSection(SeedOptions.SectionName));
 
 // ---------------------------------------------------------------------------
+// Uploaded files
+//
+// The root is set here rather than in configuration because only the host knows
+// where its web root is. Anything else about the store - the size cap, the URL
+// prefix - can be overridden from appsettings.
+// ---------------------------------------------------------------------------
+builder.Services
+    .AddOptions<FileStorageOptions>()
+    .Bind(builder.Configuration.GetSection(FileStorageOptions.SectionName))
+    .PostConfigure(options => options.RootPath = builder.Environment.WebRootPath);
+
+// ---------------------------------------------------------------------------
 // Identity
 // ---------------------------------------------------------------------------
 builder.Services
@@ -63,6 +76,21 @@ builder.Services
     .AddClaimsPrincipalFactory<AppUserClaimsPrincipalFactory>()
     .AddDefaultTokenProviders();
 
+// Permissions travel in the sign-in cookie, so a permission change would
+// otherwise not take effect until the person signed out - a security control
+// failing in the wrong direction. The security stamp makes a cookie stale:
+// changing a role's permissions bumps the stamp of everyone holding it, and
+// the validator rebuilds their claims from the database on the next request.
+builder.Services.AddScoped<ISecurityStampValidator, SecurityStampValidator<ApplicationUser>>();
+
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+{
+    // How stale a cookie may be before it is revalidated. Two minutes keeps the
+    // database work negligible while making a revoked permission take effect
+    // fast enough to be useful.
+    options.ValidationInterval = TimeSpan.FromMinutes(2);
+});
+
 // ---------------------------------------------------------------------------
 // Authentication - two independent cookies.
 //
@@ -83,6 +111,10 @@ builder.Services
         options.AccessDeniedPath = "/backoffice/account/denied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
+
+        // Revalidates the security stamp, so role and permission changes reach
+        // an already-signed-in user without them having to sign out.
+        options.Events.OnValidatePrincipal = SecurityStampValidator.ValidatePrincipalAsync;
     })
     .AddCookie(AuthSchemes.Storefront, options =>
     {

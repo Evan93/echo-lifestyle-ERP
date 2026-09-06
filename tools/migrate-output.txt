@@ -1,15 +1,13 @@
 Echo Lifestyle ERP - Migrations
-Generated: Sat 09/05/2026 16:56:48.06
-Command: update 
+Generated: Sun 09/06/2026 23:10:24.08
+Command: add GoodsReceipts
 
 Tool 'dotnet-ef' (version '10.0.11') was restored. Available commands: dotnet-ef
 
 Restore was successful.
-===== dotnet ef database update =====
+===== dotnet ef migrations add GoodsReceipts =====
 Build started...
 Build succeeded.
-Acquiring an exclusive lock for migration application. See https://aka.ms/efcore-docs-migrations-lock for more information if this takes too long.
-Applying migration '20260905105252_InitialCreate'.
-Done.
+Done. To undo this action, use 'ef migrations remove'
 
 ===== END =====

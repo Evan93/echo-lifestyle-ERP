@@ -98,11 +98,31 @@ one is a defect, not a style preference.
 - Login failures return **one generic message** for every cause (wrong password,
   unknown user, inactive account, customer account). The real reason goes to the
   audit log. Do not "improve" this by being more specific.
+- **Permission changes take effect within two minutes, without signing out.**
+  Editing a role's permissions bumps the security stamp of everyone holding it,
+  and `SecurityStampValidator` (`ValidationInterval` = 2 minutes) rebuilds the
+  cookie's claims. Any future code that changes what a user may do must bump the
+  stamp too, or the revocation will not stick.
+- **Roles are data, not a fixed list.** Anything that validates a role name reads
+  it from the database (excluding `Customer`), never from `Roles.StaffRoles` —
+  otherwise custom roles can be created but never assigned.
 - Grant `[AllowAnonymous]` **per action, never on a controller** that also has
   authorised actions — a class-level attribute silently overrides them.
 - Anti-forgery tokens on every state-changing request, AJAX included.
 - Secrets never in source. Seed passwords come from user-secrets or configuration;
   outside Development the seeder refuses to invent one.
+
+**Lock-out guards.** Administration screens refuse any change that would leave
+the system unadministrable, and every one of them is covered by a test. Keep
+adding to this list as new master data arrives:
+
+- the last active branch cannot be deactivated;
+- a warehouse that is primary for an active branch cannot be deactivated;
+- the last active Owner cannot lose the role or be deactivated;
+- nobody can deactivate their own account;
+- staff cannot be created with no branch unless they are an Owner;
+- system roles cannot be renamed or deleted, and Owner's permissions are fixed;
+- a role somebody still holds cannot be deleted.
 
 ---
 
@@ -118,6 +138,19 @@ accommodate the full brief; **the build must not**.
 - Quick paths are an orchestration convenience only: they call the same domain
   rules and post the same ledger and journal entries in one transaction. There
   is exactly one way stock and money move in the database.
+
+**Settled launch scope** (see `Delivery-Plan-And-Launch-Decisions.md`):
+
+- **Cash on delivery only**, collected by Steadfast. Payment gateways — bKash,
+  Nagad, card — are future development. Model payments so a gateway slots in
+  later; do not build one now.
+- **One warehouse, so no transfers.** Inter-location movement, in-transit stock
+  and multi-location valuation wait until a second location exists.
+- **The website is expected to be the main order channel.** Quick Sale stays
+  functional but plain; the storefront gets the design investment.
+- **Guest checkout**, with an optional account afterwards. Orders attach to a
+  customer record by phone number either way, so loyalty works later without
+  accounts existing at launch.
 
 ---
 
@@ -148,6 +181,31 @@ accommodate the full brief; **the build must not**.
   there, so a green in-memory test proves nothing about production.
 - Test the guarantees that live in the database, with raw SQL where that is what
   it takes to prove the constraint is real.
+- **Test fixtures must mirror `Program.cs` registration for registration.** A
+  fixture that registers less than the web host passes tests that fail in
+  production — `AddDefaultTokenProviders()` and `AddDataProtection()` were both
+  found this way. When `Program.cs` gains a registration, check the fixtures.
+- **Identity tests get their own database** (`EchoLifestyle_IdentityTests`,
+  `IdentityFixture`). They assert on questions answered by counting rows across
+  the whole database ("is this the last active Owner?"), so sharing one would
+  make results depend on class execution order.
+- **Soft delete is `Remove()`, and it is safe with dependents loaded.** The
+  interceptor demotes a Deleted entry to Modified at save time, and
+  `CascadeDeleteTiming`/`DeleteOrphansTiming` are set to `OnSaveChanges` so EF
+  does not cascade before that happens. Do not change those timings back: the
+  failure only appears when the dependents are tracked, which is to say never in
+  a small test and always in a real editor.
+- **No test may count rows globally** in a shared database. Scope every count to
+  the data the test created or seeded; a global count passes only until another
+  class adds a row.
+- **A test class that reasons about a whole database gets its own database.**
+  `SeedingFixture` and `IdentityFixture` exist for exactly this. Weakening the
+  assertions to fit a shared database would delete the thing being tested.
+- **Fixtures seed their own baseline.** `DatabaseFixture` runs the seeder after
+  migrating, so units of measure and the default price list are always there.
+  Never let one test class rely on another having seeded them - that is an
+  undeclared dependency on xUnit's class ordering, and it breaks the day a new
+  class is added.
 - A feature is not complete without: business rule, server-side authorization,
   validation, migration, audit behaviour, concurrency handling, tests, UI
   behaviour, error handling, documentation, and **evidence that build and tests
@@ -180,11 +238,12 @@ deliberate deployment step.
 |---|---|---|
 | 0 | Discovery and architecture | Done |
 | 1 | Foundation: identity, roles, permissions, branch scoping, audit, base UI, CI | Done |
-| 1.1 | Administration screens: users, roles, branches, warehouses, audit viewer | Next |
-| 2 | Catalog and procurement, batch/expiry, landed cost | |
-| 3 | Inventory: ledger, balances, reservations, transfers | |
-| 4 | Sales, orders, payments, returns + lightweight double-entry finance | |
-| 5 | **E-commerce storefront** (pulled forward — it is the main sales channel) | |
+| 1.1 | Administration screens: company, branches, warehouses, users, roles, audit viewer | Done |
+| 2a | Catalog: brands, categories, products, variants, options, pricing, images | Done |
+| 2b | Procurement: suppliers, stock ledger, batches, Quick Purchase, PO→GRN, landed cost | Next |
+| 3 | Inventory: availability, adjustments, stock count, near-expiry. **No transfers yet** | |
+| 4 | Sales: customers, orders, COD lifecycle, returns, expense capture | |
+| 5 | **E-commerce storefront** — the expected main order channel | |
 | 6 | Physical POS, advanced promotions | Deferred until a store opens |
 | 7 | CRM, loyalty, targets, marketing, MAUI apps | |
 | 8 | Full reporting, budgets, hardening, deployment, UAT | |
@@ -197,9 +256,12 @@ deliberate deployment step.
   review".** No accountant is engaged. Chart of accounts, weighted-average
   valuation and tax treatment all need sign-off before they are trusted for
   filing. Never present them as authoritative.
-- **Permission changes currently take effect at next sign-in** (claims live in
-  the cookie). When the role-editing UI is built in Phase 1.1, add security-stamp
-  refresh so changes apply immediately.
+- **Double-entry is deferred to December**, when NBR registration is expected.
+  Until then every purchase, sale, payment and expense is still recorded in
+  full — amount, date, party, category — because double-entry is a projection
+  over those transactions and can be generated backwards. Do not thin that
+  transaction detail to save time: it is the one part that cannot be
+  reconstructed later.
 - **Offline POS** — a browser till stops working during an internet outage.
   Decide before Phase 6 whether to accept that or build a local-queueing client.
 - **A vector logo (SVG) is needed** before the storefront ships; the current

@@ -1,0 +1,128 @@
+@{
+    ViewData["Title"] = "Suppliers";
+    ViewData["Subtitle"] = "Who you buy from. Import sources get the landed-cost fields at receipt.";
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0 small text-muted" for="statusFilter">Showing</label>
+        <select id="statusFilter" class="form-select form-select-sm" style="width: auto;">
+            <option value="Active" selected>Active suppliers</option>
+            <option value="Inactive">Inactive suppliers</option>
+            <option value="All">All suppliers</option>
+        </select>
+    </div>
+
+    @if (CurrentUser.HasPermission(Permissions.Procurement.SupplierEdit))
+    {
+        <a class="btn btn-echo btn-sm" asp-action="Create">New supplier</a>
+    }
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="suppliersGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>Code</th>
+                    <th>Supplier</th>
+                    <th>Contact</th>
+                    <th>City</th>
+                    <th>Source</th>
+                    <th>Terms</th>
+                    <th>Status</th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var canEdit = @Json.Serialize(CurrentUser.HasPermission(Permissions.Procurement.SupplierEdit));
+            var editUrlTemplate = "@Url.Action("Edit", new { id = "__id__" })";
+
+            var grid = echo.grid("#suppliersGrid", {
+                url: "@Url.Action("Data")",
+                order: [[0, "asc"]],
+                emptyMessage: "No suppliers yet. Add one before recording a purchase.",
+                searchPlaceholder: "Search code, name, contact or phone...",
+
+                filters: function () {
+                    return { status: $("#statusFilter").val() };
+                },
+
+                columns: [
+                    { data: "code", name: "code", render: echo.render.code },
+                    { data: "name", name: "name", render: echo.escape },
+                    {
+                        data: "contactName",
+                        orderable: false,
+                        render: function (contact, type, row) {
+                            if (!contact && !row.phone) {
+                                return '<span class="text-muted small">&mdash;</span>';
+                            }
+
+                            var line = contact ? echo.escape(contact) : "";
+
+                            if (row.phone) {
+                                line += (line ? '<div class="text-muted small">' : '<span class="small">') +
+                                    echo.escape(row.phone) +
+                                    (line ? "</div>" : "</span>");
+                            }
+
+                            return line;
+                        }
+                    },
+                    { data: "city", name: "city", render: echo.escape },
+                    {
+                        data: "isImporter",
+                        orderable: false,
+                        render: function (isImporter, type, row) {
+                            // Worth seeing at a glance: it decides which fields
+                            // the receipt screen asks for.
+                            // A literal separator, not an HTML entity: the badge
+                            // renderer escapes its text, so "&middot;" would
+                            // show up as those eight characters.
+                            return isImporter
+                                ? echo.render.badge("Import · " + row.currencyCode, "info")
+                                : '<span class="text-muted small">Local</span>';
+                        }
+                    },
+                    {
+                        data: "paymentTermDays",
+                        name: "terms",
+                        render: function (days) {
+                            return days === 0
+                                ? '<span class="text-muted small">On purchase</span>'
+                                : days + " days";
+                        }
+                    },
+                    {
+                        data: "isActive",
+                        name: "isActive",
+                        render: function (active) {
+                            return active
+                                ? echo.render.badge("Active", "success")
+                                : echo.render.badge("Inactive", "secondary");
+                        }
+                    },
+                    {
+                        data: "id",
+                        orderable: false,
+                        className: "text-end",
+                        render: function (id) {
+                            return canEdit
+                                ? echo.render.editLink(editUrlTemplate.replace("__id__", id))
+                                : "";
+                        }
+                    }
+                ]
+            });
+
+            echo.bindFilters(grid, "#statusFilter");
+        })();
+    </script>
+}

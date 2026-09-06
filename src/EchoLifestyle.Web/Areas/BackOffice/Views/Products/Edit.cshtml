@@ -1,0 +1,202 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Catalog
+@model ProductEditorViewModel
+@{
+    var product = Model.Product;
+    var canEdit = CurrentUser.HasPermission(Permissions.Catalog.ProductEdit);
+
+    ViewData["Subtitle"] = product.Code;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        @if (product.IsActive)
+        {
+            <span class="badge text-bg-success">Active</span>
+        }
+        else
+        {
+            <span class="badge text-bg-secondary">Inactive</span>
+        }
+
+        @if (product.IsPublished)
+        {
+            <span class="badge text-bg-info">Live on the storefront</span>
+
+            @if (product.PublishedAtUtc is not null)
+            {
+                <span class="text-muted small">
+                    since @Clock.ToBusinessTime(product.PublishedAtUtc.Value).ToString("d MMM yyyy")
+                </span>
+            }
+        }
+        else
+        {
+            <span class="text-muted small">Not published</span>
+        }
+    </div>
+
+    <div class="d-flex gap-2">
+        @if (product.MayPublish)
+        {
+            <form asp-action="Publish" asp-route-id="@product.Id" method="post" class="d-inline">
+                <input type="hidden" name="publish" value="@((!product.IsPublished).ToString().ToLowerInvariant())" />
+                <button type="submit" class="btn btn-sm @(product.IsPublished ? "btn-outline-secondary" : "btn-echo")">
+                    @(product.IsPublished ? "Remove from storefront" : "Publish to storefront")
+                </button>
+            </form>
+        }
+
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Index">Back to products</a>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-details"
+                type="button" role="tab">
+            Details
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-variants"
+                type="button" role="tab">
+            Variants &amp; pricing
+            <span class="badge text-bg-light border ms-1">@Model.Variants.Rows.Count</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-images"
+                type="button" role="tab">
+            Images
+            <span class="badge text-bg-light border ms-1">@Model.Images.Rows.Count</span>
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="tab-details" role="tabpanel">
+        <partial name="_DetailsForm" model="Model.Product" />
+    </div>
+
+    <div class="tab-pane fade" id="tab-variants" role="tabpanel">
+        <partial name="_OptionsForm" model="Model.Options" />
+        <partial name="_VariantsForm" model="Model.Variants" />
+    </div>
+
+    <div class="tab-pane fade" id="tab-images" role="tabpanel">
+        <partial name="_ImagesForm" model="Model.Images" />
+    </div>
+</div>
+
+@if (canEdit && !product.HasPriceHistory)
+{
+    <div class="modal fade" id="deleteProduct" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete @product.Name?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">
+                        The product is hidden everywhere, but its SKUs stay reserved &mdash; an SKU that
+                        has ever held stock must never be reissued to something else.
+                    </p>
+                    <p class="text-muted small mb-0">
+                        Once a product has been priced, deleting is refused and deactivating is the
+                        honest way to retire it.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form asp-action="Delete" asp-route-id="@product.Id" method="post">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/catalog/product-images.js" asp-append-version="true"></script>
+
+    <script>
+        (function () {
+            // The primary-category radio only makes sense next to a ticked box.
+            // The server checks this too - that is the check that matters - but
+            // an enabled radio beside an unticked category is just confusing.
+            function syncPrimary() {
+                document.querySelectorAll(".js-category-row").forEach(function (row) {
+                    var box = row.querySelector(".js-category");
+                    var radio = row.querySelector(".js-primary");
+
+                    if (!box || !radio) {
+                        return;
+                    }
+
+                    radio.disabled = !box.checked;
+
+                    if (!box.checked && radio.checked) {
+                        radio.checked = false;
+                    }
+                });
+            }
+
+            document.querySelectorAll(".js-category").forEach(function (box) {
+                box.addEventListener("change", syncPrimary);
+            });
+
+            syncPrimary();
+
+            // Expiry needs a batch to hang the date on. The server enforces it;
+            // this stops the form contradicting itself on screen.
+            var expiry = document.getElementById("expirySwitch");
+            var batch = document.getElementById("batchSwitch");
+
+            if (expiry && batch) {
+                var syncTracking = function () {
+                    if (expiry.checked) {
+                        batch.checked = true;
+                        batch.disabled = true;
+                    } else {
+                        batch.disabled = false;
+                    }
+                };
+
+                expiry.addEventListener("change", syncTracking);
+                syncTracking();
+            }
+
+            // Every save redirects. Without this, saving variants would drop the
+            // user back on the Details tab every time.
+            var STORAGE_KEY = "echo.product.tab";
+            var stored = null;
+
+            try {
+                stored = window.sessionStorage.getItem(STORAGE_KEY);
+            } catch (e) {
+                stored = null;
+            }
+
+            if (stored) {
+                var trigger = document.querySelector('[data-bs-target="' + stored + '"]');
+                if (trigger && window.bootstrap) {
+                    window.bootstrap.Tab.getOrCreateInstance(trigger).show();
+                }
+            }
+
+            document.querySelectorAll('[data-bs-toggle="tab"]').forEach(function (tab) {
+                tab.addEventListener("shown.bs.tab", function (event) {
+                    try {
+                        window.sessionStorage.setItem(
+                            STORAGE_KEY, event.target.getAttribute("data-bs-target"));
+                    } catch (e) {
+                        // Private browsing - the tab simply is not remembered.
+                    }
+                });
+            });
+        })();
+    </script>
+}

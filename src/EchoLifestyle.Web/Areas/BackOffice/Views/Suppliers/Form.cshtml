@@ -1,0 +1,222 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Purchasing
+@model SupplierFormModel
+@{
+    ViewData["Subtitle"] = Model.IsNew
+        ? "Add a supplier before recording a purchase from them"
+        : "Edit this supplier";
+
+    var action = Model.IsNew ? "Create" : "Edit";
+}
+
+<form asp-action="@action" asp-route-id="@(Model.IsNew ? null : (long?)Model.Id)" method="post" novalidate>
+    <input type="hidden" asp-for="Id" />
+
+    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+    {
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Details</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Code" class="form-label"></label>
+                            <input asp-for="Code" class="form-control text-uppercase" autocomplete="off"
+                                   placeholder="@(Model.IsNew ? "auto" : null)" />
+                            <span asp-validation-for="Code" class="text-danger small"></span>
+                            @if (Model.IsNew)
+                            {
+                                <div class="form-text">Blank generates the next one.</div>
+                            }
+                        </div>
+
+                        <div class="col-12 col-md-8">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" autocomplete="off" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="ContactName" class="form-label"></label>
+                            <input asp-for="ContactName" class="form-control" />
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Phone" class="form-label"></label>
+                            <input asp-for="Phone" class="form-control" />
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="AddressLine1" class="form-label"></label>
+                            <input asp-for="AddressLine1" class="form-control" />
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="City" class="form-label"></label>
+                            <input asp-for="City" class="form-control" />
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Country" class="form-label"></label>
+                            <input asp-for="Country" class="form-control" list="countrySuggestions" />
+                            <datalist id="countrySuggestions">
+                                <option value="Bangladesh"></option>
+                                <option value="South Korea"></option>
+                                <option value="China"></option>
+                                <option value="India"></option>
+                                <option value="Thailand"></option>
+                                <option value="United Arab Emirates"></option>
+                            </datalist>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label"></label>
+                            <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Buying terms</div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input asp-for="IsImporter" class="form-check-input" role="switch" id="importerSwitch" />
+                        <label asp-for="IsImporter" class="form-check-label"></label>
+                        <div class="form-text">
+                            Turns on freight, duty, clearing and exchange rate when receiving from this
+                            supplier. Leave it off for local distributors so a routine purchase stays a
+                            three-field form.
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label asp-for="CurrencyCode" class="form-label"></label>
+                            <input asp-for="CurrencyCode" class="form-control text-uppercase"
+                                   id="currencyInput" maxlength="3" />
+                            <span asp-validation-for="CurrencyCode" class="text-danger small"></span>
+                            <div class="form-text" id="currencyHint">
+                                Local suppliers invoice in BDT.
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <label asp-for="PaymentTermDays" class="form-label"></label>
+                            <input asp-for="PaymentTermDays" class="form-control" type="number" min="0" max="365" />
+                            <span asp-validation-for="PaymentTermDays" class="text-danger small"></span>
+                            <div class="form-text">0 means paid on purchase.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Bin" class="form-label"></label>
+                            <input asp-for="Bin" class="form-control" />
+                            <div class="form-text">
+                                Their Business Identification Number, once they give you one. Needed on
+                                Mushak paperwork after your own NBR registration.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Status</div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input asp-for="IsActive" class="form-check-input" role="switch" />
+                        <label asp-for="IsActive" class="form-check-label"></label>
+                        <div class="form-text">
+                            Inactive suppliers disappear from the purchase screens. Batches already
+                            received from them keep working.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!Model.IsNew)
+            {
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold">History</div>
+                    <div class="card-body">
+                        @if (Model.BatchCount == 0)
+                        {
+                            <p class="text-muted small">Nothing received from this supplier yet.</p>
+
+                            @if (CurrentUser.HasPermission(Permissions.Procurement.SupplierEdit))
+                            {
+                                <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
+                                      onsubmit="return confirm('Delete this supplier?');">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete supplier</button>
+                                </form>
+                            }
+                        }
+                        else
+                        {
+                            <p class="mb-0 small">
+                                <strong>@Model.BatchCount</strong>
+                                batch@(Model.BatchCount == 1 ? "" : "es") of stock received from them.
+                                They cannot be deleted while that is true &mdash; a batch has to keep
+                                pointing at someone you can call about a recall.
+                            </p>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-echo" data-submit-once>
+            @(Model.IsNew ? "Create supplier" : "Save changes")
+        </button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // A local supplier invoices in BDT; the server refuses anything else.
+        // Locking the field here stops the form contradicting itself on screen.
+        (function () {
+            var importer = document.getElementById("importerSwitch");
+            var currency = document.getElementById("currencyInput");
+            var hint = document.getElementById("currencyHint");
+
+            if (!importer || !currency) {
+                return;
+            }
+
+            function sync() {
+                if (importer.checked) {
+                    currency.readOnly = false;
+                    if (hint) {
+                        hint.textContent = "The currency they invoice you in.";
+                    }
+                } else {
+                    currency.value = "BDT";
+                    currency.readOnly = true;
+                    if (hint) {
+                        hint.textContent = "Local suppliers invoice in BDT.";
+                    }
+                }
+            }
+
+            importer.addEventListener("change", sync);
+            sync();
+        })();
+    </script>
+}

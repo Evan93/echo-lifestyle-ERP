@@ -1,6 +1,8 @@
+using EchoLifestyle.Application.Common.Files;
 using EchoLifestyle.Application.Common.Interfaces;
 using EchoLifestyle.Infrastructure.Auditing;
 using EchoLifestyle.Infrastructure.Common;
+using EchoLifestyle.Infrastructure.Files;
 using EchoLifestyle.Infrastructure.Persistence;
 using EchoLifestyle.Infrastructure.Persistence.Interceptors;
 using Microsoft.EntityFrameworkCore;
@@ -23,9 +25,21 @@ public static class DependencyInjection
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
+        // Registered explicitly rather than relying on AddLogging to have done
+        // it: the file store resolves IOptions, and a bare ServiceCollection in
+        // a test would otherwise fail depending on registration order.
+        services.AddOptions();
+
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddScoped<AuditableEntityInterceptor>();
         services.AddScoped<IAuditLogger, AuditLogger>();
+        services.AddSingleton<IFileStorage, LocalFileStorage>();
+
+        // Staff administration lives here rather than in Application because
+        // every operation goes through ASP.NET Identity's UserManager - see the
+        // note on UserAdminService.
+        services.AddScoped<Identity.UserAdminService>();
+        services.AddScoped<Identity.RoleAdminService>();
 
         services.AddDbContext<EchoDbContext>((provider, options) =>
         {

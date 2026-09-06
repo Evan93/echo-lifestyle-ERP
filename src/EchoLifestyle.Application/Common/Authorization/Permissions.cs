@@ -44,8 +44,22 @@ public static class Permissions
     {
         public const string ProductView = "Catalog.Product.View";
         public const string ProductEdit = "Catalog.Product.Edit";
+
+        /// <summary>
+        /// Publishing to the storefront is separate from editing: a merchandiser
+        /// may prepare a product without being able to put it in front of
+        /// customers.
+        /// </summary>
+        public const string ProductPublish = "Catalog.Product.Publish";
+
+        public const string BrandView = "Catalog.Brand.View";
+        public const string BrandEdit = "Catalog.Brand.Edit";
+        public const string CategoryView = "Catalog.Category.View";
+        public const string CategoryEdit = "Catalog.Category.Edit";
+        public const string UnitOfMeasureEdit = "Catalog.UnitOfMeasure.Edit";
         public const string CostPriceView = "Catalog.CostPrice.View";
         public const string PriceEdit = "Catalog.Price.Edit";
+        public const string PriceListEdit = "Catalog.PriceList.Edit";
     }
 
     public static class Inventory
@@ -61,6 +75,15 @@ public static class Permissions
         /// a document may drive stock below zero.
         /// </summary>
         public const string AllowNegative = "Inventory.Stock.AllowNegative";
+
+        /// <summary>
+        /// Rebuilds the balance projection from the ledger. Harmless when the
+        /// two already agree and the only way back when they do not - but it
+        /// touches every balance, so it is not something a salesperson holds.
+        /// </summary>
+        public const string BalanceRebuild = "Inventory.Balance.Rebuild";
+
+        public const string BatchView = "Inventory.Batch.View";
     }
 
     public static class Procurement

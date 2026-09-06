@@ -158,6 +158,32 @@
     };
 
     // -----------------------------------------------------------------------
+    // Slug preview.
+    //
+    // A convenience for the create forms only. The server generates and
+    // validates the real slug; this exists so the field is not blank while
+    // someone types a name, and it mirrors the server's rules rather than
+    // inventing its own.
+    // -----------------------------------------------------------------------
+    window.echo.slugify = function (text) {
+        if (!text) {
+            return "";
+        }
+
+        return text
+            .toString()
+            .normalize("NFD")
+            .replace(/[̀-ͯ]/g, "")   // drop combining accents
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9\s-]/g, "")
+            .replace(/[\s-]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 160)
+            .replace(/-+$/, "");
+    };
+
+    // -----------------------------------------------------------------------
     // Duplicate submit protection.
     //
     // A double-clicked Save must not create two documents. The server still

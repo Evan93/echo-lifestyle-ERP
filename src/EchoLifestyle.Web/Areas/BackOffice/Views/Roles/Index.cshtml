@@ -1,0 +1,88 @@
+@using EchoLifestyle.Infrastructure.Identity
+@model IReadOnlyList<RoleListItem>
+@{
+    ViewData["Title"] = "Roles and permissions";
+    ViewData["Subtitle"] = "A role is a bundle of permissions. Nothing is authorised by role name, so these can be reshaped freely.";
+
+    var canEdit = CurrentUser.HasPermission(Permissions.Security.RoleEdit);
+}
+
+@if (canEdit)
+{
+    <div class="d-flex justify-content-end mb-3">
+        <a class="btn btn-echo btn-sm" asp-action="Create">New role</a>
+    </div>
+}
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Role</th>
+                    <th>Description</th>
+                    <th class="text-end">Permissions</th>
+                    <th class="text-end">Accounts</th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var role in Model)
+                {
+                    <tr>
+                        <td>
+                            <span class="fw-semibold">@role.Name</span>
+                            @if (role.PermissionsAreFixed)
+                            {
+                                <span class="badge text-bg-warning ms-1">All permissions</span>
+                            }
+                            else if (role.IsSystemRole)
+                            {
+                                <span class="badge text-bg-light border ms-1">System</span>
+                            }
+                        </td>
+                        <td class="text-muted small">@role.Description</td>
+                        <td class="text-end">@role.PermissionCount</td>
+                        <td class="text-end">
+                            @if (role.UserCount == 0)
+                            {
+                                <span class="text-muted">0</span>
+                            }
+                            else
+                            {
+                                @role.UserCount
+                            }
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                @if (CurrentUser.HasPermission(Permissions.Security.RoleView))
+                                {
+                                    <a class="btn btn-outline-secondary"
+                                       asp-action="Edit" asp-route-id="@role.Id">
+                                        @(role.PermissionsAreFixed ? "View" : "Edit")
+                                    </a>
+                                }
+
+                                @* Deleting is offered only where it can succeed:
+                                   custom roles that nobody holds. *@
+                                @if (canEdit && !role.IsSystemRole && role.UserCount == 0)
+                                {
+                                    <form asp-action="Delete" asp-route-id="@role.Id" method="post"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Delete the role @role.Name? This cannot be undone.');">
+                                        <button type="submit" class="btn btn-outline-danger">Delete</button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<p class="text-muted small mt-3 mb-0">
+    Changing a role's permissions takes effect for everyone holding it within two minutes -
+    they do not need to sign out and back in.
+</p>

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using EchoLifestyle.Application.Common.Authorization;
 using EchoLifestyle.Domain.Administration;
+using EchoLifestyle.Domain.Catalog;
 using EchoLifestyle.Domain.Security;
 using EchoLifestyle.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -43,7 +44,60 @@ public class DbSeeder
     {
         await SeedRolesAsync(cancellationToken);
         var branchId = await SeedOrganisationAsync(options, cancellationToken);
+        await SeedCatalogBaselineAsync(cancellationToken);
         await SeedOwnersAsync(options, branchId, isDevelopment);
+    }
+
+    /// <summary>
+    /// The catalogue's two prerequisites: something to count products in, and
+    /// somewhere for a price to go.
+    ///
+    /// Both are seeded rather than left to the user because the product form
+    /// cannot save without them, and a first-run experience that fails on a
+    /// foreign key is not one.
+    /// </summary>
+    private async Task SeedCatalogBaselineAsync(CancellationToken cancellationToken)
+    {
+        var units = new (string Code, string Name, bool Fractions)[]
+        {
+            ("PC", "Piece", false),
+            ("PACK", "Pack", false),
+            ("SET", "Set", false),
+            ("ML", "Millilitre", true),
+            ("G", "Gram", true),
+        };
+
+        foreach (var (code, name, fractions) in units)
+        {
+            if (!await _db.UnitsOfMeasure.AnyAsync(u => u.Code == code, cancellationToken))
+            {
+                _db.UnitsOfMeasure.Add(new UnitOfMeasure
+                {
+                    Code = code,
+                    Name = name,
+                    AllowsFractions = fractions,
+                    IsActive = true,
+                });
+            }
+        }
+
+        // Guarded on IsDefault rather than on the code, so that renaming the
+        // retail list in the UI does not cause a second default to be created
+        // on the next startup - which the unique index would reject anyway.
+        if (!await _db.PriceLists.AnyAsync(p => p.IsDefault, cancellationToken))
+        {
+            _db.PriceLists.Add(new PriceList
+            {
+                Code = "RETAIL",
+                Name = "Retail",
+                Kind = PriceListKind.Retail,
+                CurrencyCode = "BDT",
+                IsDefault = true,
+                IsActive = true,
+            });
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>

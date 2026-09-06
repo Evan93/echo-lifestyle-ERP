@@ -1,4 +1,5 @@
 using EchoLifestyle.Application.Administration.Branches;
+using EchoLifestyle.Application.Common.Filters;
 using EchoLifestyle.Domain.Administration;
 using EchoLifestyle.Domain.Security;
 using EchoLifestyle.Infrastructure.Persistence;
@@ -206,7 +207,7 @@ public class BranchAdminServiceTests : IAsyncLifetime
         var detail = await service.GetAsync(branch.Id);
         Assert.NotNull(detail);
 
-        var link = Assert.Single(detail!.Warehouses.Where(w => w.IsLinked));
+        var link = Assert.Single(detail!.Warehouses, w => w.IsLinked);
         Assert.True(link.IsPrimary);
         Assert.Equal(5, link.Priority);
     }
@@ -220,9 +221,9 @@ public class BranchAdminServiceTests : IAsyncLifetime
         await using var scope = _fixture.CreateScope();
         var service = scope.ServiceProvider.GetRequiredService<BranchAdminService>();
 
-        var active = await service.ListAsync("FILT-", 0, 50, null, false, BranchStatusFilter.Active);
-        var inactive = await service.ListAsync("FILT-", 0, 50, null, false, BranchStatusFilter.Inactive);
-        var all = await service.ListAsync("FILT-", 0, 50, null, false, BranchStatusFilter.All);
+        var active = await service.ListAsync("FILT-", 0, 50, null, false, StatusFilter.Active);
+        var inactive = await service.ListAsync("FILT-", 0, 50, null, false, StatusFilter.Inactive);
+        var all = await service.ListAsync("FILT-", 0, 50, null, false, StatusFilter.All);
 
         Assert.Equal("FILT-ON", Assert.Single(active.Rows).Code);
         Assert.Equal("FILT-OFF", Assert.Single(inactive.Rows).Code);
@@ -243,12 +244,12 @@ public class BranchAdminServiceTests : IAsyncLifetime
             await using var scope = _fixture.CreateScope();
             var service = scope.ServiceProvider.GetRequiredService<BranchAdminService>();
 
-            var page = await service.ListAsync("SCOPE-", 0, 50, null, false, BranchStatusFilter.All);
+            var page = await service.ListAsync("SCOPE-", 0, 50, null, false, StatusFilter.All);
 
             Assert.Equal("SCOPE-IN", Assert.Single(page.Rows).Code);
 
             // And the one out of scope cannot be opened directly by id either.
-            var branches = await service.ListAsync("SCOPE-OUT", 0, 50, null, false, BranchStatusFilter.All);
+            var branches = await service.ListAsync("SCOPE-OUT", 0, 50, null, false, StatusFilter.All);
             Assert.Empty(branches.Rows);
         }
         finally

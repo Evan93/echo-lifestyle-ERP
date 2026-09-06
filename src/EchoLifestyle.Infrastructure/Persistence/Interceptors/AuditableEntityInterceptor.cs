@@ -55,6 +55,8 @@ public class AuditableEntityInterceptor : SaveChangesInterceptor
 
         foreach (var entry in context.ChangeTracker.Entries())
         {
+            GuardAppendOnly(entry);
+
             switch (entry.Entity)
             {
                 case AuditableEntity auditable:
@@ -69,6 +71,31 @@ public class AuditableEntityInterceptor : SaveChangesInterceptor
                     StampIdentityRole(entry, role, utcNow, userId);
                     break;
             }
+        }
+    }
+
+    /// <summary>
+    /// Refuses any attempt to change or remove an append-only record.
+    ///
+    /// The stock ledger is what every stock figure in the system is derived
+    /// from. An edited row would rewrite history silently and leave the
+    /// balances it produced unexplainable. Making that impossible here means it
+    /// cannot happen through a mistake in a service, a helper, or a future
+    /// screen nobody has written yet.
+    /// </summary>
+    private static void GuardAppendOnly(EntityEntry entry)
+    {
+        if (entry.Entity is not IAppendOnly)
+        {
+            return;
+        }
+
+        if (entry.State is EntityState.Modified or EntityState.Deleted)
+        {
+            throw new InvalidOperationException(
+                $"{entry.Entity.GetType().Name} is append-only and cannot be "
+                + $"{(entry.State == EntityState.Modified ? "changed" : "removed")}. "
+                + "Post a reversing entry instead.");
         }
     }
 

@@ -1,0 +1,113 @@
+@{
+    ViewData["Title"] = "Warehouses";
+    ViewData["Subtitle"] = "Stock-holding locations. Branches are linked from the branch form.";
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0 small text-muted" for="statusFilter">Showing</label>
+        <select id="statusFilter" class="form-select form-select-sm" style="width: auto;">
+            <option value="Active" selected>Active warehouses</option>
+            <option value="Inactive">Inactive warehouses</option>
+            <option value="All">All warehouses</option>
+        </select>
+    </div>
+
+    @if (CurrentUser.HasPermission(Permissions.Administration.WarehouseEdit))
+    {
+        <a class="btn btn-echo btn-sm" asp-action="Create">New warehouse</a>
+    }
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="warehousesGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Kind</th>
+                    <th>City</th>
+                    <th>Used by</th>
+                    <th>Status</th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var canEdit = @Json.Serialize(CurrentUser.HasPermission(Permissions.Administration.WarehouseEdit));
+            var editUrlTemplate = "@Url.Action("Edit", new { id = "__id__" })";
+
+            var grid = echo.grid("#warehousesGrid", {
+                url: "@Url.Action("Data")",
+                order: [[0, "asc"]],
+                emptyMessage: "No warehouses yet.",
+                searchPlaceholder: "Search code, name or city...",
+
+                filters: function () {
+                    return { status: $("#statusFilter").val() };
+                },
+
+                columns: [
+                    { data: "code", name: "code", render: echo.render.code },
+                    { data: "name", name: "name", render: echo.escape },
+                    {
+                        data: "kind",
+                        name: "kind",
+                        render: function (kind) {
+                            // Only sellable stock counts toward availability, so
+                            // the distinction is worth showing at a glance.
+                            var variant = kind === "Sellable" ? "success" : "secondary";
+                            return echo.render.badge(kind, variant);
+                        }
+                    },
+                    { data: "city", name: "city", render: echo.escape },
+                    {
+                        data: "branchCount",
+                        orderable: false,
+                        render: function (count, type, row) {
+                            if (!count) {
+                                return '<span class="text-muted small">Not linked</span>';
+                            }
+
+                            var label = count + (count === 1 ? " branch" : " branches");
+
+                            if (row.primaryForBranchCount > 0) {
+                                label += ' <span class="text-muted small">&middot; primary for ' +
+                                    row.primaryForBranchCount + "</span>";
+                            }
+
+                            return label;
+                        }
+                    },
+                    {
+                        data: "isActive",
+                        name: "isActive",
+                        render: function (active) {
+                            return active
+                                ? echo.render.badge("Active", "success")
+                                : echo.render.badge("Inactive", "secondary");
+                        }
+                    },
+                    {
+                        data: "id",
+                        orderable: false,
+                        className: "text-end",
+                        render: function (id) {
+                            return canEdit
+                                ? echo.render.editLink(editUrlTemplate.replace("__id__", id))
+                                : "";
+                        }
+                    }
+                ]
+            });
+
+            echo.bindFilters(grid, "#statusFilter");
+        })();
+    </script>
+}

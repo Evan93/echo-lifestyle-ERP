@@ -2,20 +2,6 @@ using EchoLifestyle.Domain.Administration;
 
 namespace EchoLifestyle.Application.Administration.Branches;
 
-/// <summary>
-/// Which branches a list should include.
-///
-/// An explicit three-way filter rather than a "show inactive" flag: a checkbox
-/// left unticked hides rows silently, so a row disappearing after an edit reads
-/// as a bug rather than as a filter doing its job.
-/// </summary>
-public enum BranchStatusFilter
-{
-    Active = 0,
-    Inactive = 1,
-    All = 2,
-}
-
 /// <summary>One row in the branch list.</summary>
 public class BranchListItem
 {

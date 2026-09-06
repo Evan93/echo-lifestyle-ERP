@@ -55,6 +55,11 @@ TestResults/
 *.publishsettings
 PublishScripts/
 **/wwwroot/lib/
+
+# Uploaded product photography. Business content, not source - it belongs in a
+# backup, not in the repository, where it would grow the history forever.
+**/wwwroot/uploads/
+
 node_modules/
 *.pubxml
 *.pubxml.user

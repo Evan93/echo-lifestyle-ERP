@@ -1,0 +1,156 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Catalog
+@model ImagesFormModel
+@{
+    var galleries = Model.Rows
+        .GroupBy(r => r.ProductVariantId)
+        .OrderBy(g => g.Key.HasValue)
+        .ToList();
+
+    var atLimit = Model.Rows.Count >= Model.MaxImages;
+}
+
+<div class="card mb-3">
+    <div class="card-header fw-semibold">Add images</div>
+    <div class="card-body">
+        @if (atLimit)
+        {
+            <p class="text-muted small mb-0">
+                This product has @Model.MaxImages images, which is the limit. Remove one before
+                adding another.
+            </p>
+        }
+        else
+        {
+            <form asp-action="UploadImages" asp-route-id="@Model.ProductId" method="post"
+                  enctype="multipart/form-data" id="imageUploadForm">
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label" for="uploadGallery">Attach to</label>
+                        <select name="variantId" id="uploadGallery" class="form-select">
+                            <option value="">The product (shown for every variant)</option>
+                            @foreach (var variant in Model.Galleries)
+                            {
+                                <option value="@variant.Id">@variant.VariantName only</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="imageFiles">Images</label>
+                        <input type="file" name="files" id="imageFiles" class="form-control"
+                               accept="image/jpeg,image/png,image/webp" multiple />
+                    </div>
+
+                    <div class="col-12 col-md-2">
+                        <button type="submit" class="btn btn-echo w-100" data-submit-once>Upload</button>
+                    </div>
+                </div>
+
+                <div class="form-text mt-2" id="uploadHint">
+                    JPEG, PNG or WebP. Large photographs are shrunk to 1600px in the browser before
+                    they are sent, so a phone picture uploads in seconds rather than minutes.
+                </div>
+            </form>
+        }
+    </div>
+</div>
+
+@if (Model.Rows.Count == 0)
+{
+    <div class="card">
+        <div class="card-body text-center text-muted py-5">
+            No images yet. A product cannot be published without a price, and should not be
+            published without a photograph.
+        </div>
+    </div>
+}
+else
+{
+    <form asp-action="SaveImages" asp-route-id="@Model.ProductId" method="post">
+        @{ var flatIndex = 0; }
+
+        @foreach (var gallery in galleries)
+        {
+            var variantName = gallery.Key is null
+                ? "Product gallery"
+                : gallery.First().VariantName ?? "Variant";
+
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">@variantName</span>
+                    <span class="text-muted small">
+                        @if (gallery.Key is null)
+                        {
+                            <text>Shown for any variant that has no images of its own</text>
+                        }
+                        else
+                        {
+                            <text>Replaces the product gallery when this variant is selected</text>
+                        }
+                    </span>
+                </div>
+
+                <div class="card-body">
+                    <div class="row g-3">
+                        @foreach (var image in gallery.OrderBy(i => i.DisplayOrder))
+                        {
+                            var index = flatIndex++;
+
+                            <div class="col-12 col-md-6 col-xl-4">
+                                <div class="border rounded p-2 h-100">
+                                    <input type="hidden" asp-for="Rows[index].Id" />
+
+                                    <div class="ratio ratio-1x1 mb-2 bg-light rounded overflow-hidden">
+                                        <img src="@image.Path" alt="@image.AltText"
+                                             style="object-fit: contain;" loading="lazy" />
+                                    </div>
+
+                                    <label class="form-label small text-muted mb-1">Alt text</label>
+                                    <input asp-for="Rows[index].AltText" class="form-control form-control-sm mb-2" />
+                                    <span asp-validation-for="Rows[index].AltText" class="text-danger small"></span>
+
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="flex-grow-1">
+                                            <label class="form-label small text-muted mb-1">Order</label>
+                                            <input asp-for="Rows[index].DisplayOrder"
+                                                   class="form-control form-control-sm"
+                                                   type="number" min="0" max="99" />
+                                        </div>
+
+                                        <div class="form-check mt-4">
+                                            @* One primary per gallery; the radio group is keyed on the
+                                               gallery so the browser enforces it too. *@
+                                            <input class="form-check-input js-primary-image" type="radio"
+                                                   name="primaryFor-@(gallery.Key?.ToString() ?? "product")"
+                                                   data-target="Rows_@(index)__IsPrimary"
+                                                   checked="@image.IsPrimary" />
+                                            <label class="form-check-label small">Main</label>
+                                        </div>
+                                    </div>
+
+                                    <input type="hidden" asp-for="Rows[index].IsPrimary"
+                                           id="Rows_@(index)__IsPrimary" value="@image.IsPrimary.ToString().ToLowerInvariant()" />
+
+                                    <button type="submit" class="btn btn-outline-danger btn-sm w-100 mt-2"
+                                            formaction="@Url.Action("DeleteImage", new { id = Model.ProductId, imageId = image.Id })"
+                                            formnovalidate
+                                            onclick="return confirm('Remove this image?');">
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+            <div class="text-muted small">
+                Alt text is what a shopper using a screen reader hears and what search engines read.
+                It is required, and defaults to the product name.
+            </div>
+            <button type="submit" class="btn btn-echo btn-sm" data-submit-once>Save images</button>
+        </div>
+    </form>
+}

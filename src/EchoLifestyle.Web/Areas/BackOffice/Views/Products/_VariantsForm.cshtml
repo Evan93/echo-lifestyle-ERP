@@ -1,0 +1,111 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Catalog
+@model VariantsFormModel
+
+<form asp-action="SaveVariants" asp-route-id="@Model.ProductId" method="post">
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Variants</span>
+            @if (!Model.MayEditPrices)
+            {
+                <span class="text-muted small">Prices are read-only for your role</span>
+            }
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="min-width: 12rem;">Variant</th>
+                        <th style="min-width: 9rem;">SKU</th>
+                        <th style="min-width: 9rem;">Barcode</th>
+                        <th style="min-width: 8rem;" class="text-end">Price</th>
+                        <th style="min-width: 7rem;" class="text-end">MRP</th>
+                        <th style="min-width: 7rem;" class="text-end">Was</th>
+                        <th style="min-width: 6rem;" class="text-end">Grams</th>
+                        <th class="text-center">Active</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < Model.Rows.Count; i++)
+                    {
+                        var index = i;
+                        var row = Model.Rows[index];
+
+                        <tr class="@(row.IsRetired ? "table-warning" : null)">
+                            <td>
+                                <input type="hidden" asp-for="Rows[index].Id" />
+                                <input type="hidden" asp-for="Rows[index].DisplayOrder" />
+
+                                <span class="@(row.IsRetired ? "text-muted" : "fw-semibold")">@row.VariantName</span>
+
+                                @if (row.IsDefault)
+                                {
+                                    <span class="badge text-bg-light border ms-1">Default</span>
+                                }
+
+                                @if (row.IsRetired)
+                                {
+                                    <div class="text-muted small">
+                                        Retired &mdash; this combination no longer exists, but the variant
+                                        has history so the row is kept rather than deleted.
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                <input asp-for="Rows[index].Sku"
+                                       class="form-control form-control-sm text-uppercase" autocomplete="off" />
+                                <span asp-validation-for="Rows[index].Sku" class="text-danger small"></span>
+                            </td>
+                            <td>
+                                <input asp-for="Rows[index].Barcode"
+                                       class="form-control form-control-sm" autocomplete="off" />
+                            </td>
+                            <td>
+                                <input asp-for="Rows[index].Price"
+                                       class="form-control form-control-sm text-end"
+                                       type="number" step="0.01" min="0"
+                                       disabled="@(!Model.MayEditPrices)" />
+                            </td>
+                            <td>
+                                <input asp-for="Rows[index].Mrp"
+                                       class="form-control form-control-sm text-end"
+                                       type="number" step="0.01" min="0" />
+                            </td>
+                            <td>
+                                <input asp-for="Rows[index].CompareAtPrice"
+                                       class="form-control form-control-sm text-end"
+                                       type="number" step="0.01" min="0" />
+                            </td>
+                            <td>
+                                <input asp-for="Rows[index].WeightGrams"
+                                       class="form-control form-control-sm text-end"
+                                       type="number" step="0.001" min="0" />
+                            </td>
+                            <td class="text-center">
+                                @*
+                                    Checkbox first, hidden false second: the model binder takes the
+                                    first posted value, and the browser submits in document order.
+                                    Reversing these would make every box read as unticked.
+                                *@
+                                <input class="form-check-input" type="checkbox"
+                                       name="Rows[@index].IsActive" value="true" checked="@row.IsActive" />
+                                <input type="hidden" name="Rows[@index].IsActive" value="false" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-body border-top">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="text-muted small">
+                    <strong>Was</strong> is the struck-through price shown on the storefront. Changing a
+                    price closes the current one and opens a new one, so what something sold for last
+                    month stays answerable.
+                </div>
+                <button type="submit" class="btn btn-echo btn-sm" data-submit-once>Save variants</button>
+            </div>
+        </div>
+    </div>
+</form>

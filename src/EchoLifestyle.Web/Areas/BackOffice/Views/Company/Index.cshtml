@@ -1,0 +1,154 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Company
+@model CompanyFormModel
+@{
+    ViewData["Title"] = "Company profile";
+    ViewData["Subtitle"] = "The details that print on invoices and documents";
+
+    var canEdit = CurrentUser.HasPermission(Permissions.Administration.CompanyEdit);
+}
+
+<form asp-action="Index" method="post" novalidate>
+    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+    {
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Identity</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" disabled="@(!canEdit)" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="LegalName" class="form-label"></label>
+                            <input asp-for="LegalName" class="form-control" disabled="@(!canEdit)" />
+                            <div class="form-text">The registered name, if it differs from the trading name.</div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="TradeLicenseNumber" class="form-label"></label>
+                            <input asp-for="TradeLicenseNumber" class="form-control" disabled="@(!canEdit)" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Contact and address</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="AddressLine1" class="form-label"></label>
+                            <input asp-for="AddressLine1" class="form-control" disabled="@(!canEdit)" />
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="AddressLine2" class="form-label"></label>
+                            <input asp-for="AddressLine2" class="form-control" disabled="@(!canEdit)" />
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="City" class="form-label"></label>
+                            <input asp-for="City" class="form-control" disabled="@(!canEdit)" />
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="PostalCode" class="form-label"></label>
+                            <input asp-for="PostalCode" class="form-control" disabled="@(!canEdit)" />
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Phone" class="form-label"></label>
+                            <input asp-for="Phone" class="form-control" disabled="@(!canEdit)" />
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" disabled="@(!canEdit)" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                    <span>VAT registration</span>
+                    @if (Model.IsVatRegistered)
+                    {
+                        <span class="badge text-bg-success">Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge text-bg-light border">Not registered</span>
+                    }
+                </div>
+                <div class="card-body">
+                    <label asp-for="VatRegistrationNumber" class="form-label"></label>
+                    <input asp-for="VatRegistrationNumber" class="form-control" disabled="@(!canEdit)" />
+                    <span asp-validation-for="VatRegistrationNumber" class="text-danger small"></span>
+
+                    <div class="form-text mt-2">
+                        Leave this empty until the business is registered with the NBR. Once a number is
+                        recorded, invoices switch to the Mushak-compliant layout and tax reporting becomes
+                        available. The change is recorded in the audit trail with its date.
+                    </div>
+
+                    @if (!Model.IsVatRegistered)
+                    {
+                        <div class="alert alert-light border small mt-3 mb-0">
+                            Tax handling is currently dormant. Nothing is being charged or reported until
+                            a registration number is entered here.
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Locale</div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-6 text-muted fw-normal">Base currency</dt>
+                        <dd class="col-6 mb-2">@Model.BaseCurrencyCode</dd>
+
+                        <dt class="col-6 text-muted fw-normal">Business time zone</dt>
+                        <dd class="col-6 mb-0">@Model.BusinessTimeZoneId</dd>
+                    </dl>
+
+                    @* Not editable on purpose: both are baked into every stored
+                       amount and timestamp. Changing either after trading starts
+                       is a data migration, not a settings change. *@
+                    <div class="form-text mt-3">
+                        These are fixed after go-live. Timestamps are stored in UTC and shown in
+                        @Model.BusinessTimeZoneId; every amount is held in @Model.BaseCurrencyCode.
+                        Changing either would mean restating existing data, so it is a migration
+                        rather than a setting.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (canEdit)
+    {
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-echo" data-submit-once>Save changes</button>
+        </div>
+    }
+    else
+    {
+        <p class="text-muted small">You have read-only access to the company profile.</p>
+    }
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

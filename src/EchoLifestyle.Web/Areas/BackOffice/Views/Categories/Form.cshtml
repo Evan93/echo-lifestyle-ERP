@@ -1,0 +1,183 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Catalog
+@model CategoryFormModel
+@{
+    ViewData["Subtitle"] = Model.IsNew
+        ? "Add a place for products to be browsed under"
+        : (string.IsNullOrEmpty(Model.Breadcrumb) ? "Edit this category" : Model.Breadcrumb);
+
+    var action = Model.IsNew ? "Create" : "Edit";
+    var canDelete = !Model.IsNew && Model.ChildCount == 0 && Model.DirectProductCount == 0;
+}
+
+<form asp-action="@action" asp-route-id="@(Model.IsNew ? null : (long?)Model.Id)" method="post" novalidate>
+    <input type="hidden" asp-for="Id" />
+
+    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+    {
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Details</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="ParentId" class="form-label"></label>
+                            <select asp-for="ParentId" class="form-select">
+                                <option value="">(Top level)</option>
+                                @foreach (var option in Model.ParentOptions)
+                                {
+                                    <option value="@option.Id" selected="@(Model.ParentId == option.Id)">
+                                        @option.IndentedName@(option.IsActive ? "" : " (inactive)")
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="ParentId" class="text-danger small"></span>
+                            <div class="form-text">
+                                Three levels maximum. This list already excludes anything that would create a
+                                loop or exceed the limit@(Model.IsNew ? "" : ", including this category's own sub-tree").
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" id="categoryName" autocomplete="off" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Slug" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text text-muted">/</span>
+                                <input asp-for="Slug" class="form-control" id="categorySlug" autocomplete="off" />
+                            </div>
+                            <span asp-validation-for="Slug" class="text-danger small"></span>
+                            <div class="form-text">
+                                Unique among categories in the same place only &mdash; "cleansers" can live under
+                                both Skincare and Haircare.
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <div class="form-text">Shown at the top of the category's listing page.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="ImagePath" class="form-label"></label>
+                            <input asp-for="ImagePath" class="form-control" placeholder="/uploads/categories/skincare.jpg" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Storefront</div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input asp-for="ShowInMenu" class="form-check-input" role="switch" />
+                        <label asp-for="ShowInMenu" class="form-check-label"></label>
+                        <div class="form-text">
+                            Off keeps the category reachable by link and by search but out of the
+                            navigation - useful for seasonal groupings.
+                        </div>
+                    </div>
+
+                    <label asp-for="DisplayOrder" class="form-label"></label>
+                    <input asp-for="DisplayOrder" class="form-control" style="max-width: 8rem;" />
+                    <span asp-validation-for="DisplayOrder" class="text-danger small"></span>
+                    <div class="form-text">Ordering applies among siblings, not across the whole tree.</div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Status</div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input asp-for="IsActive" class="form-check-input" role="switch" />
+                        <label asp-for="IsActive" class="form-check-label"></label>
+                        <div class="form-text">
+                            An inactive category disappears from the storefront along with everything
+                            filed only under it. Check where its products can still be found first.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!Model.IsNew)
+            {
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold">Contents</div>
+                    <div class="card-body">
+                        <ul class="list-unstyled small mb-3">
+                            <li class="d-flex justify-content-between py-1">
+                                <span class="text-muted">Sub-categories</span>
+                                <strong>@Model.ChildCount</strong>
+                            </li>
+                            <li class="d-flex justify-content-between py-1">
+                                <span class="text-muted">Products filed here</span>
+                                <strong>@Model.DirectProductCount</strong>
+                            </li>
+                        </ul>
+
+                        @if (CurrentUser.HasPermission(Permissions.Catalog.CategoryEdit))
+                        {
+                            if (canDelete)
+                            {
+                                <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
+                                      onsubmit="return confirm('Delete this category?');">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete category</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <p class="text-muted small mb-0">
+                                    Empty this category before it can be deleted.
+                                </p>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-echo" data-submit-once>
+            @(Model.IsNew ? "Create category" : "Save changes")
+        </button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    @if (Model.IsNew)
+    {
+        <script>
+            (function () {
+                var name = document.getElementById("categoryName");
+                var slug = document.getElementById("categorySlug");
+
+                if (!name || !slug) {
+                    return;
+                }
+
+                var userEdited = false;
+                slug.addEventListener("input", function () { userEdited = true; });
+
+                name.addEventListener("input", function () {
+                    if (!userEdited) {
+                        slug.value = echo.slugify(name.value);
+                    }
+                });
+            })();
+        </script>
+    }
+}
