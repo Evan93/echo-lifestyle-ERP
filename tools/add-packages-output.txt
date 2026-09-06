@@ -1,0 +1,230 @@
+Echo Lifestyle ERP - Add packages
+Generated: Sun 09/06/2026 10:05:50.49
+
+===== Application =====
+info : X.509 certificate chain validation will use the default trust store selected by .NET for code signing.
+info : X.509 certificate chain validation will use the default trust store selected by .NET for timestamping.
+info : Adding PackageReference for package 'Microsoft.EntityFrameworkCore' into project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Application\EchoLifestyle.Application.csproj'.
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore/index.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore/index.json 277ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore/page/0.0.1-alpha/3.1.2.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore/page/0.0.1-alpha/3.1.2.json 649ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore/page/3.1.3/6.0.0-preview.6.21352.1.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore/page/3.1.3/6.0.0-preview.6.21352.1.json 270ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore/page/6.0.0-preview.7.21378.4/7.0.17.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore/page/6.0.0-preview.7.21378.4/7.0.17.json 266ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore/page/7.0.18/9.0.12.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore/page/7.0.18/9.0.12.json 280ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore/page/9.0.13/11.0.0-preview.7.26381.103.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore/page/9.0.13/11.0.0-preview.7.26381.103.json 263ms
+info : Restoring packages for D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Application\EchoLifestyle.Application.csproj...
+info :   GET https://api.nuget.org/v3/vulnerabilities/index.json
+info :   OK https://api.nuget.org/v3/vulnerabilities/index.json 555ms
+info :   GET https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/vulnerability.base.json
+info :   GET https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/2026.09.06.02.43.38/vulnerability.update.json
+info :   OK https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/vulnerability.base.json 268ms
+info :   OK https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/2026.09.06.02.43.38/vulnerability.update.json 565ms
+info : Package 'Microsoft.EntityFrameworkCore' is compatible with all the specified frameworks in project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Application\EchoLifestyle.Application.csproj'.
+info : PackageReference for package 'Microsoft.EntityFrameworkCore' version '10.0.11' added to file 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Application\EchoLifestyle.Application.csproj'.
+info : Generating MSBuild file D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Application\obj\EchoLifestyle.Application.csproj.nuget.g.props.
+info : Generating MSBuild file D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Application\obj\EchoLifestyle.Application.csproj.nuget.g.targets.
+info : Writing assets file to disk. Path: D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Application\obj\project.assets.json
+log  : Restored D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Application\EchoLifestyle.Application.csproj (in 2.12 sec).
+
+===== Infrastructure =====
+info : X.509 certificate chain validation will use the default trust store selected by .NET for code signing.
+info : X.509 certificate chain validation will use the default trust store selected by .NET for timestamping.
+info : Adding PackageReference for package 'Microsoft.EntityFrameworkCore.SqlServer' into project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj'.
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.sqlserver/index.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.sqlserver/index.json 694ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.sqlserver/page/0.0.1-alpha/3.1.2.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.sqlserver/page/0.0.1-alpha/3.1.2.json 290ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.sqlserver/page/3.1.3/6.0.0-preview.6.21352.1.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.sqlserver/page/3.1.3/6.0.0-preview.6.21352.1.json 287ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.sqlserver/page/6.0.0-preview.7.21378.4/7.0.17.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.sqlserver/page/6.0.0-preview.7.21378.4/7.0.17.json 271ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.sqlserver/page/7.0.18/9.0.12.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.sqlserver/page/7.0.18/9.0.12.json 681ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.sqlserver/page/9.0.13/11.0.0-preview.7.26381.103.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.sqlserver/page/9.0.13/11.0.0-preview.7.26381.103.json 257ms
+info : Restoring packages for D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj...
+info :   CACHE https://api.nuget.org/v3/vulnerabilities/index.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/vulnerability.base.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/2026.09.06.02.43.38/vulnerability.update.json
+info : Package 'Microsoft.EntityFrameworkCore.SqlServer' is compatible with all the specified frameworks in project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj'.
+info : PackageReference for package 'Microsoft.EntityFrameworkCore.SqlServer' version '10.0.11' updated in file 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj'.
+info : Assets file has not changed. Skipping assets file writing. Path: D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\obj\project.assets.json
+log  : Restored D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj (in 587 ms).
+info : X.509 certificate chain validation will use the default trust store selected by .NET for code signing.
+info : X.509 certificate chain validation will use the default trust store selected by .NET for timestamping.
+info : Adding PackageReference for package 'Microsoft.EntityFrameworkCore.Design' into project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj'.
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/index.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/index.json 573ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/0.0.1-alpha/3.1.3.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/0.0.1-alpha/3.1.3.json 283ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/3.1.4/6.0.0-preview.7.21378.4.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/3.1.4/6.0.0-preview.7.21378.4.json 668ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/6.0.0-rc.1.21452.10/7.0.18.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/6.0.0-rc.1.21452.10/7.0.18.json 267ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/7.0.19/9.0.13.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/7.0.19/9.0.13.json 266ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/9.0.14/11.0.0-preview.7.26381.103.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/9.0.14/11.0.0-preview.7.26381.103.json 682ms
+info : Restoring packages for D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj...
+info :   CACHE https://api.nuget.org/v3/vulnerabilities/index.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/vulnerability.base.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/2026.09.06.02.43.38/vulnerability.update.json
+info : Package 'Microsoft.EntityFrameworkCore.Design' is compatible with all the specified frameworks in project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj'.
+info : PackageReference for package 'Microsoft.EntityFrameworkCore.Design' version '10.0.11' updated in file 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj'.
+info : Assets file has not changed. Skipping assets file writing. Path: D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\obj\project.assets.json
+log  : Restored D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj (in 396 ms).
+info : X.509 certificate chain validation will use the default trust store selected by .NET for code signing.
+info : X.509 certificate chain validation will use the default trust store selected by .NET for timestamping.
+info : Adding PackageReference for package 'Microsoft.AspNetCore.Identity.EntityFrameworkCore' into project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj'.
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.entityframeworkcore/index.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.entityframeworkcore/index.json 662ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.entityframeworkcore/page/0.0.1-alpha/3.1.5.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.entityframeworkcore/page/0.0.1-alpha/3.1.5.json 272ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.entityframeworkcore/page/3.1.6/6.0.0-rc.2.21480.10.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.entityframeworkcore/page/3.1.6/6.0.0-rc.2.21480.10.json 267ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.entityframeworkcore/page/6.0.0/7.0.20.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.entityframeworkcore/page/6.0.0/7.0.20.json 252ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.entityframeworkcore/page/8.0.0-preview.1.23112.2/9.0.15.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.entityframeworkcore/page/8.0.0-preview.1.23112.2/9.0.15.json 685ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.entityframeworkcore/page/9.0.16/11.0.0-preview.7.26381.103.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.entityframeworkcore/page/9.0.16/11.0.0-preview.7.26381.103.json 291ms
+info : Restoring packages for D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj...
+info :   CACHE https://api.nuget.org/v3/vulnerabilities/index.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/vulnerability.base.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/2026.09.06.02.43.38/vulnerability.update.json
+info : Package 'Microsoft.AspNetCore.Identity.EntityFrameworkCore' is compatible with all the specified frameworks in project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj'.
+info : PackageReference for package 'Microsoft.AspNetCore.Identity.EntityFrameworkCore' version '10.0.11' updated in file 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj'.
+info : Assets file has not changed. Skipping assets file writing. Path: D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\obj\project.assets.json
+log  : Restored D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Infrastructure\EchoLifestyle.Infrastructure.csproj (in 495 ms).
+
+===== Web =====
+info : X.509 certificate chain validation will use the default trust store selected by .NET for code signing.
+info : X.509 certificate chain validation will use the default trust store selected by .NET for timestamping.
+info : Adding PackageReference for package 'Microsoft.EntityFrameworkCore.Design' into project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj'.
+info :   CACHE https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/index.json
+info :   CACHE https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/0.0.1-alpha/3.1.3.json
+info :   CACHE https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/3.1.4/6.0.0-preview.7.21378.4.json
+info :   CACHE https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/6.0.0-rc.1.21452.10/7.0.18.json
+info :   CACHE https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/7.0.19/9.0.13.json
+info :   CACHE https://api.nuget.org/v3/registration5-gz-semver2/microsoft.entityframeworkcore.design/page/9.0.14/11.0.0-preview.7.26381.103.json
+info : Restoring packages for D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj...
+info :   CACHE https://api.nuget.org/v3/vulnerabilities/index.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/vulnerability.base.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/2026.09.06.02.43.38/vulnerability.update.json
+info : Package 'Microsoft.EntityFrameworkCore.Design' is compatible with all the specified frameworks in project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj'.
+info : PackageReference for package 'Microsoft.EntityFrameworkCore.Design' version '10.0.11' updated in file 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj'.
+info : Assets file has not changed. Skipping assets file writing. Path: D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\obj\project.assets.json
+log  : Restored D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj (in 415 ms).
+info : X.509 certificate chain validation will use the default trust store selected by .NET for code signing.
+info : X.509 certificate chain validation will use the default trust store selected by .NET for timestamping.
+info : Adding PackageReference for package 'Microsoft.AspNetCore.Identity.UI' into project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj'.
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.ui/index.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.ui/index.json 578ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.ui/page/2.1.0-preview1-final/3.1.27.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.ui/page/2.1.0-preview1-final/3.1.27.json 276ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.ui/page/3.1.28/6.0.22.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.ui/page/3.1.28/6.0.22.json 306ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.ui/page/6.0.23/8.0.13.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.ui/page/6.0.23/8.0.13.json 269ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.ui/page/8.0.14/10.0.8.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.ui/page/8.0.14/10.0.8.json 255ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.ui/page/10.0.9/11.0.0-preview.7.26381.103.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.identity.ui/page/10.0.9/11.0.0-preview.7.26381.103.json 258ms
+info : Restoring packages for D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj...
+info :   CACHE https://api.nuget.org/v3/vulnerabilities/index.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/vulnerability.base.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/2026.09.06.02.43.38/vulnerability.update.json
+info : Package 'Microsoft.AspNetCore.Identity.UI' is compatible with all the specified frameworks in project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj'.
+info : PackageReference for package 'Microsoft.AspNetCore.Identity.UI' version '10.0.11' updated in file 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj'.
+info : Assets file has not changed. Skipping assets file writing. Path: D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\obj\project.assets.json
+log  : Restored D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj (in 461 ms).
+info : X.509 certificate chain validation will use the default trust store selected by .NET for code signing.
+info : X.509 certificate chain validation will use the default trust store selected by .NET for timestamping.
+info : Adding PackageReference for package 'Serilog.AspNetCore' into project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj'.
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/serilog.aspnetcore/index.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/serilog.aspnetcore/index.json 593ms
+info : Restoring packages for D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj...
+info :   CACHE https://api.nuget.org/v3/vulnerabilities/index.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/vulnerability.base.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/2026.09.06.02.43.38/vulnerability.update.json
+info : Package 'Serilog.AspNetCore' is compatible with all the specified frameworks in project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj'.
+info : PackageReference for package 'Serilog.AspNetCore' version '10.0.0' updated in file 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj'.
+info : Assets file has not changed. Skipping assets file writing. Path: D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\obj\project.assets.json
+log  : Restored D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj (in 377 ms).
+info : X.509 certificate chain validation will use the default trust store selected by .NET for code signing.
+info : X.509 certificate chain validation will use the default trust store selected by .NET for timestamping.
+info : Adding PackageReference for package 'Serilog.Sinks.File' into project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj'.
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/serilog.sinks.file/index.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/serilog.sinks.file/index.json 641ms
+info : Restoring packages for D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj...
+info :   CACHE https://api.nuget.org/v3/vulnerabilities/index.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/vulnerability.base.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/2026.09.06.02.43.38/vulnerability.update.json
+info : Package 'Serilog.Sinks.File' is compatible with all the specified frameworks in project 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj'.
+info : PackageReference for package 'Serilog.Sinks.File' version '7.0.0' updated in file 'D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj'.
+info : Assets file has not changed. Skipping assets file writing. Path: D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\obj\project.assets.json
+log  : Restored D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\EchoLifestyle.Web.csproj (in 477 ms).
+
+===== Integration tests =====
+info : X.509 certificate chain validation will use the default trust store selected by .NET for code signing.
+info : X.509 certificate chain validation will use the default trust store selected by .NET for timestamping.
+info : Adding PackageReference for package 'Microsoft.AspNetCore.Mvc.Testing' into project 'D:\MyProject\EchoLifeStyleERP\tests\EchoLifestyle.IntegrationTests\EchoLifestyle.IntegrationTests.csproj'.
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.mvc.testing/index.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.mvc.testing/index.json 625ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.mvc.testing/page/0.0.1-alpha/3.1.29.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.mvc.testing/page/0.0.1-alpha/3.1.29.json 254ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.mvc.testing/page/3.1.30/6.0.24.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.mvc.testing/page/3.1.30/6.0.24.json 688ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.mvc.testing/page/6.0.25/8.0.15.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.mvc.testing/page/6.0.25/8.0.15.json 266ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.mvc.testing/page/8.0.16/10.0.10.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.mvc.testing/page/8.0.16/10.0.10.json 299ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.mvc.testing/page/10.0.11/11.0.0-preview.7.26381.103.json
+info :   OK https://api.nuget.org/v3/registration5-gz-semver2/microsoft.aspnetcore.mvc.testing/page/10.0.11/11.0.0-preview.7.26381.103.json 275ms
+info : Restoring packages for D:\MyProject\EchoLifeStyleERP\tests\EchoLifestyle.IntegrationTests\EchoLifestyle.IntegrationTests.csproj...
+info :   CACHE https://api.nuget.org/v3/vulnerabilities/index.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/vulnerability.base.json
+info :   CACHE https://api.nuget.org/v3-vulnerabilities/2026.09.02.23.52.57/2026.09.06.02.43.38/vulnerability.update.json
+info : Package 'Microsoft.AspNetCore.Mvc.Testing' is compatible with all the specified frameworks in project 'D:\MyProject\EchoLifeStyleERP\tests\EchoLifestyle.IntegrationTests\EchoLifestyle.IntegrationTests.csproj'.
+info : PackageReference for package 'Microsoft.AspNetCore.Mvc.Testing' version '10.0.11' updated in file 'D:\MyProject\EchoLifeStyleERP\tests\EchoLifestyle.IntegrationTests\EchoLifestyle.IntegrationTests.csproj'.
+info : Assets file has not changed. Skipping assets file writing. Path: D:\MyProject\EchoLifeStyleERP\tests\EchoLifestyle.IntegrationTests\obj\project.assets.json
+log  : Restored D:\MyProject\EchoLifeStyleERP\tests\EchoLifestyle.IntegrationTests\EchoLifestyle.IntegrationTests.csproj (in 387 ms).
+
+===== resulting package references =====
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+Project 'EchoLifestyle.Infrastructure' has the following package references
+   [net10.0]: 
+   Top-level Package                                        Requested   Resolved
+   > Microsoft.AspNetCore.Identity.EntityFrameworkCore      10.0.11     10.0.11 
+   > Microsoft.EntityFrameworkCore.Design                   10.0.11     10.0.11 
+   > Microsoft.EntityFrameworkCore.SqlServer                10.0.11     10.0.11 
+
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+Project 'EchoLifestyle.Web' has the following package references
+   [net10.0]: 
+   Top-level Package                           Requested   Resolved
+   > Microsoft.AspNetCore.Identity.UI          10.0.11     10.0.11 
+   > Microsoft.EntityFrameworkCore.Design      10.0.11     10.0.11 
+   > Serilog.AspNetCore                        10.0.0      10.0.0  
+   > Serilog.Sinks.File                        7.0.0       7.0.0   
+
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+Project 'EchoLifestyle.IntegrationTests' has the following package references
+   [net10.0]: 
+   Top-level Package                       Requested   Resolved
+   > coverlet.collector                    6.0.4       6.0.4   
+   > Microsoft.AspNetCore.Mvc.Testing      10.0.11     10.0.11 
+   > Microsoft.NET.Test.Sdk                17.14.1     17.14.1 
+   > xunit                                 2.9.3       2.9.3   
+   > xunit.runner.visualstudio             3.1.4       3.1.4   
+
+
+===== END =====

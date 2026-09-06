@@ -1,0 +1,36 @@
+@model EchoLifestyle.Web.Controllers.ErrorViewModel
+@{
+    ViewData["Title"] = $"Error {Model.StatusCode}";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Echo Lifestyle</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body class="bg-body-tertiary">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6">
+                <div class="card shadow-sm mt-5">
+                    <div class="card-body p-4">
+                        <h1 class="h4">@Model.StatusCode</h1>
+                        <p class="mb-3">@Model.Message</p>
+
+                        @* The trace id is what ties this screen to the log entry. *@
+                        <p class="small text-muted mb-3">
+                            Reference: <code>@Model.TraceId</code><br />
+                            Quote this if you need to report the problem.
+                        </p>
+
+                        <a class="btn btn-sm btn-outline-dark" href="/">Back to start</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

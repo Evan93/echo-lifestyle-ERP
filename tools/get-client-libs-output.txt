@@ -1,0 +1,21 @@
+Echo Lifestyle ERP - client libraries
+Generated: Sun 09/06/2026 10:05:37.16
+
+Downloading https://cdn.jsdelivr.net/npm/datatables.net@2/js/dataTables.min.js
+  saved dataTables.min.js (98997 bytes)
+Downloading https://cdn.jsdelivr.net/npm/datatables.net-bs5@2/js/dataTables.bootstrap5.min.js
+  saved dataTables.bootstrap5.min.js (1450 bytes)
+Downloading https://cdn.jsdelivr.net/npm/datatables.net-bs5@2/css/dataTables.bootstrap5.min.css
+  saved dataTables.bootstrap5.min.css (19443 bytes)
+Downloading https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js
+  saved alpine.min.js (55744 bytes)
+
+===== resulting files =====
+D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\wwwroot\lib\datatables\css
+D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\wwwroot\lib\datatables\js
+D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\wwwroot\lib\datatables\css\dataTables.bootstrap5.min.css
+D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\wwwroot\lib\datatables\js\dataTables.bootstrap5.min.js
+D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\wwwroot\lib\datatables\js\dataTables.min.js
+D:\MyProject\EchoLifeStyleERP\src\EchoLifestyle.Web\wwwroot\lib\alpinejs\alpine.min.js
+
+===== END =====

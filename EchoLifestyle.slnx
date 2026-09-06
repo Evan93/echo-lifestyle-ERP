@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EchoLifestyle.Application/EchoLifestyle.Application.csproj" />
+    <Project Path="src/EchoLifestyle.Domain/EchoLifestyle.Domain.csproj" />
+    <Project Path="src/EchoLifestyle.Infrastructure/EchoLifestyle.Infrastructure.csproj" />
+    <Project Path="src/EchoLifestyle.Web/EchoLifestyle.Web.csproj" />
+    <Project Path="src/EchoLifestyle.Worker/EchoLifestyle.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EchoLifestyle.IntegrationTests/EchoLifestyle.IntegrationTests.csproj" />
+    <Project Path="tests/EchoLifestyle.UnitTests/EchoLifestyle.UnitTests.csproj" />
+  </Folder>
+</Solution>

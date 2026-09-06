@@ -1,0 +1,117 @@
+@{
+    ViewData["Title"] = "Branches";
+    ViewData["Subtitle"] = "Selling locations and the warehouses they draw stock from";
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    @* A visible filter rather than a "show inactive" checkbox: the current
+       state is always on screen, so a row missing from the list is explained
+       rather than mysterious. *@
+    <div class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0 small text-muted" for="statusFilter">Showing</label>
+        <select id="statusFilter" class="form-select form-select-sm" style="width: auto;">
+            <option value="Active" selected>Active branches</option>
+            <option value="Inactive">Inactive branches</option>
+            <option value="All">All branches</option>
+        </select>
+    </div>
+
+    @if (CurrentUser.HasPermission(Permissions.Administration.BranchEdit))
+    {
+        <a class="btn btn-echo btn-sm" asp-action="Create">New branch</a>
+    }
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="branchesGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>City</th>
+                    <th>Warehouses</th>
+                    <th>Negative stock</th>
+                    <th>Status</th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var canEdit = @Json.Serialize(CurrentUser.HasPermission(Permissions.Administration.BranchEdit));
+            var editUrlTemplate = "@Url.Action("Edit", new { id = "__id__" })";
+
+            var grid = echo.grid("#branchesGrid", {
+                url: "@Url.Action("Data")",
+                order: [[0, "asc"]],
+                emptyMessage: "No branches yet.",
+                searchPlaceholder: "Search code, name or city...",
+
+                filters: function () {
+                    return { status: $("#statusFilter").val() };
+                },
+
+                columns: [
+                    { data: "code", name: "code", render: echo.render.code },
+                    { data: "name", name: "name", render: echo.escape },
+                    { data: "type", name: "type", render: echo.escape },
+                    { data: "city", name: "city", render: echo.escape },
+                    {
+                        data: "warehouseCount",
+                        orderable: false,
+                        render: function (count, type, row) {
+                            if (!count) {
+                                return '<span class="text-muted small">None linked</span>';
+                            }
+
+                            var primary = row.primaryWarehouseName
+                                ? " &middot; " + echo.escape(row.primaryWarehouseName)
+                                : "";
+
+                            return count + primary;
+                        }
+                    },
+                    {
+                        data: "allowNegativeStock",
+                        name: "allowNegativeStock",
+                        orderable: false,
+                        render: function (allowed) {
+                            return allowed
+                                ? echo.render.badge("Allowed", "warning")
+                                : echo.render.badge("Blocked", "light border");
+                        }
+                    },
+                    {
+                        data: "isActive",
+                        name: "isActive",
+                        render: function (active) {
+                            return active
+                                ? echo.render.badge("Active", "success")
+                                : echo.render.badge("Inactive", "secondary");
+                        }
+                    },
+                    {
+                        data: "id",
+                        orderable: false,
+                        className: "text-end",
+                        render: function (id) {
+                            if (!canEdit) {
+                                return "";
+                            }
+
+                            return echo.render.editLink(editUrlTemplate.replace("__id__", id));
+                        }
+                    }
+                ]
+            });
+
+            echo.bindFilters(grid, "#statusFilter");
+        })();
+    </script>
+}

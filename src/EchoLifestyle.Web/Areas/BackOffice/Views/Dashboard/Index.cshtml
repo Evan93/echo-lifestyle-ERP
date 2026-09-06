@@ -1,0 +1,96 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["Subtitle"] = $"Welcome back, {Model.FullName}";
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="echo-stat">
+            <div class="echo-stat-label">Signed in as</div>
+            <div class="echo-stat-value">@Model.UserName</div>
+            <div class="echo-stat-note">
+                @(Model.IsOwner ? "Owner - holds every permission" : "Staff account")
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="echo-stat">
+            <div class="echo-stat-label">Branches in scope</div>
+            <div class="echo-stat-value">@Model.Branches.Count</div>
+            <div class="echo-stat-note">
+                @(Model.IsOwner ? "All branches" : "Assigned to your account")
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="echo-stat">
+            <div class="echo-stat-label">Business date</div>
+            <div class="echo-stat-value">@Model.BusinessTime.ToString("dd MMM yyyy")</div>
+            <div class="echo-stat-note">Asia/Dhaka &middot; stored in UTC</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="echo-stat">
+            <div class="echo-stat-label">Build phase</div>
+            <div class="echo-stat-value">Phase 1</div>
+            <div class="echo-stat-note">Catalog and procurement next</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header fw-semibold">Branches</div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Code</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Type</th>
+                    <th scope="col" class="text-end">Warehouses</th>
+                    <th scope="col">Negative stock</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Branches.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5">
+                            <div class="echo-empty">No branches are assigned to your account.</div>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var branch in Model.Branches)
+                    {
+                        <tr>
+                            <td><code>@branch.Code</code></td>
+                            <td>@branch.Name</td>
+                            <td>@branch.Type</td>
+                            <td class="text-end">@branch.WarehouseCount</td>
+                            <td>
+                                @if (branch.AllowNegativeStock)
+                                {
+                                    <span class="badge text-bg-warning">Allowed</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-light border">Blocked</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<p class="text-muted small mt-3 mb-0">
+    Greyed items in the sidebar are modules that do not exist yet - the badge shows which phase they arrive in.
+</p>

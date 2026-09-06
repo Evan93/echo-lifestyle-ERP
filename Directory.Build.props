@@ -1,0 +1,32 @@
+<Project>
+
+  <!--
+    Solution-wide build settings for Echo Lifestyle ERP.
+    Applies to every project under this directory.
+  -->
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+
+    <!-- Warnings are surfaced but do not fail the build yet.
+         Flipped to true for src/ projects once Phase 1 stabilises. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+
+    <Company>Echo Lifestyle</Company>
+    <Product>Echo Lifestyle ERP</Product>
+    <Authors>Echo Lifestyle</Authors>
+    <NeutralLanguage>en</NeutralLanguage>
+  </PropertyGroup>
+
+  <!-- Deterministic builds in CI -->
+  <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == ''">
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,72 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Navigation
+@model IReadOnlyList<NavItem>
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+
+    bool IsActive(NavItem item) =>
+        item.Controller is not null
+        && string.Equals(item.Controller, currentController, StringComparison.OrdinalIgnoreCase)
+        && (item.Action is null || string.Equals(item.Action, currentAction, StringComparison.OrdinalIgnoreCase));
+
+    bool GroupHasActiveChild(NavItem group) => group.Children.Any(IsActive);
+}
+
+<nav class="echo-nav" aria-label="Main">
+    <ul class="echo-nav-list">
+        @foreach (var item in Model)
+        {
+            if (!item.IsGroup)
+            {
+                <li>
+                    <a class="echo-nav-link @(IsActive(item) ? "is-active" : string.Empty)"
+                       asp-area="BackOffice" asp-controller="@item.Controller" asp-action="@item.Action">
+                        <partial name="_Icon" model="@item.Icon" />
+                        <span class="echo-nav-text">@item.Text</span>
+                    </a>
+                </li>
+
+                continue;
+            }
+
+            var groupId = $"nav-{item.Text.Replace(" ", "-", StringComparison.Ordinal).ToLowerInvariant()}";
+            var expanded = GroupHasActiveChild(item);
+
+            <li class="echo-nav-group">
+                <button class="echo-nav-link echo-nav-toggle @(expanded ? string.Empty : "collapsed")"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#@groupId"
+                        aria-expanded="@expanded.ToString().ToLowerInvariant()"
+                        aria-controls="@groupId">
+                    <partial name="_Icon" model="@item.Icon" />
+                    <span class="echo-nav-text">@item.Text</span>
+                    <span class="echo-nav-caret"><partial name="_Icon" model="@("chevron")" /></span>
+                </button>
+
+                <ul class="echo-nav-sub collapse @(expanded ? "show" : string.Empty)" id="@groupId">
+                    @foreach (var child in item.Children)
+                    {
+                        <li>
+                            @if (child.IsEnabled)
+                            {
+                                <a class="echo-nav-sublink @(IsActive(child) ? "is-active" : string.Empty)"
+                                   asp-area="BackOffice" asp-controller="@child.Controller" asp-action="@child.Action">
+                                    @child.Text
+                                </a>
+                            }
+                            else
+                            {
+                                @* Honest about what does not exist yet, rather than a dead link. *@
+                                <span class="echo-nav-sublink is-disabled" title="Arrives in phase @child.ComingInPhase">
+                                    @child.Text
+                                    <span class="echo-phase-badge">P@child.ComingInPhase</span>
+                                </span>
+                            }
+                        </li>
+                    }
+                </ul>
+            </li>
+        }
+    </ul>
+</nav>

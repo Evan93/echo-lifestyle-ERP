@@ -1,0 +1,134 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Navigation
+@* CurrentUser and Clock come from _ViewImports. *@
+@inject BackOfficeMenu Menu
+@{
+    var isSignedIn = CurrentUser.IsStaff;
+    var fullName = User.FindFirst(EchoClaimTypes.FullName)?.Value ?? CurrentUser.UserName ?? string.Empty;
+    var initials = string.Concat(
+        fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Take(2)
+                .Select(part => char.ToUpperInvariant(part[0])));
+    IReadOnlyList<NavItem> navItems = isSignedIn ? Menu.Build() : [];
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] &middot; Echo Lifestyle</title>
+    <link rel="icon" href="~/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/datatables/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="@(isSignedIn ? "echo-app" : "echo-plain")">
+
+@if (!isSignedIn)
+{
+    @* Sign-in and error pages render without the shell. *@
+    <main class="echo-plain-main">
+        @RenderBody()
+    </main>
+}
+else
+{
+    <div class="echo-shell" id="echoShell">
+
+        <aside class="echo-sidebar" id="echoSidebar">
+            <div class="echo-brand">
+                <a class="echo-brand-link" asp-area="BackOffice" asp-controller="Dashboard" asp-action="Index">
+                    <img class="echo-brand-mark" src="~/img/echo-mark.png" alt="Echo Lifestyle" />
+                    <span class="echo-brand-text">
+                        <span class="echo-brand-name">Echo</span>
+                        <small>Back office</small>
+                    </span>
+                </a>
+            </div>
+
+            <partial name="_Sidebar" model="navItems" />
+
+            <div class="echo-sidebar-foot">
+                <span class="echo-nav-text small">Phase 1 &middot; Foundation</span>
+            </div>
+        </aside>
+
+        <div class="echo-sidebar-backdrop" id="echoBackdrop" hidden></div>
+
+        <div class="echo-main">
+            <header class="echo-topbar">
+                <button class="echo-icon-btn" type="button" id="echoSidebarToggle"
+                        aria-label="Toggle navigation" aria-controls="echoSidebar">
+                    @* Quoted so Razor passes the icon name, not the navItems variable. *@
+                    <partial name="_Icon" model="@("menu")" />
+                </button>
+
+                <div class="echo-topbar-title">
+                    <h1>@ViewData["Title"]</h1>
+                    @if (ViewData["Subtitle"] is string subtitle)
+                    {
+                        <p>@subtitle</p>
+                    }
+                </div>
+
+                <div class="echo-topbar-right">
+                    <span class="echo-clock" title="Business time, Asia/Dhaka">
+                        @Clock.BusinessNow.ToString("ddd dd MMM, HH:mm")
+                    </span>
+
+                    <div class="dropdown">
+                        <button class="echo-user" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="echo-avatar">@initials</span>
+                            <span class="echo-user-meta">
+                                <span class="echo-user-name">@fullName</span>
+                                <span class="echo-user-role">@(CurrentUser.IsOwner ? "Owner" : "Staff")</span>
+                            </span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><h6 class="dropdown-header">@CurrentUser.UserName</h6></li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <form asp-area="BackOffice" asp-controller="Account" asp-action="Logout" method="post">
+                                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
+                                        <partial name="_Icon" model="@("logout")" />
+                                        Sign out
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <main class="echo-content">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    @* Toasts are rendered here and raised from TempData or from JS. *@
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="echoToasts">
+        @if (TempData["ToastMessage"] is string toastMessage)
+        {
+            var toastType = TempData["ToastType"] as string ?? "success";
+            <div class="toast align-items-center text-bg-@toastType border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">@toastMessage</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                            data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/lib/datatables/js/dataTables.min.js"></script>
+<script src="~/lib/datatables/js/dataTables.bootstrap5.min.js"></script>
+<script src="~/lib/alpinejs/alpine.min.js" defer></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+<script src="~/js/echo-grid.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

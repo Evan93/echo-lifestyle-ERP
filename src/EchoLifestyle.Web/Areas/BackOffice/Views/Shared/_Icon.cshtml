@@ -1,0 +1,98 @@
+@model string
+@*
+    Inline SVG icon set.
+
+    Deliberately not an icon library: the shell needs about a dozen glyphs, and
+    inlining them keeps the back office free of an extra client dependency,
+    an install step, and a network fetch. They inherit currentColor.
+*@
+@{
+    var name = Model ?? "dot";
+}
+<svg class="echo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    @switch (name)
+    {
+        case "grid":
+            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+            <rect x="14" y="3" width="7" height="7" rx="1.5" />
+            <rect x="3" y="14" width="7" height="7" rx="1.5" />
+            <rect x="14" y="14" width="7" height="7" rx="1.5" />
+            break;
+
+        case "box":
+            <path d="M12 3 4 7v10l8 4 8-4V7z" />
+            <path d="M4 7l8 4 8-4" />
+            <path d="M12 11v10" />
+            break;
+
+        case "truck":
+            <rect x="2" y="6" width="12" height="10" rx="1.5" />
+            <path d="M14 9h4l3 3v4h-7z" />
+            <circle cx="7" cy="18" r="2" />
+            <circle cx="17" cy="18" r="2" />
+            break;
+
+        case "layers":
+            <path d="M12 3 3 8l9 5 9-5z" />
+            <path d="M3 13l9 5 9-5" />
+            break;
+
+        case "cart":
+            <circle cx="9" cy="19" r="1.6" />
+            <circle cx="18" cy="19" r="1.6" />
+            <path d="M3 4h2l2.4 10.2a1.5 1.5 0 0 0 1.5 1.2h8.3a1.5 1.5 0 0 0 1.5-1.2L21 7H6" />
+            break;
+
+        case "users":
+            <circle cx="9" cy="8" r="3.2" />
+            <path d="M3 20a6 6 0 0 1 12 0" />
+            <path d="M16 5.5a3 3 0 0 1 0 5.8" />
+            <path d="M17 14.5a5.5 5.5 0 0 1 4 5.5" />
+            break;
+
+        case "coins":
+            <ellipse cx="8" cy="7" rx="5" ry="2.5" />
+            <path d="M3 7v4c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V7" />
+            <ellipse cx="16" cy="15" rx="5" ry="2.5" />
+            <path d="M11 15v3c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-3" />
+            break;
+
+        case "chart":
+            <path d="M4 20V10" />
+            <path d="M10 20V4" />
+            <path d="M16 20v-7" />
+            <path d="M3 20h18" />
+            break;
+
+        case "settings":
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z" />
+            break;
+
+        case "menu":
+            <path d="M4 7h16" />
+            <path d="M4 12h16" />
+            <path d="M4 17h16" />
+            break;
+
+        case "chevron":
+            <path d="M9 6l6 6-6 6" />
+            break;
+
+        case "logout":
+            <path d="M14 5V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1" />
+            <path d="M18 12H9" />
+            <path d="M15 9l3 3-3 3" />
+            break;
+
+        case "building":
+            <rect x="4" y="3" width="16" height="18" rx="1.5" />
+            <path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2" />
+            break;
+
+        default:
+            <circle cx="12" cy="12" r="2.5" />
+            break;
+    }
+</svg>

@@ -1,0 +1,15 @@
+Echo Lifestyle ERP - Migrations
+Generated: Sat 09/05/2026 16:56:48.06
+Command: update 
+
+Tool 'dotnet-ef' (version '10.0.11') was restored. Available commands: dotnet-ef
+
+Restore was successful.
+===== dotnet ef database update =====
+Build started...
+Build succeeded.
+Acquiring an exclusive lock for migration application. See https://aka.ms/efcore-docs-migrations-lock for more information if this takes too long.
+Applying migration '20260905105252_InitialCreate'.
+Done.
+
+===== END =====

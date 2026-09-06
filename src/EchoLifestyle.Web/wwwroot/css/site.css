@@ -1,0 +1,602 @@
+/* ==========================================================================
+   Echo Lifestyle ERP - back-office shell
+
+   Palette is taken from the Echo Lifestyle logo: a deep wine/burgundy with a
+   rose-gold gradient. Wine carries structure and emphasis; rose gold is used
+   sparingly, as a highlight, because it is too light to carry text on white.
+
+   Density is deliberate: this is a system people work in all day, so rows are
+   compact, type is small, and colour is used to mean something rather than to
+   decorate.
+   ========================================================================== */
+
+:root {
+    /* --- brand: wine ------------------------------------------------------ */
+    --echo-wine-900: #2a0713;   /* sidebar ground */
+    --echo-wine-800: #3a0d1e;
+    --echo-wine-700: #4d1028;   /* darkest tone in the logo */
+    --echo-wine-600: #70203e;   /* core burgundy - primary actions */
+    --echo-wine-500: #8a2a4c;
+    --echo-wine-400: #903054;
+    --echo-wine-100: #f7e9ee;   /* wine tint for backgrounds */
+
+    /* --- brand: rose gold ------------------------------------------------- */
+    --echo-rose-300: #fadcc8;
+    --echo-rose-400: #e6aa96;   /* highlight on dark */
+    --echo-rose-500: #c98b6e;
+    --echo-rose-600: #a9705a;   /* dark enough for text on white */
+
+    /* --- neutrals --------------------------------------------------------- */
+    --echo-ink: #1c1418;
+    --echo-ink-soft: #6b6169;
+    --echo-line: #e7e2e5;
+    --echo-surface: #ffffff;
+    --echo-canvas: #f7f5f6;
+
+    /* --- shell roles ------------------------------------------------------ */
+    --echo-side-bg: var(--echo-wine-900);
+    --echo-side-ink: #c9b6bd;
+    --echo-side-ink-strong: #ffffff;
+    --echo-side-hover: #3d1122;
+    --echo-side-active: #55182f;
+    --echo-accent: var(--echo-wine-600);
+    --echo-accent-ink: #ffffff;
+    --echo-highlight: var(--echo-rose-400);
+
+    --echo-sidebar-width: 248px;
+    --echo-sidebar-collapsed: 68px;
+    --echo-topbar-height: 60px;
+
+    /* The logo's wordmark is a high-contrast serif. Data-dense screens stay in
+       a sans for legibility at small sizes; the serif is reserved for brand
+       moments - sign-in, and the storefront from Phase 5. */
+    --echo-display: Georgia, "Times New Roman", "Playfair Display", serif;
+}
+
+body {
+    font-size: 0.9rem;
+    color: var(--echo-ink);
+    background: var(--echo-canvas);
+}
+
+.echo-plain {
+    background:
+        radial-gradient(1100px 520px at 50% -12%, var(--echo-wine-100), transparent 68%),
+        var(--echo-canvas);
+}
+
+.echo-plain-main {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.echo-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+}
+
+.echo-display {
+    font-family: var(--echo-display);
+    letter-spacing: 0.02em;
+}
+
+/* --------------------------------------------------------------------------
+   Shell
+   -------------------------------------------------------------------------- */
+
+.echo-shell {
+    display: flex;
+    min-height: 100vh;
+}
+
+.echo-main {
+    flex: 1 1 auto;
+    min-width: 0;              /* lets wide tables scroll instead of stretching the page */
+    display: flex;
+    flex-direction: column;
+}
+
+.echo-content {
+    padding: 1.25rem 1.5rem 3rem;
+    flex: 1 1 auto;
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar
+   -------------------------------------------------------------------------- */
+
+.echo-sidebar {
+    width: var(--echo-sidebar-width);
+    flex: 0 0 var(--echo-sidebar-width);
+    background: linear-gradient(180deg, var(--echo-wine-900) 0%, #200510 100%);
+    color: var(--echo-side-ink);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transition: width 0.15s ease, flex-basis 0.15s ease;
+}
+
+.echo-brand {
+    padding: 0.85rem 0.9rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.echo-brand-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    text-decoration: none;
+    color: var(--echo-side-ink-strong);
+}
+
+.echo-brand-mark {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 9px;
+    background: #fff;          /* the emblem is drawn for a light ground */
+    padding: 3px;
+    object-fit: contain;
+}
+
+.echo-brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.echo-brand-name {
+    font-family: var(--echo-display);
+    font-size: 1.02rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.echo-brand-text small {
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--echo-rose-400);
+}
+
+.echo-nav {
+    padding: 0.6rem 0.5rem;
+    flex: 1 1 auto;
+}
+
+.echo-nav-list,
+.echo-nav-sub {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.echo-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    margin-bottom: 2px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--echo-side-ink);
+    text-decoration: none;
+    font-size: 0.875rem;
+    text-align: left;
+}
+
+.echo-nav-link:hover,
+.echo-nav-link:focus-visible {
+    background: var(--echo-side-hover);
+    color: var(--echo-side-ink-strong);
+}
+
+.echo-nav-link.is-active {
+    background: var(--echo-side-active);
+    color: var(--echo-side-ink-strong);
+    box-shadow: inset 3px 0 0 var(--echo-highlight);
+}
+
+.echo-nav-caret {
+    margin-left: auto;
+    display: inline-flex;
+    transition: transform 0.15s ease;
+}
+
+.echo-nav-toggle:not(.collapsed) .echo-nav-caret {
+    transform: rotate(90deg);
+}
+
+.echo-nav-sub {
+    padding: 0.1rem 0 0.35rem 2.45rem;
+}
+
+.echo-nav-sublink {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.32rem 0.5rem;
+    border-radius: 6px;
+    color: var(--echo-side-ink);
+    text-decoration: none;
+    font-size: 0.83rem;
+}
+
+.echo-nav-sublink:hover {
+    background: var(--echo-side-hover);
+    color: var(--echo-side-ink-strong);
+}
+
+.echo-nav-sublink.is-active {
+    color: var(--echo-side-ink-strong);
+    background: var(--echo-side-active);
+}
+
+.echo-nav-sublink.is-disabled {
+    color: #8a7078;
+    cursor: default;
+}
+
+.echo-phase-badge {
+    margin-left: auto;
+    font-size: 0.62rem;
+    letter-spacing: 0.02em;
+    padding: 0.05rem 0.35rem;
+    border-radius: 999px;
+    border: 1px solid #5a2438;
+    color: #9c7b86;
+}
+
+.echo-sidebar-foot {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: #8a7078;
+}
+
+/* --------------------------------------------------------------------------
+   Collapsed sidebar (icons only) - desktop only
+   -------------------------------------------------------------------------- */
+
+@media (min-width: 992px) {
+    .echo-shell.is-collapsed .echo-sidebar {
+        width: var(--echo-sidebar-collapsed);
+        flex-basis: var(--echo-sidebar-collapsed);
+    }
+
+    .echo-shell.is-collapsed .echo-nav-text,
+    .echo-shell.is-collapsed .echo-brand-text,
+    .echo-shell.is-collapsed .echo-nav-caret,
+    .echo-shell.is-collapsed .echo-nav-sub,
+    .echo-shell.is-collapsed .echo-sidebar-foot {
+        display: none;
+    }
+
+    .echo-shell.is-collapsed .echo-nav-link,
+    .echo-shell.is-collapsed .echo-brand-link {
+        justify-content: center;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Topbar
+   -------------------------------------------------------------------------- */
+
+.echo-topbar {
+    height: var(--echo-topbar-height);
+    background: var(--echo-surface);
+    border-bottom: 1px solid var(--echo-line);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0 1.25rem;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.echo-topbar-title h1 {
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.echo-topbar-title p {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--echo-ink-soft);
+}
+
+.echo-topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.echo-clock {
+    font-size: 0.8rem;
+    color: var(--echo-ink-soft);
+    white-space: nowrap;
+}
+
+.echo-icon-btn {
+    border: 1px solid var(--echo-line);
+    background: var(--echo-surface);
+    border-radius: 7px;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    color: var(--echo-ink);
+}
+
+.echo-icon-btn:hover {
+    background: var(--echo-wine-100);
+    border-color: var(--echo-rose-400);
+}
+
+.echo-user {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    border: 0;
+    background: transparent;
+    padding: 0.2rem 0.3rem;
+    border-radius: 7px;
+}
+
+.echo-user:hover {
+    background: var(--echo-wine-100);
+}
+
+.echo-avatar {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--echo-wine-600), var(--echo-wine-800));
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.echo-user-meta {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+    text-align: left;
+}
+
+.echo-user-name {
+    font-size: 0.83rem;
+    font-weight: 600;
+}
+
+.echo-user-role {
+    font-size: 0.72rem;
+    color: var(--echo-ink-soft);
+}
+
+/* --------------------------------------------------------------------------
+   Brand-tinted Bootstrap overrides
+   -------------------------------------------------------------------------- */
+
+.btn-primary,
+.btn-echo {
+    background-color: var(--echo-wine-600);
+    border-color: var(--echo-wine-600);
+    color: #fff;
+}
+
+.btn-primary:hover,
+.btn-echo:hover,
+.btn-primary:focus,
+.btn-echo:focus {
+    background-color: var(--echo-wine-500);
+    border-color: var(--echo-wine-500);
+    color: #fff;
+}
+
+.btn-outline-echo {
+    color: var(--echo-wine-600);
+    border-color: var(--echo-wine-600);
+}
+
+.btn-outline-echo:hover {
+    background-color: var(--echo-wine-600);
+    color: #fff;
+}
+
+a {
+    color: var(--echo-wine-600);
+}
+
+a:hover {
+    color: var(--echo-wine-500);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--echo-rose-400);
+    box-shadow: 0 0 0 0.2rem rgba(112, 32, 62, 0.12);
+}
+
+.table > thead {
+    --bs-table-bg: var(--echo-wine-100);
+}
+
+/* --------------------------------------------------------------------------
+   Cards, tables, forms - shared work surfaces
+   -------------------------------------------------------------------------- */
+
+.card {
+    border-color: var(--echo-line);
+    border-radius: 10px;
+}
+
+.card-header {
+    background: var(--echo-surface);
+    border-bottom-color: var(--echo-line);
+    font-size: 0.86rem;
+}
+
+.echo-stat {
+    background: var(--echo-surface);
+    border: 1px solid var(--echo-line);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.echo-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--echo-wine-600), var(--echo-rose-400));
+}
+
+.echo-stat-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--echo-ink-soft);
+}
+
+.echo-stat-value {
+    font-size: 1.35rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.echo-stat-note {
+    font-size: 0.76rem;
+    color: var(--echo-ink-soft);
+}
+
+/* Wide tables scroll inside their own container; the page never scrolls sideways. */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table {
+    font-size: 0.85rem;
+}
+
+.table > :not(caption) > * > * {
+    padding: 0.5rem 0.65rem;
+}
+
+.form-label {
+    font-size: 0.82rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.form-control,
+.form-select {
+    font-size: 0.875rem;
+}
+
+.echo-empty {
+    text-align: center;
+    color: var(--echo-ink-soft);
+    padding: 2.5rem 1rem;
+}
+
+/* --------------------------------------------------------------------------
+   Sign-in
+   -------------------------------------------------------------------------- */
+
+.echo-signin {
+    width: 100%;
+    max-width: 390px;
+}
+
+.echo-signin-card {
+    background: var(--echo-surface);
+    border: 1px solid var(--echo-line);
+    border-radius: 14px;
+    padding: 2rem 1.75rem 1.75rem;
+    box-shadow: 0 18px 45px rgba(42, 7, 19, 0.09);
+}
+
+.echo-signin-logo {
+    display: block;
+    margin: 0 auto 1.25rem;
+    max-width: 168px;
+    height: auto;
+}
+
+.echo-signin-title {
+    text-align: center;
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--echo-ink-soft);
+    margin-bottom: 1.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile: sidebar slides over the content
+   -------------------------------------------------------------------------- */
+
+.echo-sidebar-backdrop {
+    display: none;
+}
+
+@media (max-width: 991.98px) {
+    .echo-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1045;
+        transform: translateX(-100%);
+        transition: transform 0.18s ease;
+    }
+
+    .echo-shell.is-open .echo-sidebar {
+        transform: translateX(0);
+    }
+
+    .echo-shell.is-open .echo-sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(42, 7, 19, 0.45);
+        z-index: 1040;
+    }
+
+    .echo-content {
+        padding: 1rem 1rem 3rem;
+    }
+
+    .echo-clock,
+    .echo-user-meta {
+        display: none;
+    }
+}
+
+/* Respect the operating system's reduced-motion preference. */
+@media (prefers-reduced-motion: reduce) {
+    .echo-sidebar,
+    .echo-nav-caret {
+        transition: none;
+    }
+}
