@@ -1,0 +1,187 @@
+@using EchoLifestyle.Domain.Inventory
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Inventory
+@model StockAdjustmentFormModel
+@{
+    ViewData["Subtitle"] = Model.CanApprove
+        ? "Posting moves stock immediately."
+        : "Nothing moves until an owner approves it.";
+
+    // Which reasons allow which direction, handed to the browser so the form can
+    // stop asking for a sign where the reason already supplies one.
+    var reasonRules = Enum.GetValues<StockAdjustmentReason>().ToDictionary(
+        reason => ((int)reason).ToString(),
+        reason => new
+        {
+            outboundOnly = StockAdjustment.IsOutboundOnly(reason),
+            inboundOnly = StockAdjustment.IsInboundOnly(reason),
+        });
+}
+
+<form asp-action="Create" method="post" novalidate autocomplete="off">
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-8">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Why</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-5">
+                            <label asp-for="Reason" class="form-label"></label>
+                            <select asp-for="Reason" id="Reason" class="form-select"
+                                    asp-items="Html.GetEnumSelectList<StockAdjustmentReason>()"></select>
+                            <div class="form-text" id="reasonHint"></div>
+                        </div>
+
+                        <div class="col-6 col-md-4">
+                            <label asp-for="WarehouseId" class="form-label"></label>
+                            <select asp-for="WarehouseId" id="WarehouseId" class="form-select">
+                                @foreach (var warehouse in Model.Warehouses)
+                                {
+                                    <option value="@warehouse.Id" selected="@(Model.WarehouseId == warehouse.Id)">
+                                        @warehouse.Name@(warehouse.IsPrimary ? " (primary)" : "")
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="WarehouseId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-6 col-md-3">
+                            <label asp-for="AdjustmentDate" class="form-label"></label>
+                            <input asp-for="AdjustmentDate" class="form-control" type="date" />
+                            <div class="form-text">Blank means today.</div>
+                        </div>
+
+                        @if (Model.Branches.Count > 1)
+                        {
+                            <div class="col-12 col-md-4">
+                                <label asp-for="BranchId" class="form-label"></label>
+                                <select asp-for="BranchId" class="form-select">
+                                    @foreach (var branch in Model.Branches)
+                                    {
+                                        <option value="@branch.Id" selected="@(Model.BranchId == branch.Id)">
+                                            @branch.Name
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="BranchId" />
+                        }
+
+                        <div class="col-12">
+                            <label asp-for="ReasonNotes" class="form-label"></label>
+                            <textarea asp-for="ReasonNotes" class="form-control" rows="2"
+                                      placeholder="Carton crushed under the top shelf during the delivery on the 3rd."></textarea>
+                            <span asp-validation-for="ReasonNotes" class="text-danger small"></span>
+                            <div class="form-text">
+                                The only record this document has. "Damaged" is a category; what actually
+                                happened is what somebody will need in a year.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">What moved</span>
+                    <span class="text-muted small"><span id="lineCount">0</span> line(s)</span>
+                </div>
+
+                <div class="card-body border-bottom">
+                    <label class="form-label" for="lineSearch">Add a product</label>
+                    <div class="position-relative" id="lineSearchWrapper">
+                        <input id="lineSearch" class="form-control"
+                               placeholder="Scan a barcode, or type an SKU or product name..." />
+                        <div id="lineSearchResults" class="list-group position-absolute w-100 shadow"
+                             style="z-index: 20; display: none; max-height: 22rem; overflow-y: auto;"></div>
+                    </div>
+                    <div class="form-text">
+                        Each line names a batch, because cost lives on the batch. Taking stock out
+                        "at the average" would value the loss at a figure nobody paid.
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="min-width: 14rem;">Product</th>
+                                <th style="min-width: 13rem;">Batch</th>
+                                <th style="width: 8rem;" class="text-end">Qty</th>
+                                <th style="min-width: 10rem;">Line note</th>
+                                <th style="width: 3rem;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="lineRows"></tbody>
+                    </table>
+
+                    <div id="noLines" class="text-center text-muted py-4">
+                        Nothing added yet. Search above to start.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-4">
+            <div class="card mb-3 position-sticky" style="top: 1rem;">
+                <div class="card-header fw-semibold">
+                    @(Model.CanApprove ? "Post" : "Submit")
+                </div>
+                <div class="card-body">
+                    @if (Model.CanApprove)
+                    {
+                        <p class="small mb-3">
+                            You can approve adjustments, so this posts as soon as you press the button.
+                            Stock moves, the ledger records it, and it cannot be edited afterwards.
+                        </p>
+                        <div class="alert alert-warning py-2 small mb-3">
+                            It will be recorded as self-approved &mdash; correct with two partners and
+                            one warehouse, and worth being able to count later.
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="small mb-3">
+                            This will wait for an owner. Nothing moves until they approve it, and they
+                            will see the reason and the note exactly as written above.
+                        </p>
+                    }
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-echo" data-submit-once>
+                            @(Model.CanApprove ? "Post adjustment" : "Submit for approval")
+                        </button>
+                        <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-muted small">
+                An adjustment can never take out more than is on the shelf. If the number you have does
+                not fit, count it again &mdash; that is a stock count, not an adjustment.
+            </p>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/inventory/stock-adjustment.js" asp-append-version="true"></script>
+
+    <script>
+        jQuery(function () {
+            echo.stockAdjustment({
+                lookupUrl: "@Url.Action("Lookup")",
+                batchesUrl: "@Url.Action("Batches")",
+                reasonRules: @Json.Serialize(reasonRules)
+            });
+        });
+    </script>
+}

@@ -1,0 +1,129 @@
+@{
+    ViewData["Title"] = "Stock counts";
+    ViewData["Subtitle"] = "Counting the shelf and reconciling it with the ledger.";
+}
+
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+    <div>
+        <label class="form-label mb-1 small text-muted" for="statusFilter">Status</label>
+        <select id="statusFilter" class="form-select form-select-sm" style="width: auto;">
+            <option value="">All</option>
+            <option value="Counting">In progress</option>
+            <option value="Posted">Posted</option>
+            <option value="Cancelled">Cancelled</option>
+        </select>
+    </div>
+
+    <a class="btn btn-echo btn-sm" asp-action="Start">Start a count</a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="countsGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>Number</th>
+                    <th>Covering</th>
+                    <th>Date</th>
+                    <th style="min-width: 10rem;">Counted</th>
+                    <th class="text-end">Variances</th>
+                    <th>Status</th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<p class="text-muted small mt-3 mb-0">
+    A count sheet freezes what the system believed when it was generated. Posting moves stock by the
+    difference between that and what was found &mdash; so a sale made while the count was in progress
+    stays where it is instead of being quietly reversed.
+</p>
+
+@section Scripts {
+    <script>
+        (function () {
+            var sheetUrlTemplate = "@Url.Action("Sheet", new { id = "__id__" })";
+            var detailsUrlTemplate = "@Url.Action("Details", new { id = "__id__" })";
+
+            var grid = echo.grid("#countsGrid", {
+                url: "@Url.Action("Data")",
+                order: [],
+                emptyMessage: "No counts yet.",
+                searchPlaceholder: "Search number, scope or notes...",
+
+                filters: function () {
+                    return { status: $("#statusFilter").val() || null };
+                },
+
+                columns: [
+                    { data: "number", name: "number", render: echo.render.code },
+                    {
+                        data: "scopeDescription",
+                        orderable: false,
+                        render: function (scope, type, row) {
+                            return echo.escape(scope) +
+                                '<div class="text-muted small">' +
+                                echo.escape(row.warehouseName) + "</div>";
+                        }
+                    },
+                    { data: "countDate", name: "date", render: echo.escape },
+                    {
+                        data: "progress",
+                        orderable: false,
+                        render: function (progress, type, row) {
+                            var variant = progress === 100 ? "bg-success" : "bg-warning";
+
+                            return '<div class="progress" style="height: .5rem;">' +
+                                '<div class="progress-bar ' + variant + '" style="width: ' +
+                                progress + '%"></div></div>' +
+                                '<div class="text-muted small mt-1">' +
+                                row.countedCount + " of " + row.lineCount + "</div>";
+                        }
+                    },
+                    {
+                        data: "varianceCount",
+                        orderable: false,
+                        className: "text-end",
+                        render: function (count) {
+                            return count > 0
+                                ? echo.render.badge(count, "warning")
+                                : '<span class="text-muted small">&mdash;</span>';
+                        }
+                    },
+                    {
+                        data: "status",
+                        orderable: false,
+                        render: function (status) {
+                            if (status === "Posted") {
+                                return echo.render.badge("Posted", "success");
+                            }
+
+                            return status === "Cancelled"
+                                ? echo.render.badge("Cancelled", "secondary")
+                                : echo.render.badge("In progress", "warning");
+                        }
+                    },
+                    {
+                        data: "id",
+                        orderable: false,
+                        className: "text-end",
+                        render: function (id, type, row) {
+                            var open = row.status === "Counting";
+                            var url = (open ? sheetUrlTemplate : detailsUrlTemplate)
+                                .replace("__id__", id);
+
+                            return '<a class="btn btn-sm ' +
+                                (open ? "btn-echo" : "btn-outline-secondary") +
+                                '" href="' + echo.escape(url) + '">' +
+                                (open ? "Continue" : "View") + "</a>";
+                        }
+                    }
+                ]
+            });
+
+            echo.bindFilters(grid, "#statusFilter");
+        })();
+    </script>
+}

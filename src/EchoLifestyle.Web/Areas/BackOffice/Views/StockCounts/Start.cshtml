@@ -1,0 +1,172 @@
+@using EchoLifestyle.Domain.Inventory
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Inventory
+@model StartCountFormModel
+@{
+    ViewData["Subtitle"] = "Generates the sheet. Nothing moves until you post the variances.";
+}
+
+<form asp-action="Start" method="post" novalidate autocomplete="off">
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">What to count</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label asp-for="WarehouseId" class="form-label"></label>
+                            <select asp-for="WarehouseId" class="form-select">
+                                @foreach (var warehouse in Model.Warehouses)
+                                {
+                                    <option value="@warehouse.Id" selected="@(Model.WarehouseId == warehouse.Id)">
+                                        @warehouse.Name@(warehouse.IsPrimary ? " (primary)" : "")
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="WarehouseId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="CountDate" class="form-label"></label>
+                            <input asp-for="CountDate" class="form-control" type="date" />
+                            <div class="form-text">Blank means today.</div>
+                        </div>
+
+                        @if (Model.Branches.Count > 1)
+                        {
+                            <div class="col-12 col-md-6">
+                                <label asp-for="BranchId" class="form-label"></label>
+                                <select asp-for="BranchId" class="form-select">
+                                    @foreach (var branch in Model.Branches)
+                                    {
+                                        <option value="@branch.Id" selected="@(Model.BranchId == branch.Id)">
+                                            @branch.Name
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="BranchId" />
+                        }
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Scope" class="form-label"></label>
+                            <select asp-for="Scope" id="Scope" class="form-select">
+                                <option value="@((int)StockCountScope.Everything)">Everything</option>
+                                <option value="@((int)StockCountScope.Brand)">One brand</option>
+                                <option value="@((int)StockCountScope.Category)">One category</option>
+                            </select>
+                            <div class="form-text">
+                                Narrow it and the count stays short enough to actually finish.
+                            </div>
+                        </div>
+
+                        <div class="col-12" id="brandPicker" style="display: none;">
+                            <label class="form-label" for="brandId">Brand</label>
+                            <select id="brandId" name="ScopeId" class="form-select js-scope" disabled>
+                                @foreach (var brand in Model.Brands)
+                                {
+                                    <option value="@brand.Id" selected="@(Model.ScopeId == brand.Id)">
+                                        @brand.Name
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-12" id="categoryPicker" style="display: none;">
+                            <label class="form-label" for="categoryId">Category</label>
+                            <select id="categoryId" name="ScopeId" class="form-select js-scope" disabled>
+                                @foreach (var category in Model.Categories)
+                                {
+                                    <option value="@category.Id" selected="@(Model.ScopeId == category.Id)">
+                                        @category.Name
+                                    </option>
+                                }
+                            </select>
+                            <div class="form-text">
+                                Sub-categories are included &mdash; "Skincare" means the shelves, not one node.
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label"></label>
+                            <textarea asp-for="Notes" class="form-control" rows="2"
+                                      placeholder="Monthly count, both partners present."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">How this works</div>
+                <div class="card-body small">
+                    <ol class="ps-3 mb-3">
+                        <li class="mb-2">
+                            The sheet is generated now, freezing what the system believes each batch
+                            holds.
+                        </li>
+                        <li class="mb-2">
+                            You count the shelf and type in what you find. Save as often as you like &mdash;
+                            nothing has moved yet.
+                        </li>
+                        <li class="mb-0">
+                            Posting moves stock by <em>counted minus frozen</em>, so anything sold while
+                            you were counting stays sold.
+                        </li>
+                    </ol>
+
+                    <div class="alert alert-light border py-2 mb-0">
+                        A line you never reach stays blank, and blank is not zero. Uncounted lines are
+                        skipped entirely when this posts.
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-echo" data-submit-once>Generate the sheet</button>
+                <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+            </div>
+
+            <p class="text-muted small mt-3">
+                Only one count can be open per warehouse at a time. Two sheets against the same shelves
+                would each correct the same difference, and posting both would apply it twice.
+            </p>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (function () {
+            var $scope = jQuery("#Scope");
+
+            function sync() {
+                var scope = Number($scope.val());
+                var isBrand = scope === @((int)StockCountScope.Brand);
+                var isCategory = scope === @((int)StockCountScope.Category);
+
+                jQuery("#brandPicker").toggle(isBrand);
+                jQuery("#categoryPicker").toggle(isCategory);
+
+                // Both pickers post to ScopeId, so the hidden one is disabled
+                // rather than merely hidden - otherwise the browser would send
+                // two values and the binder would take whichever came first.
+                jQuery("#brandId").prop("disabled", !isBrand);
+                jQuery("#categoryId").prop("disabled", !isCategory);
+            }
+
+            $scope.on("change", sync);
+            sync();
+        })();
+    </script>
+}

@@ -1,0 +1,184 @@
+using EchoLifestyle.Application.Common.Results;
+using EchoLifestyle.Domain.Inventory;
+using Microsoft.EntityFrameworkCore;
+
+namespace EchoLifestyle.Application.Inventory.Adjustments;
+
+/// <summary>Reading adjustments back.</summary>
+public partial class StockAdjustmentService
+{
+    public async Task<PagedResult<StockAdjustmentListItem>> ListAsync(
+        string? search,
+        int skip,
+        int take,
+        string? sortColumn,
+        bool sortDescending,
+        StockAdjustmentStatus? status,
+        long? warehouseId,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _db.StockAdjustments.AsNoTracking();
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        if (status is not null)
+        {
+            query = query.Where(a => a.Status == status);
+        }
+
+        if (warehouseId is not null)
+        {
+            query = query.Where(a => a.WarehouseId == warehouseId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(a =>
+                EF.Functions.Like(a.Number, $"%{term}%")
+                || EF.Functions.Like(a.ReasonNotes, $"%{term}%")
+                || a.Lines.Any(l => EF.Functions.Like(l.ProductVariant!.Sku, $"%{term}%")
+                                    || EF.Functions.Like(l.ProductVariant.Product!.Name, $"%{term}%")));
+        }
+
+        var filteredCount = await query.CountAsync(cancellationToken);
+
+        query = (sortColumn, sortDescending) switch
+        {
+            ("number", false) => query.OrderBy(a => a.Number),
+            ("date", false) => query.OrderBy(a => a.AdjustmentDate).ThenBy(a => a.Number),
+            ("date", true) => query.OrderByDescending(a => a.AdjustmentDate).ThenByDescending(a => a.Number),
+            ("reason", false) => query.OrderBy(a => a.Reason).ThenByDescending(a => a.Number),
+            ("reason", true) => query.OrderByDescending(a => a.Reason).ThenByDescending(a => a.Number),
+
+            // Pending first, then newest. What is waiting on somebody is the
+            // reason this screen gets opened.
+            _ => query.OrderBy(a => a.Status == StockAdjustmentStatus.PendingApproval ? 0 : 1)
+                      .ThenByDescending(a => a.Number),
+        };
+
+        var rows = await query
+            .Skip(skip)
+            .Take(take)
+            .Select(a => new StockAdjustmentListItem
+            {
+                Id = a.Id,
+                Number = a.Number,
+                WarehouseName = a.Warehouse!.Name,
+                AdjustmentDate = a.AdjustmentDate,
+                Reason = a.Reason,
+                Status = a.Status,
+                ReasonNotes = a.ReasonNotes,
+                LineCount = a.Lines.Count,
+                TotalQuantityChange = a.Lines.Sum(l => (decimal?)l.QuantityChange) ?? 0m,
+                TotalValueChange = a.Lines.Sum(l => (decimal?)l.ValueChange) ?? 0m,
+                WasSelfApproved = a.WasSelfApproved,
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<StockAdjustmentListItem>(rows, totalCount, filteredCount);
+    }
+
+    public async Task<StockAdjustmentDetail?> GetAsync(
+        long id,
+        CancellationToken cancellationToken = default)
+    {
+        var adjustment = await _db.StockAdjustments
+            .AsNoTracking()
+            .Include(a => a.Warehouse)
+            .Include(a => a.Lines).ThenInclude(l => l.ProductVariant).ThenInclude(v => v!.Product)
+            .Include(a => a.Lines).ThenInclude(l => l.StockBatch)
+            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+
+        if (adjustment is null)
+        {
+            return null;
+        }
+
+        return new StockAdjustmentDetail
+        {
+            Id = adjustment.Id,
+            Number = adjustment.Number,
+            WarehouseId = adjustment.WarehouseId,
+            WarehouseName = adjustment.Warehouse?.Name ?? string.Empty,
+            AdjustmentDate = adjustment.AdjustmentDate,
+            Reason = adjustment.Reason,
+            Status = adjustment.Status,
+            ReasonNotes = adjustment.ReasonNotes,
+            DecisionNotes = adjustment.DecisionNotes,
+            ApprovedAtUtc = adjustment.ApprovedAtUtc,
+            PostedAtUtc = adjustment.PostedAtUtc,
+            WasSelfApproved = adjustment.WasSelfApproved,
+            Lines = adjustment.Lines
+                .OrderBy(l => l.Id)
+                .Select(l => new StockAdjustmentLineDetail
+                {
+                    Id = l.Id,
+                    ProductVariantId = l.ProductVariantId,
+                    Sku = l.ProductVariant?.Sku ?? string.Empty,
+                    ProductName = l.ProductVariant?.Product?.Name ?? string.Empty,
+                    VariantName = l.ProductVariant?.VariantName ?? string.Empty,
+                    BatchNumber = l.StockBatch?.BatchNumber ?? string.Empty,
+                    BatchWasGenerated = l.StockBatch?.IsAutoGenerated ?? false,
+                    ExpiryDate = l.StockBatch?.ExpiryDate,
+                    QuantityChange = l.QuantityChange,
+                    UnitCost = l.UnitCost,
+                    ValueChange = l.ValueChange,
+                    Notes = l.Notes,
+                })
+                .ToList(),
+        };
+    }
+
+    /// <summary>How many adjustments are waiting on somebody. Drives the sidebar badge.</summary>
+    public Task<int> CountPendingAsync(CancellationToken cancellationToken = default) =>
+        _db.StockAdjustments
+            .AsNoTracking()
+            .CountAsync(a => a.Status == StockAdjustmentStatus.PendingApproval, cancellationToken);
+
+    /// <summary>
+    /// The batches of one product that an adjustment could move, newest first.
+    ///
+    /// Empty batches are included, unlike the stock screens: "found extra" has
+    /// to put the stock back into the batch it left from, and by definition that
+    /// batch is the one that reads as empty.
+    /// </summary>
+    public async Task<IReadOnlyList<AdjustableBatchItem>> GetBatchesAsync(
+        long productVariantId,
+        long warehouseId,
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await _db.StockBatches
+            .AsNoTracking()
+            .Where(b => b.ProductVariantId == productVariantId)
+            .Select(b => new AdjustableBatchItem
+            {
+                StockBatchId = b.Id,
+                BatchNumber = b.BatchNumber,
+                IsAutoGenerated = b.IsAutoGenerated,
+                ReceivedDate = b.ReceivedDate,
+                ExpiryDate = b.ExpiryDate,
+                LandedUnitCost = b.LandedUnitCost,
+
+                QuantityOnHand = _db.StockBalances
+                    .Where(s => s.StockBatchId == b.Id && s.WarehouseId == warehouseId)
+                    .Select(s => (decimal?)s.QuantityOnHand)
+                    .FirstOrDefault() ?? 0m,
+
+                SupplierName = _db.Suppliers
+                    .Where(s => s.Id == b.SupplierId)
+                    .Select(s => s.Name)
+                    .FirstOrDefault(),
+            })
+            .ToListAsync(cancellationToken);
+
+        // Stock on hand first, then oldest expiry - the batch somebody means is
+        // nearly always one with something in it, and among those the one
+        // closest to going out of date.
+        return rows
+            .OrderByDescending(r => r.QuantityOnHand > 0m)
+            .ThenBy(r => r.ExpiryDate ?? DateOnly.MaxValue)
+            .ThenByDescending(r => r.ReceivedDate)
+            .ToList();
+    }
+}

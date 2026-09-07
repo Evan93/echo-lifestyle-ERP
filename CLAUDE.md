@@ -79,6 +79,22 @@ one is a defect, not a style preference.
    Soft delete is for eligible master data only.
 10. **Historical documents keep their own snapshots** of price, discount, tax and
     promotion terms, so editing a promotion never rewrites past orders.
+11. **Every document posts stock through `StockMovementWriter`.** It is the one
+    place that appends a ledger entry and moves the balance together, so rule 1
+    holds by construction rather than by everybody remembering. Receiving is the
+    only exception and only because it creates the batch in the same breath;
+    anything new posts through the writer.
+12. **A stock count posts the variance as a delta, never as an overwrite.** The
+    sheet freezes what the system believed when it was generated; posting moves
+    stock by *counted minus frozen*, applied on top of the current balance.
+    Setting the balance to the counted figure would silently put back everything
+    sold while the count was in progress. There is a test named for this.
+13. **An uncounted line is not a zero.** Blank means nobody reached that shelf
+    and is skipped entirely at posting; zero means somebody looked and found
+    nothing, and writes the batch off. Never collapse the two.
+14. **Cost is frozen onto a document line when it posts, not when it is written.**
+    A pending adjustment carries no value, because the batch it names can be
+    recosted or sold down before anybody approves it.
 
 ---
 
@@ -240,9 +256,9 @@ deliberate deployment step.
 | 1 | Foundation: identity, roles, permissions, branch scoping, audit, base UI, CI | Done |
 | 1.1 | Administration screens: company, branches, warehouses, users, roles, audit viewer | Done |
 | 2a | Catalog: brands, categories, products, variants, options, pricing, images | Done |
-| 2b | Procurement: suppliers, stock ledger, batches, Quick Purchase, PO→GRN, landed cost | Next |
-| 3 | Inventory: availability, adjustments, stock count, near-expiry. **No transfers yet** | |
-| 4 | Sales: customers, orders, COD lifecycle, returns, expense capture | |
+| 2b | Procurement: suppliers, stock ledger, batches, Quick Purchase, landed cost | Done |
+| 3 | Inventory: stock on hand, ledger, near-expiry, balance rebuild, adjustments with approval, stock count | Done |
+| 4 | Sales: customers, orders, COD lifecycle, returns, expense capture | Next |
 | 5 | **E-commerce storefront** — the expected main order channel | |
 | 6 | Physical POS, advanced promotions | Deferred until a store opens |
 | 7 | CRM, loyalty, targets, marketing, MAUI apps | |
@@ -266,3 +282,11 @@ deliberate deployment step.
   Decide before Phase 6 whether to accept that or build a local-queueing client.
 - **A vector logo (SVG) is needed** before the storefront ships; the current
   asset is a JPEG with a white background.
+- **Formal purchase orders were deliberately skipped**, not forgotten. Quick
+  Purchase already posts stock correctly, and a two-partner business buying from
+  local wholesalers gains nothing from an order-then-receive ceremony. Build them
+  when import lead times start tying up money that needs tracking before it
+  arrives — the receipt already supports a nullable `PurchaseOrderId` for that
+  day, and the PO route must post through the same `WriteAsync`.
+- **Transfers stay unbuilt while there is one warehouse.** The domain does not
+  assume one location, but the screens are not worth writing until there are two.

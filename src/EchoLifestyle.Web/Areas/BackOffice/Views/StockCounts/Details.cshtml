@@ -1,0 +1,192 @@
+@using EchoLifestyle.Application.Inventory.Counts
+@using EchoLifestyle.Domain.Inventory
+@model StockCountDetail
+@{
+    ViewData["Subtitle"] = $"{Model.ScopeDescription} · {Model.WarehouseName} · {Model.CountDate:d MMM yyyy}";
+
+    var showCost = CurrentUser.HasPermission(Permissions.Catalog.CostPriceView);
+    var variances = Model.Variances;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+        @switch (Model.Status)
+        {
+            case StockCountStatus.Posted:
+                <span class="badge text-bg-success">Posted</span>
+                break;
+            case StockCountStatus.Cancelled:
+                <span class="badge text-bg-secondary">Cancelled</span>
+                break;
+            default:
+                <span class="badge text-bg-warning">In progress</span>
+                break;
+        }
+
+        @if (Model.PostedAtUtc is not null)
+        {
+            <span class="text-muted small">
+                @Clock.ToBusinessTime(Model.PostedAtUtc.Value).ToString("d MMM yyyy, h:mm tt")
+            </span>
+        }
+    </div>
+
+    <div class="d-flex gap-2">
+        @if (Model.Status == StockCountStatus.Counting)
+        {
+            <a class="btn btn-sm btn-echo" asp-action="Sheet" asp-route-id="@Model.Id">Continue counting</a>
+        }
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Index">All counts</a>
+    </div>
+</div>
+
+@if (Model.Status == StockCountStatus.Cancelled)
+{
+    <div class="alert alert-secondary">
+        Abandoned before posting. Nothing moved, so nothing was reversed &mdash; the sheet is kept as a
+        record that the count was attempted.
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">
+                    @(Model.Status == StockCountStatus.Posted ? "What moved" : "Variances so far")
+                </span>
+                <span class="text-muted small">
+                    @Model.CountedCount of @Model.Lines.Count counted
+                </span>
+            </div>
+
+            @if (variances.Count == 0)
+            {
+                <div class="card-body text-center text-muted py-5">
+                    @if (Model.CountedCount == 0)
+                    {
+                        <text>Nothing has been counted.</text>
+                    }
+                    else
+                    {
+                        <text>Every counted line matched. Nothing moved.</text>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>Batch</th>
+                                <th class="text-end">System</th>
+                                <th class="text-end">Counted</th>
+                                <th class="text-end">Variance</th>
+                                @if (showCost)
+                                {
+                                    <th class="text-end">Value</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in variances)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@line.ProductName</div>
+                                        <div class="small text-muted">@line.Sku</div>
+                                    </td>
+                                    <td class="small">
+                                        @if (line.BatchWasGenerated)
+                                        {
+                                            <span class="text-muted">Not tracked</span>
+                                        }
+                                        else
+                                        {
+                                            <code>@line.BatchNumber</code>
+                                        }
+                                    </td>
+                                    <td class="text-end">@line.SystemQuantity.ToString("N0")</td>
+                                    <td class="text-end">@line.CountedQuantity!.Value.ToString("N0")</td>
+                                    <td class="text-end fw-semibold">
+                                        <span class="@(line.Variance > 0m ? "text-success" : "text-danger")">
+                                            @(line.Variance > 0m ? "+" : "")@line.Variance!.Value.ToString("N0")
+                                        </span>
+                                    </td>
+                                    @if (showCost)
+                                    {
+                                        <td class="text-end">&#2547; @line.VarianceValue.ToString("N2")</td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                        @if (showCost)
+                        {
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="5">Net effect</th>
+                                    <th class="text-end @(Model.NetVarianceValue < 0m ? "text-danger" : "text-success")">
+                                        &#2547; @Model.NetVarianceValue.ToString("N2")
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        }
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-4">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Document</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-5 text-muted fw-normal">Number</dt>
+                    <dd class="col-7 mb-2"><code>@Model.Number</code></dd>
+
+                    <dt class="col-5 text-muted fw-normal">Covering</dt>
+                    <dd class="col-7 mb-2">@Model.ScopeDescription</dd>
+
+                    <dt class="col-5 text-muted fw-normal">Warehouse</dt>
+                    <dd class="col-7 mb-2">@Model.WarehouseName</dd>
+
+                    <dt class="col-5 text-muted fw-normal">Count date</dt>
+                    <dd class="col-7 mb-2">@Model.CountDate.ToString("d MMM yyyy")</dd>
+
+                    <dt class="col-5 text-muted fw-normal">Snapshot</dt>
+                    <dd class="col-7 mb-0">
+                        @Clock.ToBusinessTime(Model.SnapshotAtUtc).ToString("d MMM yyyy, h:mm tt")
+                        <div class="text-muted">what the system believed at that moment</div>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Notes))
+        {
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Notes</div>
+                <div class="card-body">
+                    <p class="mb-0 small" style="white-space: pre-line;">@Model.Notes</p>
+                </div>
+            </div>
+        }
+
+        @if (Model.Status == StockCountStatus.Posted)
+        {
+            <p class="text-muted small">
+                Posted. Each variance is a movement in the ledger with this document number against it,
+                so any figure here can be traced back to the shelf it came from.
+                @if (Model.UncountedCount > 0)
+                {
+                    <text>
+                        @Model.UncountedCount line(s) were never counted and were left untouched.
+                    </text>
+                }
+            </p>
+        }
+    </div>
+</div>

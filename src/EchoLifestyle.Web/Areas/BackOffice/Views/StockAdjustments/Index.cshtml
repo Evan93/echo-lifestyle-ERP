@@ -1,0 +1,165 @@
+@{
+    ViewData["Title"] = "Stock adjustments";
+    ViewData["Subtitle"] = "Stock changing for a reason that is not a purchase or a sale.";
+
+    var canApprove = ViewData["CanApprove"] as bool? ?? false;
+    var showCost = CurrentUser.HasPermission(Permissions.Catalog.CostPriceView);
+}
+
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+    <div>
+        <label class="form-label mb-1 small text-muted" for="statusFilter">Status</label>
+        <select id="statusFilter" class="form-select form-select-sm" style="width: auto;">
+            <option value="">All</option>
+            <option value="PendingApproval">Waiting for approval</option>
+            <option value="Posted">Posted</option>
+            <option value="Rejected">Rejected</option>
+        </select>
+    </div>
+
+    <a class="btn btn-echo btn-sm" asp-action="Create">Adjust stock</a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="adjustmentsGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>Number</th>
+                    <th>Reason</th>
+                    <th>Date</th>
+                    <th class="text-end">Units</th>
+                    @if (showCost)
+                    {
+                        <th class="text-end">Value</th>
+                    }
+                    <th>Status</th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<p class="text-muted small mt-3 mb-0">
+    This is the only screen that moves stock without a document from outside the business behind it.
+    That is why every one carries a reason, a note and
+    @(canApprove ? "an approver" : "an approver - and why yours waits for one")&nbsp;&mdash; and why a
+    posted adjustment can never be edited, only reversed by another.
+</p>
+
+@section Scripts {
+    <script>
+        (function () {
+            var detailsUrlTemplate = "@Url.Action("Details", new { id = "__id__" })";
+            var showCost = @Json.Serialize(showCost);
+
+            function money(value) {
+                return "৳ " + Number(value || 0).toLocaleString("en-BD", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            function spaced(text) {
+                return String(text || "").replace(/([a-z])([A-Z])/g, "$1 $2");
+            }
+
+            function signed(value) {
+                var number = Number(value || 0);
+                var text = (number > 0 ? "+" : "") + number.toLocaleString("en-BD");
+
+                return '<span class="' + (number > 0 ? "text-success" : "text-danger") + '">' +
+                    text + "</span>";
+            }
+
+            var columns = [
+                { data: "number", name: "number", render: echo.render.code },
+                {
+                    data: "reason",
+                    name: "reason",
+                    render: function (reason, type, row) {
+                        return echo.escape(spaced(reason)) +
+                            '<div class="text-muted small text-truncate" style="max-width: 22rem;">' +
+                            echo.escape(row.reasonNotes) + "</div>";
+                    }
+                },
+                {
+                    data: "adjustmentDate",
+                    name: "date",
+                    render: function (date, type, row) {
+                        return echo.escape(date) +
+                            '<div class="text-muted small">' + echo.escape(row.warehouseName) + "</div>";
+                    }
+                },
+                {
+                    data: "totalQuantityChange",
+                    orderable: false,
+                    className: "text-end fw-semibold",
+                    render: function (units, type, row) {
+                        return signed(units) +
+                            '<div class="text-muted small fw-normal">' + row.lineCount + " line(s)</div>";
+                    }
+                }
+            ];
+
+            if (showCost) {
+                columns.push({
+                    data: "totalValueChange",
+                    orderable: false,
+                    className: "text-end",
+                    render: function (value, type, row) {
+                        // Pending documents carry no value: cost is copied onto
+                        // the lines when they post.
+                        return row.status === "Posted"
+                            ? money(value)
+                            : '<span class="text-muted small">&mdash;</span>';
+                    }
+                });
+            }
+
+            columns.push({
+                data: "status",
+                orderable: false,
+                render: function (status, type, row) {
+                    if (status === "Posted") {
+                        var badge = echo.render.badge("Posted", "success");
+
+                        return row.wasSelfApproved
+                            ? badge + '<div class="text-muted small">self-approved</div>'
+                            : badge;
+                    }
+
+                    return status === "Rejected"
+                        ? echo.render.badge("Rejected", "secondary")
+                        : echo.render.badge("Waiting", "warning");
+                }
+            });
+
+            columns.push({
+                data: "id",
+                orderable: false,
+                className: "text-end",
+                render: function (id) {
+                    return '<a class="btn btn-sm btn-outline-secondary" href="' +
+                        echo.escape(detailsUrlTemplate.replace("__id__", id)) + '">View</a>';
+                }
+            });
+
+            var grid = echo.grid("#adjustmentsGrid", {
+                url: "@Url.Action("Data")",
+                order: [],
+                emptyMessage: "No adjustments yet.",
+                searchPlaceholder: "Search number, note, SKU or product...",
+
+                filters: function () {
+                    return { status: $("#statusFilter").val() || null };
+                },
+
+                columns: columns
+            });
+
+            echo.bindFilters(grid, "#statusFilter");
+        })();
+    </script>
+}

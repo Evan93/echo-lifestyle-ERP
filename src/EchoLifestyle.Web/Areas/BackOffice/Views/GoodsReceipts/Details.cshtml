@@ -1,0 +1,243 @@
+@using EchoLifestyle.Application.Purchasing.Receiving
+@using EchoLifestyle.Domain.Purchasing
+@model GoodsReceiptDetail
+@{
+    ViewData["Subtitle"] = $"{Model.SupplierName} · received {Model.ReceiptDate:d MMM yyyy}";
+    var showCost = CurrentUser.HasPermission(Permissions.Catalog.CostPriceView);
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+        @if (Model.Status == GoodsReceiptStatus.Posted)
+        {
+            <span class="badge text-bg-success">Posted</span>
+        }
+        else if (Model.Status == GoodsReceiptStatus.Cancelled)
+        {
+            <span class="badge text-bg-secondary">Cancelled</span>
+        }
+        else
+        {
+            <span class="badge text-bg-warning">Draft</span>
+        }
+
+        @if (Model.PostedAtUtc is not null)
+        {
+            <span class="text-muted small">
+                @Clock.ToBusinessTime(Model.PostedAtUtc.Value).ToString("d MMM yyyy, h:mm tt")
+            </span>
+        }
+    </div>
+
+    <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-echo" asp-action="Quick">New quick purchase</a>
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Index">All receipts</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Received</div>
+
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th class="text-end">Qty</th>
+                            @if (showCost)
+                            {
+                                <th class="text-end">Unit cost</th>
+                                <th class="text-end">Charges</th>
+                                <th class="text-end">Landed unit</th>
+                            }
+                            <th>Batch / expiry</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in Model.Lines)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@line.ProductName</div>
+                                    <div class="small text-muted">
+                                        @line.Sku
+                                        @if (line.VariantName != "Standard")
+                                        {
+                                            <text> &middot; @line.VariantName</text>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="text-end">@line.Quantity.ToString("N0")</td>
+
+                                @if (showCost)
+                                {
+                                    <td class="text-end">
+                                        @line.UnitCost.ToString("N2")
+                                        @if (Model.CurrencyCode != "BDT")
+                                        {
+                                            <div class="text-muted small">@Model.CurrencyCode</div>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        @if (line.ApportionedCharge == 0m)
+                                        {
+                                            <span class="text-muted small">&mdash;</span>
+                                        }
+                                        else
+                                        {
+                                            @line.ApportionedCharge.ToString("N2")
+                                        }
+                                    </td>
+                                    <td class="text-end fw-semibold">
+                                        &#2547; @line.LandedUnitCost.ToString("N2")
+                                    </td>
+                                }
+
+                                <td>
+                                    @if (line.BatchWasGenerated)
+                                    {
+                                        @* Generated, so not worth showing as if somebody chose it. *@
+                                        <span class="text-muted small">Not tracked</span>
+                                    }
+                                    else if (line.BatchNumber is not null)
+                                    {
+                                        <div>@line.BatchNumber</div>
+                                    }
+
+                                    @if (line.ExpiryDate is not null)
+                                    {
+                                        <div class="small text-muted">
+                                            expires @line.ExpiryDate.Value.ToString("d MMM yyyy")
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (showCost)
+            {
+                <div class="card-body border-top">
+                    <p class="text-muted small mb-0">
+                        <strong>Landed unit</strong> is the goods plus their share of freight, duty and
+                        clearing. It is what the stock ledger recorded and what margin is measured
+                        against &mdash; not the invoice price.
+                    </p>
+                </div>
+            }
+        </div>
+
+        @if (Model.Charges.Count > 0 && showCost)
+        {
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Charges</div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Charge</th>
+                                <th>Description</th>
+                                <th>Spread</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var charge in Model.Charges)
+                            {
+                                <tr>
+                                    <td>@charge.ChargeType</td>
+                                    <td class="text-muted small">@charge.Description</td>
+                                    <td class="text-muted small">@charge.ApportionMethod</td>
+                                    <td class="text-end">&#2547; @charge.Amount.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-12 col-xl-4">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Document</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-5 text-muted fw-normal">Number</dt>
+                    <dd class="col-7 mb-2"><code>@Model.Number</code></dd>
+
+                    <dt class="col-5 text-muted fw-normal">Supplier</dt>
+                    <dd class="col-7 mb-2">
+                        <a asp-controller="Suppliers" asp-action="Edit" asp-route-id="@Model.SupplierId">
+                            @Model.SupplierName
+                        </a>
+                    </dd>
+
+                    <dt class="col-5 text-muted fw-normal">Into</dt>
+                    <dd class="col-7 mb-2">@Model.WarehouseName</dd>
+
+                    @if (Model.SupplierInvoiceNumber is not null)
+                    {
+                        <dt class="col-5 text-muted fw-normal">Invoice</dt>
+                        <dd class="col-7 mb-2">
+                            @Model.SupplierInvoiceNumber
+                            @if (Model.SupplierInvoiceDate is not null)
+                            {
+                                <div class="text-muted">@Model.SupplierInvoiceDate.Value.ToString("d MMM yyyy")</div>
+                            }
+                        </dd>
+                    }
+
+                    @if (Model.CurrencyCode != "BDT")
+                    {
+                        <dt class="col-5 text-muted fw-normal">Rate</dt>
+                        <dd class="col-7 mb-2">
+                            1 @Model.CurrencyCode = @Model.ExchangeRate.ToString("N4") BDT
+                            <div class="text-muted">Frozen on this document</div>
+                        </dd>
+                    }
+                </dl>
+            </div>
+        </div>
+
+        @if (showCost)
+        {
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Totals</div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-7 text-muted fw-normal">Goods</dt>
+                        <dd class="col-5 text-end mb-1">&#2547; @Model.SubTotal.ToString("N2")</dd>
+
+                        <dt class="col-7 text-muted fw-normal">Charges</dt>
+                        <dd class="col-5 text-end mb-1">&#2547; @Model.ChargeTotal.ToString("N2")</dd>
+
+                        <dt class="col-7 fw-semibold border-top pt-2">Total</dt>
+                        <dd class="col-5 text-end fw-semibold border-top pt-2 mb-0">
+                            &#2547; @Model.GrandTotal.ToString("N2")
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.Notes))
+        {
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Notes</div>
+                <div class="card-body">
+                    <p class="mb-0 small">@Model.Notes</p>
+                </div>
+            </div>
+        }
+
+        <p class="text-muted small">
+            A posted receipt is not editable. Its ledger entries are permanent, so a correction is a
+            reversing document rather than a change to this one.
+        </p>
+    </div>
+</div>

@@ -5,6 +5,9 @@ using EchoLifestyle.Application.Administration.Warehouses;
 using EchoLifestyle.Application.Catalog.Brands;
 using EchoLifestyle.Application.Catalog.Categories;
 using EchoLifestyle.Application.Catalog.Products;
+using EchoLifestyle.Application.Inventory;
+using EchoLifestyle.Application.Inventory.Adjustments;
+using EchoLifestyle.Application.Inventory.Counts;
 using EchoLifestyle.Application.Purchasing.Receiving;
 using EchoLifestyle.Application.Purchasing.Suppliers;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,6 +32,14 @@ public static class DependencyInjection
         services.AddScoped<ProductAdminService>();
         services.AddScoped<SupplierAdminService>();
         services.AddScoped<GoodsReceiptService>();
+        services.AddScoped<StockQueryService>();
+        services.AddScoped<StockBalanceRebuildService>();
+
+        // The one writer every document type posts stock through. Registered
+        // once so there is no second copy of the ledger-and-balance rule.
+        services.AddScoped<StockMovementWriter>();
+        services.AddScoped<StockAdjustmentService>();
+        services.AddScoped<StockCountService>();
 
         return services;
     }

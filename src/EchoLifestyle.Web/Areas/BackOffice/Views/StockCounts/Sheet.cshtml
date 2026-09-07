@@ -1,0 +1,211 @@
+@using EchoLifestyle.Application.Inventory.Counts
+@model StockCountDetail
+@{
+    ViewData["Subtitle"] =
+        $"{Model.ScopeDescription} · {Model.WarehouseName} · frozen {Clock.ToBusinessTime(Model.SnapshotAtUtc):d MMM yyyy, h:mm tt}";
+
+    var showCost = CurrentUser.HasPermission(Permissions.Catalog.CostPriceView);
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge text-bg-warning">In progress</span>
+        <span class="text-muted small">
+            <span id="countedSoFar">@Model.CountedCount</span> of @Model.Lines.Count counted
+        </span>
+    </div>
+
+    <div class="d-flex gap-2">
+        <div class="form-check form-switch align-self-center me-2">
+            <input class="form-check-input" type="checkbox" id="hideCounted" />
+            <label class="form-check-label small" for="hideCounted">Hide counted</label>
+        </div>
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Index">All counts</a>
+    </div>
+</div>
+
+<div class="alert alert-light border small">
+    Type what is physically there. <strong>Leave a line blank if you did not get to it</strong> &mdash;
+    blank is skipped when this posts, whereas a zero writes the batch off.
+    @if (showCost)
+    {
+        <text>The system figure is hidden until you enter yours, so the count is the count.</text>
+    }
+</div>
+
+<form asp-action="Sheet" method="post" autocomplete="off" id="sheetForm">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0" id="sheetTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product</th>
+                        <th>Batch</th>
+                        <th style="width: 8rem;" class="text-end">Counted</th>
+                        <th style="width: 9rem;" class="text-end">System</th>
+                        <th style="width: 7rem;" class="text-end">Variance</th>
+                        <th style="min-width: 10rem;">Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < Model.Lines.Count; i++)
+                    {
+                        var index = i;
+                        var line = Model.Lines[index];
+
+                        <tr data-row data-system="@line.SystemQuantity"
+                            data-counted="@(line.CountedQuantity is null ? "0" : "1")">
+                            <td>
+                                <div class="fw-semibold">@line.ProductName</div>
+                                <div class="small text-muted">
+                                    @line.Sku
+                                    @if (line.VariantName != "Standard")
+                                    {
+                                        <text> &middot; @line.VariantName</text>
+                                    }
+                                    &middot; @line.BrandName
+                                </div>
+                            </td>
+                            <td class="small">
+                                @if (line.BatchWasGenerated)
+                                {
+                                    <span class="text-muted">Not tracked</span>
+                                }
+                                else
+                                {
+                                    <code>@line.BatchNumber</code>
+                                }
+                                @if (line.ExpiryDate is not null)
+                                {
+                                    <div class="text-muted">
+                                        expires @line.ExpiryDate.Value.ToString("d MMM yyyy")
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                <input type="hidden" name="Rows[@index].LineId" value="@line.Id" />
+                                <input name="Rows[@index].CountedQuantity" type="number"
+                                       step="0.01" min="0" inputmode="decimal"
+                                       value="@(line.CountedQuantity?.ToString("0.##"))"
+                                       class="form-control form-control-sm text-end js-counted" />
+                            </td>
+                            <td class="text-end js-system" data-value="@line.SystemQuantity">
+                                @* Hidden until something is typed: showing the expected number first
+                                   turns a count into a confirmation, which is not the same thing. *@
+                                <span class="text-muted small">hidden</span>
+                            </td>
+                            <td class="text-end fw-semibold js-variance">
+                                <span class="text-muted small">&mdash;</span>
+                            </td>
+                            <td>
+                                <input name="Rows[@index].Notes" maxlength="500"
+                                       value="@line.Notes" placeholder="Optional"
+                                       class="form-control form-control-sm" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
+        <button type="submit" name="action" value="cancel"
+                class="btn btn-outline-danger btn-sm" formaction="@Url.Action("Cancel")"
+                onclick="return confirm('Abandon this count? Nothing has moved, so nothing is reversed.');">
+            Abandon this count
+        </button>
+
+        <div class="d-flex gap-2">
+            <button type="submit" name="action" value="save" class="btn btn-outline-secondary">
+                Save and keep counting
+            </button>
+            <button type="submit" name="action" value="review" class="btn btn-echo">
+                Save and review variances
+            </button>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        (function () {
+            var $rows = jQuery("#sheetTable tbody tr[data-row]");
+
+            function refresh($row) {
+                var $input = $row.find(".js-counted");
+                var raw = $input.val();
+                var $system = $row.find(".js-system");
+                var $variance = $row.find(".js-variance");
+
+                if (raw === "" || raw === null) {
+                    $row.attr("data-counted", "0").removeClass("table-warning");
+                    $system.html('<span class="text-muted small">hidden</span>');
+                    $variance.html('<span class="text-muted small">&mdash;</span>');
+                    return;
+                }
+
+                var system = Number($system.data("value"));
+                var counted = Number(raw);
+                var variance = counted - system;
+
+                $row.attr("data-counted", "1");
+                $system.text(system.toLocaleString("en-BD"));
+
+                if (variance === 0) {
+                    $row.removeClass("table-warning");
+                    $variance.html('<span class="text-success">match</span>');
+                } else {
+                    $row.addClass("table-warning");
+                    $variance.html('<span class="' +
+                        (variance > 0 ? "text-success" : "text-danger") + '">' +
+                        (variance > 0 ? "+" : "") + variance.toLocaleString("en-BD") + "</span>");
+                }
+            }
+
+            function refreshAll() {
+                $rows.each(function () { refresh(jQuery(this)); });
+
+                jQuery("#countedSoFar").text($rows.filter('[data-counted="1"]').length);
+                applyFilter();
+            }
+
+            function applyFilter() {
+                var hide = jQuery("#hideCounted").is(":checked");
+                $rows.each(function () {
+                    var $row = jQuery(this);
+                    $row.toggle(!hide || $row.attr("data-counted") !== "1");
+                });
+            }
+
+            jQuery("#sheetTable").on("input change", ".js-counted", function () {
+                refresh(jQuery(this).closest("tr"));
+                jQuery("#countedSoFar").text($rows.filter('[data-counted="1"]').length);
+            });
+
+            // Enter moves to the next line rather than submitting. On a long
+            // sheet, a stray Enter posting the form halfway through is the
+            // difference between a saved count and a lost afternoon.
+            jQuery("#sheetTable").on("keydown", ".js-counted", function (event) {
+                if (event.key !== "Enter") {
+                    return;
+                }
+
+                event.preventDefault();
+
+                var inputs = jQuery("#sheetTable tr:visible .js-counted");
+                var next = inputs.index(this) + 1;
+
+                if (next < inputs.length) {
+                    inputs.eq(next).focus().select();
+                }
+            });
+
+            jQuery("#hideCounted").on("change", applyFilter);
+
+            refreshAll();
+        })();
+    </script>
+}

@@ -1,0 +1,268 @@
+@using EchoLifestyle.Application.Inventory.Adjustments
+@using EchoLifestyle.Domain.Inventory
+@model StockAdjustmentDetail
+@{
+    ViewData["Subtitle"] = $"{Model.Reason} · {Model.AdjustmentDate:d MMM yyyy} · {Model.WarehouseName}";
+
+    var canApprove = ViewData["CanApprove"] as bool? ?? false;
+    var showCost = CurrentUser.HasPermission(Permissions.Catalog.CostPriceView);
+    var isPending = Model.Status == StockAdjustmentStatus.PendingApproval;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+        @switch (Model.Status)
+        {
+            case StockAdjustmentStatus.Posted:
+                <span class="badge text-bg-success">Posted</span>
+                break;
+            case StockAdjustmentStatus.Rejected:
+                <span class="badge text-bg-secondary">Rejected</span>
+                break;
+            default:
+                <span class="badge text-bg-warning">Waiting for approval</span>
+                break;
+        }
+
+        @if (Model.WasSelfApproved)
+        {
+            <span class="badge text-bg-light border">Self-approved</span>
+        }
+
+        @if (Model.PostedAtUtc is not null)
+        {
+            <span class="text-muted small">
+                @Clock.ToBusinessTime(Model.PostedAtUtc.Value).ToString("d MMM yyyy, h:mm tt")
+            </span>
+        }
+    </div>
+
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Index">All adjustments</a>
+</div>
+
+@if (isPending)
+{
+    <div class="alert alert-warning">
+        <strong>Nothing has moved.</strong>
+        This adjustment is a request until somebody approves it. Stock on hand still reads as it did
+        before, and will keep doing so if this is turned down.
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">What moved</div>
+
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th>Batch</th>
+                            <th class="text-end">Change</th>
+                            @if (showCost)
+                            {
+                                <th class="text-end">Unit cost</th>
+                                <th class="text-end">Value</th>
+                            }
+                            <th>Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in Model.Lines)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@line.ProductName</div>
+                                    <div class="small text-muted">
+                                        @line.Sku
+                                        @if (line.VariantName != "Standard")
+                                        {
+                                            <text> &middot; @line.VariantName</text>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="small">
+                                    @if (line.BatchWasGenerated)
+                                    {
+                                        <span class="text-muted">Not tracked</span>
+                                    }
+                                    else
+                                    {
+                                        <code>@line.BatchNumber</code>
+                                    }
+                                    @if (line.ExpiryDate is not null)
+                                    {
+                                        <div class="text-muted">
+                                            expires @line.ExpiryDate.Value.ToString("d MMM yyyy")
+                                        </div>
+                                    }
+                                </td>
+                                <td class="text-end fw-semibold">
+                                    <span class="@(line.QuantityChange > 0 ? "text-success" : "text-danger")">
+                                        @(line.QuantityChange > 0 ? "+" : "")@line.QuantityChange.ToString("N0")
+                                    </span>
+                                </td>
+                                @if (showCost)
+                                {
+                                    <td class="text-end">
+                                        @if (line.UnitCost == 0m)
+                                        {
+                                            <span class="text-muted small">&mdash;</span>
+                                        }
+                                        else
+                                        {
+                                            <text>&#2547; @line.UnitCost.ToString("N2")</text>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        @if (line.ValueChange == 0m)
+                                        {
+                                            <span class="text-muted small">&mdash;</span>
+                                        }
+                                        else
+                                        {
+                                            <text>&#2547; @line.ValueChange.ToString("N2")</text>
+                                        }
+                                    </td>
+                                }
+                                <td class="small text-muted">@line.Notes</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="2">Net</th>
+                            <th class="text-end">
+                                @(Model.TotalQuantityChange > 0 ? "+" : "")@Model.TotalQuantityChange.ToString("N0")
+                            </th>
+                            @if (showCost)
+                            {
+                                <th></th>
+                                <th class="text-end">
+                                    @if (Model.Status == StockAdjustmentStatus.Posted)
+                                    {
+                                        <text>&#2547; @Model.TotalValueChange.ToString("N2")</text>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small fw-normal">not yet valued</span>
+                                    }
+                                </th>
+                            }
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            @if (isPending && showCost)
+            {
+                <div class="card-body border-top">
+                    <p class="text-muted small mb-0">
+                        Cost is left blank until this posts. The batch it points at can be recosted or
+                        sold down before anybody approves, so pricing the loss now would give a figure
+                        that is out of date by the time it means anything.
+                    </p>
+                </div>
+            }
+        </div>
+
+        @if (isPending && canApprove)
+        {
+            <div class="card mb-3 border-warning">
+                <div class="card-header fw-semibold">Decision</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <form asp-action="Approve" method="post">
+                                <input type="hidden" name="id" value="@Model.Id" />
+                                <label class="form-label small" for="approveNotes">
+                                    Note (optional)
+                                </label>
+                                <input id="approveNotes" name="decisionNotes" class="form-control mb-2"
+                                       maxlength="1000" placeholder="Checked the shelf myself." />
+                                <button type="submit" class="btn btn-echo w-100" data-submit-once
+                                        onclick="return confirm('Approve and post? Stock will move and this cannot be edited afterwards.');">
+                                    Approve and post
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <form asp-action="Reject" method="post">
+                                <input type="hidden" name="Id" value="@Model.Id" />
+                                <label class="form-label small" for="rejectReason">
+                                    Why it is being turned down
+                                </label>
+                                <input id="rejectReason" name="Reason" class="form-control mb-2"
+                                       maxlength="1000" required
+                                       placeholder="Count it again before writing it off." />
+                                <button type="submit" class="btn btn-outline-danger w-100" data-submit-once>
+                                    Reject
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-12 col-xl-4">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Document</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-5 text-muted fw-normal">Number</dt>
+                    <dd class="col-7 mb-2"><code>@Model.Number</code></dd>
+
+                    <dt class="col-5 text-muted fw-normal">Reason</dt>
+                    <dd class="col-7 mb-2">@Model.Reason</dd>
+
+                    <dt class="col-5 text-muted fw-normal">Happened</dt>
+                    <dd class="col-7 mb-2">@Model.AdjustmentDate.ToString("d MMM yyyy")</dd>
+
+                    <dt class="col-5 text-muted fw-normal">Warehouse</dt>
+                    <dd class="col-7 mb-2">@Model.WarehouseName</dd>
+
+                    @if (Model.ApprovedAtUtc is not null)
+                    {
+                        <dt class="col-5 text-muted fw-normal">Decided</dt>
+                        <dd class="col-7 mb-0">
+                            @Clock.ToBusinessTime(Model.ApprovedAtUtc.Value).ToString("d MMM yyyy, h:mm tt")
+                        </dd>
+                    }
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">What happened</div>
+            <div class="card-body">
+                <p class="mb-0 small">@Model.ReasonNotes</p>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.DecisionNotes))
+        {
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">
+                    @(Model.Status == StockAdjustmentStatus.Rejected ? "Why it was rejected" : "Approver's note")
+                </div>
+                <div class="card-body">
+                    <p class="mb-0 small">@Model.DecisionNotes</p>
+                </div>
+            </div>
+        }
+
+        @if (Model.Status == StockAdjustmentStatus.Posted)
+        {
+            <p class="text-muted small">
+                Posted, so its ledger entries are permanent. A mistake here is corrected with a second
+                adjustment in the opposite direction &mdash; the history shows both, which is the point.
+            </p>
+        }
+    </div>
+</div>

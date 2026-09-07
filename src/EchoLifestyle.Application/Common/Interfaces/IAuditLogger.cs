@@ -76,4 +76,31 @@ public static class AuditActions
     /// corrects a number is exactly the event someone will later need to find.
     /// </summary>
     public const string StockBalanceRebuilt = "Inventory.Balance.Rebuilt";
+
+    /// <summary>
+    /// An adjustment written and waiting for approval. Logged before anything
+    /// moves, so a request that is later turned down still leaves a trace of
+    /// having been asked for.
+    /// </summary>
+    public const string StockAdjustmentSubmitted = "Inventory.Adjustment.Submitted";
+
+    /// <summary>
+    /// Approved and posted. The one movement with no document from outside the
+    /// business behind it, so the entry carries the reason, the note, every line
+    /// and whether the approver was also the author.
+    /// </summary>
+    public const string StockAdjustmentPosted = "Inventory.Adjustment.Posted";
+
+    public const string StockAdjustmentRejected = "Inventory.Adjustment.Rejected";
+
+    public const string StockCountStarted = "Inventory.Count.Started";
+
+    /// <summary>
+    /// Variances turned into movements. Carries the counted and system figures
+    /// and the value of the difference - the number somebody will want explained
+    /// at the end of the year.
+    /// </summary>
+    public const string StockCountPosted = "Inventory.Count.Posted";
+
+    public const string StockCountCancelled = "Inventory.Count.Cancelled";
 }

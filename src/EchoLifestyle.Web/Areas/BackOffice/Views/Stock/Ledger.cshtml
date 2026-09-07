@@ -1,0 +1,190 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Controllers
+@{
+    ViewData["Title"] = "Stock ledger";
+    ViewData["Subtitle"] = "Every movement, in order. Append-only - corrections appear as their own entries.";
+
+    var warehouses = ViewData["Warehouses"] as List<WarehouseFilterOption> ?? [];
+    var showCost = CurrentUser.HasPermission(Permissions.Catalog.CostPriceView);
+}
+
+<div class="d-flex align-items-end gap-2 flex-wrap mb-3">
+    @if (warehouses.Count > 1)
+    {
+        <div>
+            <label class="form-label mb-1 small text-muted" for="warehouseFilter">Warehouse</label>
+            <select id="warehouseFilter" class="form-select form-select-sm" style="width: auto;">
+                <option value="">All warehouses</option>
+                @foreach (var warehouse in warehouses)
+                {
+                    <option value="@warehouse.Id">@warehouse.Name</option>
+                }
+            </select>
+        </div>
+    }
+
+    <div>
+        <label class="form-label mb-1 small text-muted" for="fromDate">From</label>
+        <input id="fromDate" type="date" class="form-control form-control-sm" style="width: auto;" />
+    </div>
+
+    <div>
+        <label class="form-label mb-1 small text-muted" for="toDate">To</label>
+        <input id="toDate" type="date" class="form-control form-control-sm" style="width: auto;" />
+    </div>
+
+    <button type="button" id="clearDates" class="btn btn-outline-secondary btn-sm mb-2">Clear dates</button>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="ledgerGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Product</th>
+                    <th>Movement</th>
+                    <th class="text-end">Change</th>
+                    @if (showCost)
+                    {
+                        <th class="text-end">Unit cost</th>
+                        <th class="text-end">Value</th>
+                    }
+                    <th>Batch</th>
+                    <th>Document</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<p class="text-muted small mt-3 mb-0">
+    Dates are business dates in Asia/Dhaka, so an evening movement lands on the day it was made rather
+    than the next UTC one.
+</p>
+
+@section Scripts {
+    <script>
+        (function () {
+            var showCost = @Json.Serialize(showCost);
+
+            var inbound = ["Receipt", "AdjustmentIn", "ReturnFromCustomer", "TransferIn", "OpeningBalance"];
+
+            function money(value) {
+                return "৳ " + Number(value || 0).toLocaleString("en-BD", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            function spaced(text) {
+                // "ReturnFromCustomer" reads badly in a table.
+                return String(text || "").replace(/([a-z])([A-Z])/g, "$1 $2");
+            }
+
+            var columns = [
+                {
+                    data: "businessDate",
+                    name: "date",
+                    render: function (date, type, row) {
+                        return echo.escape(date) +
+                            '<div class="text-muted small">' +
+                            echo.escape(String(row.occurredAtUtc).substring(11, 16)) + " UTC</div>";
+                    }
+                },
+                {
+                    data: "productName",
+                    name: "sku",
+                    render: function (name, type, row) {
+                        var line = echo.escape(name);
+
+                        if (row.variantName && row.variantName !== "Standard") {
+                            line += ' <span class="text-muted">· ' + echo.escape(row.variantName) + "</span>";
+                        }
+
+                        return line + '<div class="text-muted small">' + echo.escape(row.sku) + "</div>";
+                    }
+                },
+                {
+                    data: "movementType",
+                    orderable: false,
+                    render: function (type) {
+                        var isIn = inbound.indexOf(type) !== -1;
+                        return echo.render.badge(spaced(type), isIn ? "success" : "secondary");
+                    }
+                },
+                {
+                    data: "quantityChange",
+                    name: "quantity",
+                    className: "text-end fw-semibold",
+                    render: function (change) {
+                        var value = Number(change);
+                        var text = (value > 0 ? "+" : "") + value.toLocaleString("en-BD");
+
+                        return '<span class="' + (value > 0 ? "text-success" : "text-danger") + '">' +
+                            text + "</span>";
+                    }
+                }
+            ];
+
+            if (showCost) {
+                columns.push({
+                    data: "unitCost",
+                    orderable: false,
+                    className: "text-end",
+                    render: money
+                });
+
+                columns.push({
+                    data: "valueChange",
+                    orderable: false,
+                    className: "text-end",
+                    render: money
+                });
+            }
+
+            columns.push({
+                data: "batchNumber",
+                orderable: false,
+                render: function (batch, type, row) {
+                    return row.batchWasGenerated
+                        ? '<span class="text-muted small">Not tracked</span>'
+                        : echo.render.code(batch);
+                }
+            });
+
+            columns.push({
+                data: "documentNumber",
+                name: "document",
+                render: function (number, type, row) {
+                    return echo.render.code(number) +
+                        '<div class="text-muted small">' + echo.escape(spaced(row.documentType)) + "</div>";
+                }
+            });
+
+            var grid = echo.grid("#ledgerGrid", {
+                url: "@Url.Action("LedgerData")",
+                order: [],
+                pageLength: 50,
+                emptyMessage: "No movements yet.",
+                searchPlaceholder: "Search SKU, product, batch or document...",
+
+                filters: function () {
+                    return {
+                        warehouseId: $("#warehouseFilter").val(),
+                        from: $("#fromDate").val() || null,
+                        to: $("#toDate").val() || null
+                    };
+                },
+
+                columns: columns
+            });
+
+            $("#clearDates").on("click", function () {
+                $("#fromDate, #toDate").val("");
+                grid.ajax.reload(null, true);
+            });
+
+            echo.bindFilters(grid, "#warehouseFilter, #fromDate, #toDate");
+        })();
+    </script>
+}

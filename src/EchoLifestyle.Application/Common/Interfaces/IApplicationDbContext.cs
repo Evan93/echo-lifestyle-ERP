@@ -72,6 +72,19 @@ public interface IApplicationDbContext
     /// </summary>
     DbSet<StockBalance> StockBalances { get; }
 
+    /// <summary>
+    /// Stock moving for a reason that is not a purchase or a sale. The only
+    /// route by which stock changes without a document from outside the
+    /// business, which is why every row carries a reason and an approver.
+    /// </summary>
+    DbSet<StockAdjustment> StockAdjustments { get; }
+
+    DbSet<StockAdjustmentLine> StockAdjustmentLines { get; }
+
+    DbSet<StockCount> StockCounts { get; }
+
+    DbSet<StockCountLine> StockCountLines { get; }
+
     DbSet<GoodsReceipt> GoodsReceipts { get; }
 
     DbSet<GoodsReceiptLine> GoodsReceiptLines { get; }

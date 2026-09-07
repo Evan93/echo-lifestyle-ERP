@@ -1,0 +1,186 @@
+@using EchoLifestyle.Application.Inventory.Counts
+@model StockCountDetail
+@{
+    ViewData["Subtitle"] = $"{Model.ScopeDescription} · {Model.WarehouseName}";
+
+    var canPost = ViewData["CanPost"] as bool? ?? false;
+    var showCost = CurrentUser.HasPermission(Permissions.Catalog.CostPriceView);
+
+    var variances = Model.Variances;
+    var drifted = Model.Drifted;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <span class="badge text-bg-warning">Not posted yet</span>
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Sheet" asp-route-id="@Model.Id">
+        Back to the sheet
+    </a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small">Counted</div>
+                <div class="fs-4 fw-semibold">@Model.CountedCount <span class="fs-6 text-muted">/ @Model.Lines.Count</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card h-100 @(Model.UncountedCount > 0 ? "border-warning" : null)">
+            <div class="card-body">
+                <div class="text-muted small">Left blank</div>
+                <div class="fs-4 fw-semibold">@Model.UncountedCount</div>
+                <div class="text-muted small">skipped, not written off</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card h-100 @(variances.Count > 0 ? "border-warning" : null)">
+            <div class="card-body">
+                <div class="text-muted small">Variances</div>
+                <div class="fs-4 fw-semibold">@variances.Count</div>
+            </div>
+        </div>
+    </div>
+
+    @if (showCost)
+    {
+        <div class="col-6 col-lg-3">
+            <div class="card h-100 @(Model.NetVarianceValue < 0m ? "border-danger" : null)">
+                <div class="card-body">
+                    <div class="text-muted small">Net effect</div>
+                    <div class="fs-4 fw-semibold @(Model.NetVarianceValue < 0m ? "text-danger" : "text-success")">
+                        &#2547; @Model.NetVarianceValue.ToString("N2")
+                    </div>
+                    @if (Model.ShrinkageValue < 0m)
+                    {
+                        <div class="text-muted small">
+                            &#2547; @Math.Abs(Model.ShrinkageValue).ToString("N2") of it is shrinkage
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (Model.UncountedCount > 0)
+{
+    <div class="alert alert-warning">
+        <strong>@Model.UncountedCount line(s) were never counted.</strong>
+        They will be left exactly as they are. If you meant to count them as zero, go back and type a
+        zero &mdash; blank and zero are deliberately different here.
+    </div>
+}
+
+@if (drifted.Count > 0)
+{
+    <div class="alert alert-info">
+        <strong>Stock moved on @drifted.Count line(s) while you were counting.</strong>
+        That is fine. Posting applies your variance on top of the movement rather than overwriting it,
+        so nothing sold in the meantime gets put back.
+    </div>
+}
+
+@if (variances.Count == 0)
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <p class="mb-1 fw-semibold">Everything counted matched.</p>
+            <p class="text-muted small mb-0">
+                Posting will record the count and move nothing.
+            </p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-header fw-semibold">What will move</div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product</th>
+                        <th>Batch</th>
+                        <th class="text-end">System</th>
+                        <th class="text-end">Counted</th>
+                        <th class="text-end">Variance</th>
+                        @if (showCost)
+                        {
+                            <th class="text-end">Value</th>
+                        }
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in variances)
+                    {
+                        <tr class="@(line.Variance < 0m ? "table-danger" : "table-success")">
+                            <td>
+                                <div class="fw-semibold">@line.ProductName</div>
+                                <div class="small text-muted">@line.Sku</div>
+                            </td>
+                            <td class="small">
+                                @if (line.BatchWasGenerated)
+                                {
+                                    <span class="text-muted">Not tracked</span>
+                                }
+                                else
+                                {
+                                    <code>@line.BatchNumber</code>
+                                }
+                            </td>
+                            <td class="text-end">
+                                @line.SystemQuantity.ToString("N0")
+                                @if (line.HasDrifted)
+                                {
+                                    <div class="text-muted small" title="The balance has moved since the sheet was generated">
+                                        now @line.CurrentSystemQuantity.ToString("N0")
+                                    </div>
+                                }
+                            </td>
+                            <td class="text-end">@line.CountedQuantity!.Value.ToString("N0")</td>
+                            <td class="text-end fw-semibold">
+                                <span class="@(line.Variance > 0m ? "text-success" : "text-danger")">
+                                    @(line.Variance > 0m ? "+" : "")@line.Variance!.Value.ToString("N0")
+                                </span>
+                            </td>
+                            @if (showCost)
+                            {
+                                <td class="text-end">&#2547; @line.VarianceValue.ToString("N2")</td>
+                            }
+                            <td class="small text-muted">@line.Notes</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="d-flex justify-content-end gap-2 mt-3">
+    <a class="btn btn-outline-secondary" asp-action="Sheet" asp-route-id="@Model.Id">Keep counting</a>
+
+    @if (canPost)
+    {
+        <form asp-action="Post" method="post">
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button type="submit" class="btn btn-echo" data-submit-once
+                    onclick="return confirm('Post @variances.Count variance(s)? Stock will move and the ledger entries are permanent.');">
+                Post the count
+            </button>
+        </form>
+    }
+</div>
+
+@if (!canPost)
+{
+    <p class="text-muted small mt-3 mb-0 text-end">
+        You can count, but posting needs an owner. Ask one to review this &mdash; accepting a loss is a
+        different decision from counting a shelf.
+    </p>
+}

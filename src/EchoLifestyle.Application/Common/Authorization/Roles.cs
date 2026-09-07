@@ -74,6 +74,7 @@ public static class Roles
                 Permissions.Inventory.BatchView,
                 Permissions.Inventory.TransferApprove,
                 Permissions.Inventory.AdjustmentApprove,
+                Permissions.Inventory.CountPost,
                 Permissions.Procurement.SupplierView,
                 Permissions.Procurement.PurchaseOrderApprove,
                 Permissions.Sales.OrderView,
@@ -119,6 +120,7 @@ public static class Roles
                 Permissions.Inventory.TransferCreate,
                 Permissions.Inventory.TransferApprove,
                 Permissions.Inventory.AdjustmentCreate,
+                Permissions.Inventory.CountCreate,
                 Permissions.Sales.OrderView,
                 Permissions.Sales.OrderCreate,
                 Permissions.Sales.DiscountApproveOverLimit,
@@ -149,6 +151,8 @@ public static class Roles
                 Permissions.Inventory.TransferApprove,
                 Permissions.Inventory.AdjustmentCreate,
                 Permissions.Inventory.AdjustmentApprove,
+                Permissions.Inventory.CountCreate,
+                Permissions.Inventory.CountPost,
                 Permissions.Inventory.BalanceRebuild,
                 Permissions.Procurement.GoodsReceiptCreate,
                 Permissions.Reporting.InventoryReportsView,
@@ -163,6 +167,10 @@ public static class Roles
                 Permissions.Inventory.BatchView,
                 Permissions.Inventory.TransferCreate,
                 Permissions.Inventory.AdjustmentCreate,
+
+                // Counts, but not posting them. An officer counts the shelf; an
+                // owner decides that the difference is real and takes the loss.
+                Permissions.Inventory.CountCreate,
                 Permissions.Procurement.GoodsReceiptCreate,
                 Permissions.Reporting.InventoryReportsView,
             ],

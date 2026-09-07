@@ -70,6 +70,16 @@ public static class Permissions
         public const string AdjustmentCreate = "Inventory.Adjustment.Create";
         public const string AdjustmentApprove = "Inventory.Adjustment.Approve";
 
+        /// <summary>Starting a count and entering the numbers found on the shelf.</summary>
+        public const string CountCreate = "Inventory.Count.Create";
+
+        /// <summary>
+        /// Turning counted variances into stock movements. Separate from
+        /// creating a count because counting is clerical and posting is not:
+        /// the numbers become real, and the losses become permanent, here.
+        /// </summary>
+        public const string CountPost = "Inventory.Count.Post";
+
         /// <summary>
         /// Required in addition to the branch's AllowNegativeStock policy before
         /// a document may drive stock below zero.

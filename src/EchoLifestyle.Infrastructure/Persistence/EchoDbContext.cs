@@ -95,6 +95,14 @@ public class EchoDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
 
     public DbSet<StockBalance> StockBalances => Set<StockBalance>();
 
+    public DbSet<StockAdjustment> StockAdjustments => Set<StockAdjustment>();
+
+    public DbSet<StockAdjustmentLine> StockAdjustmentLines => Set<StockAdjustmentLine>();
+
+    public DbSet<StockCount> StockCounts => Set<StockCount>();
+
+    public DbSet<StockCountLine> StockCountLines => Set<StockCountLine>();
+
     public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
 
     public DbSet<GoodsReceiptLine> GoodsReceiptLines => Set<GoodsReceiptLine>();

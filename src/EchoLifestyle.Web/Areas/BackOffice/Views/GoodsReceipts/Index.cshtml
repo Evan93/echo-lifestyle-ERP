@@ -1,0 +1,132 @@
+@using EchoLifestyle.Application.Purchasing.Suppliers
+@{
+    ViewData["Title"] = "Goods receipts";
+    ViewData["Subtitle"] = "Everything received. Posted receipts cannot be edited - the ledger is append-only.";
+
+    var suppliers = ViewData["Suppliers"] as IReadOnlyList<SupplierOption> ?? [];
+}
+
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+    <div>
+        <label class="form-label mb-1 small text-muted" for="supplierFilter">Supplier</label>
+        <select id="supplierFilter" class="form-select form-select-sm" style="width: auto;">
+            <option value="">All suppliers</option>
+            @foreach (var supplier in suppliers)
+            {
+                <option value="@supplier.Id">@supplier.Name</option>
+            }
+        </select>
+    </div>
+
+    <a class="btn btn-echo btn-sm" asp-action="Quick">Quick purchase</a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="receiptsGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>Number</th>
+                    <th>Supplier</th>
+                    <th>Received</th>
+                    <th>Into</th>
+                    <th class="text-end">Units</th>
+                    <th class="text-end">Total</th>
+                    <th>Status</th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var detailsUrlTemplate = "@Url.Action("Details", new { id = "__id__" })";
+
+            function money(value) {
+                return "৳ " + Number(value || 0).toLocaleString("en-BD", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            var grid = echo.grid("#receiptsGrid", {
+                url: "@Url.Action("Data")",
+                order: [],
+                emptyMessage: "Nothing received yet.",
+                searchPlaceholder: "Search number, supplier, invoice or SKU...",
+
+                filters: function () {
+                    return { supplierId: $("#supplierFilter").val() };
+                },
+
+                columns: [
+                    {
+                        data: "number",
+                        name: "number",
+                        render: function (number, type, row) {
+                            var line = echo.render.code(number);
+
+                            if (row.supplierInvoiceNumber) {
+                                line += '<div class="text-muted small">inv ' +
+                                    echo.escape(row.supplierInvoiceNumber) + "</div>";
+                            }
+
+                            return line;
+                        }
+                    },
+                    { data: "supplierName", name: "supplier", render: echo.escape },
+                    {
+                        data: "receiptDate",
+                        name: "date",
+                        render: function (date) {
+                            return echo.escape(date);
+                        }
+                    },
+                    { data: "warehouseName", orderable: false, render: echo.escape },
+                    {
+                        data: "totalQuantity",
+                        orderable: false,
+                        className: "text-end",
+                        render: function (quantity, type, row) {
+                            return Number(quantity).toLocaleString("en-BD") +
+                                '<div class="text-muted small">' + row.lineCount + " line(s)</div>";
+                        }
+                    },
+                    {
+                        data: "grandTotal",
+                        name: "total",
+                        className: "text-end",
+                        render: money
+                    },
+                    {
+                        data: "status",
+                        orderable: false,
+                        render: function (status) {
+                            if (status === "Posted") {
+                                return echo.render.badge("Posted", "success");
+                            }
+
+                            return status === "Cancelled"
+                                ? echo.render.badge("Cancelled", "secondary")
+                                : echo.render.badge(status, "warning");
+                        }
+                    },
+                    {
+                        data: "id",
+                        orderable: false,
+                        className: "text-end",
+                        render: function (id) {
+                            return '<a class="btn btn-sm btn-outline-secondary" href="' +
+                                echo.escape(detailsUrlTemplate.replace("__id__", id)) + '">View</a>';
+                        }
+                    }
+                ]
+            });
+
+            echo.bindFilters(grid, "#supplierFilter");
+        })();
+    </script>
+}

@@ -1,0 +1,330 @@
+@using EchoLifestyle.Domain.Purchasing
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Purchasing
+@model QuickPurchaseFormModel
+@{
+    ViewData["Subtitle"] = "Receive a delivery in one screen. Posting moves stock immediately.";
+
+    var supplierMap = Model.Suppliers.ToDictionary(
+        s => s.Id.ToString(),
+        s => new { isImporter = s.IsImporter, currencyCode = s.CurrencyCode });
+}
+
+<form asp-action="Quick" method="post" novalidate autocomplete="off">
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-8">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Delivery</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label asp-for="SupplierId" class="form-label"></label>
+                            <select asp-for="SupplierId" id="SupplierId" class="form-select">
+                                <option value="">Choose a supplier...</option>
+                                @foreach (var supplier in Model.Suppliers)
+                                {
+                                    <option value="@supplier.Id" selected="@(Model.SupplierId == supplier.Id)">
+                                        @supplier.Display@(supplier.IsActive ? "" : " (inactive)")
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="SupplierId" class="text-danger small"></span>
+                            @if (Model.Suppliers.Count == 0)
+                            {
+                                <div class="form-text text-warning-emphasis">
+                                    No suppliers yet &mdash;
+                                    <a asp-controller="Suppliers" asp-action="Create">add one first</a>.
+                                </div>
+                            }
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="WarehouseId" class="form-label"></label>
+                            <select asp-for="WarehouseId" class="form-select">
+                                @foreach (var warehouse in Model.Warehouses)
+                                {
+                                    <option value="@warehouse.Id" selected="@(Model.WarehouseId == warehouse.Id)">
+                                        @warehouse.Name@(warehouse.IsPrimary ? " (primary)" : "")
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="WarehouseId" class="text-danger small"></span>
+                        </div>
+
+                        @if (Model.Branches.Count > 1)
+                        {
+                            <div class="col-12 col-md-4">
+                                <label asp-for="BranchId" class="form-label"></label>
+                                <select asp-for="BranchId" class="form-select">
+                                    @foreach (var branch in Model.Branches)
+                                    {
+                                        <option value="@branch.Id" selected="@(Model.BranchId == branch.Id)">
+                                            @branch.Name
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        else
+                        {
+                            @* One branch: no decision to make, so no field to skip past. *@
+                            <input type="hidden" asp-for="BranchId" />
+                        }
+
+                        <div class="col-6 col-md-4">
+                            <label asp-for="ReceiptDate" class="form-label"></label>
+                            <input asp-for="ReceiptDate" class="form-control" type="date" />
+                            <div class="form-text">Blank means today.</div>
+                        </div>
+
+                        <div class="col-6 col-md-4">
+                            <label asp-for="SupplierInvoiceNumber" class="form-label"></label>
+                            <input asp-for="SupplierInvoiceNumber" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">What arrived</span>
+                    <span class="text-muted small"><span id="lineCount">0</span> line(s)</span>
+                </div>
+
+                <div class="card-body border-bottom">
+                    <label class="form-label" for="lineSearch">Add a product</label>
+                    <div class="position-relative" id="lineSearchWrapper">
+                        <input id="lineSearch" class="form-control"
+                               placeholder="Scan a barcode, or type an SKU or product name..." />
+                        <div id="lineSearchResults" class="list-group position-absolute w-100 shadow"
+                             style="z-index: 20; display: none; max-height: 22rem; overflow-y: auto;"></div>
+                    </div>
+                    <div class="form-text">
+                        Enter adds the highlighted product. Scanning the same item again adds one to its
+                        quantity rather than a second line.
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="min-width: 14rem;">Product</th>
+                                <th style="width: 7rem;" class="text-end">Qty</th>
+                                <th style="width: 9rem;" class="text-end">
+                                    Unit cost <span class="js-cost-currency text-muted small">BDT</span>
+                                </th>
+                                <th style="width: 8rem;" class="text-end">Discount</th>
+                                <th style="width: 11rem;">Batch / expiry</th>
+                                <th style="width: 9rem;" class="text-end">Line total</th>
+                                <th style="width: 3rem;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="lineRows">
+                            @* Repopulated by the browser after a failed post, so
+                               nothing typed is lost when the server refuses. *@
+                            @for (var i = 0; i < Model.Lines.Count; i++)
+                            {
+                                var index = i;
+                                var line = Model.Lines[index];
+
+                                if (line.ProductVariantId == 0)
+                                {
+                                    continue;
+                                }
+
+                                <tr data-line="@index" data-variant="@line.ProductVariantId">
+                                    <td>
+                                        <div class="fw-semibold">@line.Description</div>
+                                        <div class="small text-muted">@line.Sku</div>
+                                        <input type="hidden" asp-for="Lines[index].ProductVariantId" />
+                                        <input type="hidden" asp-for="Lines[index].Sku" />
+                                        <input type="hidden" asp-for="Lines[index].Description" />
+                                        <input type="hidden" asp-for="Lines[index].IsBatchTracked" />
+                                        <input type="hidden" asp-for="Lines[index].IsExpiryTracked" />
+                                    </td>
+                                    <td>
+                                        <input asp-for="Lines[index].Quantity" type="number" step="0.01" min="0.01"
+                                               class="form-control form-control-sm text-end js-quantity" />
+                                    </td>
+                                    <td>
+                                        <input asp-for="Lines[index].UnitCost" type="number" step="0.0001" min="0"
+                                               class="form-control form-control-sm text-end js-cost" />
+                                    </td>
+                                    <td>
+                                        <input asp-for="Lines[index].DiscountAmount" type="number" step="0.01" min="0"
+                                               class="form-control form-control-sm text-end js-discount" />
+                                    </td>
+                                    <td>
+                                        @if (line.IsBatchTracked)
+                                        {
+                                            <input asp-for="Lines[index].BatchNumber" placeholder="Batch no."
+                                                   class="form-control form-control-sm mb-1" />
+                                        }
+                                        @if (line.IsExpiryTracked)
+                                        {
+                                            <input asp-for="Lines[index].ExpiryDate" type="date"
+                                                   class="form-control form-control-sm" />
+                                        }
+                                        @if (!line.IsBatchTracked && !line.IsExpiryTracked)
+                                        {
+                                            <span class="text-muted small">&mdash;</span>
+                                        }
+                                    </td>
+                                    <td class="text-end align-middle js-line-total">&mdash;</td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-outline-danger js-remove"
+                                                title="Remove">&times;</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    <div id="noLines" class="text-center text-muted py-4"
+                         style="@(Model.Lines.Any(l => l.ProductVariantId > 0) ? "display:none;" : "")">
+                        Nothing added yet. Search above to start.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3" id="importPanel" style="display: none;">
+                <div class="card-header fw-semibold">Import costs</div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-4">
+                            <label asp-for="ExchangeRate" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">1 <span id="currencyLabel">USD</span> =</span>
+                                <input asp-for="ExchangeRate" id="ExchangeRate" class="form-control"
+                                       type="number" step="0.000001" min="0.000001" />
+                                <span class="input-group-text">BDT</span>
+                            </div>
+                            <span asp-validation-for="ExchangeRate" class="text-danger small"></span>
+                            <div class="form-text">Frozen on the document, so past costs never move.</div>
+                        </div>
+
+                        <div class="col-12 col-md-8 d-flex align-items-end">
+                            <div class="form-text mb-2">
+                                Freight, duty and clearing are entered in BDT and spread across the lines.
+                                Landed cost is what the stock ledger records &mdash; not the invoice price.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-2">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 10rem;">Charge</th>
+                                    <th>Description</th>
+                                    <th style="width: 9rem;" class="text-end">Amount (BDT)</th>
+                                    <th style="width: 11rem;">Spread</th>
+                                    <th style="width: 3rem;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="chargeRows">
+                                @for (var i = 0; i < Model.Charges.Count; i++)
+                                {
+                                    var index = i;
+
+                                    <tr data-charge="@index">
+                                        <td>
+                                            <select asp-for="Charges[index].ChargeType" class="form-select form-select-sm"
+                                                    asp-items="Html.GetEnumSelectList<PurchaseChargeType>()"></select>
+                                        </td>
+                                        <td>
+                                            <input asp-for="Charges[index].Description" class="form-control form-control-sm" />
+                                        </td>
+                                        <td>
+                                            <input asp-for="Charges[index].Amount" type="number" step="0.01" min="0"
+                                                   class="form-control form-control-sm text-end js-charge-amount" />
+                                        </td>
+                                        <td>
+                                            <select asp-for="Charges[index].ApportionMethod" class="form-select form-select-sm"
+                                                    asp-items="Html.GetEnumSelectList<ChargeApportionMethod>()"></select>
+                                        </td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-sm btn-outline-danger js-remove-charge"
+                                                    title="Remove">&times;</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <button type="button" id="addCharge" class="btn btn-outline-secondary btn-sm">
+                        Add a charge
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-4">
+            <div class="card mb-3 position-sticky" style="top: 1rem;">
+                <div class="card-header fw-semibold">Totals</div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-7 text-muted fw-normal">Goods</dt>
+                        <dd class="col-5 text-end mb-1" id="subTotal">&#2547; 0.00</dd>
+
+                        <dt class="col-7 text-muted fw-normal">Charges</dt>
+                        <dd class="col-5 text-end mb-1" id="chargeTotal">&#2547; 0.00</dd>
+
+                        <dt class="col-7 fw-semibold border-top pt-2">Total</dt>
+                        <dd class="col-5 text-end fw-semibold border-top pt-2 mb-0" id="grandTotal">&#2547; 0.00</dd>
+                    </dl>
+
+                    <div class="form-text mt-3">
+                        A preview. The server recalculates every figure when you post, and its numbers
+                        are the ones stored.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Notes</div>
+                <div class="card-body">
+                    <textarea asp-for="Notes" class="form-control" rows="3"
+                              placeholder="Anything worth remembering about this delivery"></textarea>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-echo" data-submit-once>Receive and post</button>
+                <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+            </div>
+
+            <p class="text-muted small mt-3">
+                Posting is immediate and cannot be edited afterwards &mdash; the stock ledger is
+                append-only. A mistake is corrected with a reversing document, so the history shows
+                what happened.
+            </p>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/purchasing/quick-purchase.js" asp-append-version="true"></script>
+
+    <script>
+        jQuery(function () {
+            echo.quickPurchase({
+                lookupUrl: "@Url.Action("Lookup")",
+                suppliers: @Json.Serialize(supplierMap),
+                chargeTypes: @Json.Serialize(
+                    Html.GetEnumSelectList<PurchaseChargeType>()
+                        .Select(i => new { value = i.Value, text = i.Text })),
+                apportionMethods: @Json.Serialize(
+                    Html.GetEnumSelectList<ChargeApportionMethod>()
+                        .Select(i => new { value = i.Value, text = i.Text }))
+            });
+        });
+    </script>
+}

@@ -1,0 +1,217 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Controllers
+@{
+    ViewData["Title"] = "Stock on hand";
+    ViewData["Subtitle"] = "What the ledger says you have. Available is what is left after reservations.";
+
+    var warehouses = ViewData["Warehouses"] as List<WarehouseFilterOption> ?? [];
+    var canRebuild = CurrentUser.HasPermission(Permissions.Inventory.BalanceRebuild);
+    var showCost = CurrentUser.HasPermission(Permissions.Catalog.CostPriceView);
+}
+
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-end gap-2 flex-wrap">
+        @if (warehouses.Count > 1)
+        {
+            <div>
+                <label class="form-label mb-1 small text-muted" for="warehouseFilter">Warehouse</label>
+                <select id="warehouseFilter" class="form-select form-select-sm" style="width: auto;">
+                    <option value="">All warehouses</option>
+                    @foreach (var warehouse in warehouses)
+                    {
+                        <option value="@warehouse.Id">@warehouse.Name</option>
+                    }
+                </select>
+            </div>
+        }
+
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="includeZero" />
+            <label class="form-check-label small" for="includeZero">Include items at zero</label>
+        </div>
+    </div>
+
+    @if (canRebuild)
+    {
+        <form asp-action="Rebuild" method="post"
+              onsubmit="return confirm('Recompute every balance from the stock ledger?');">
+            <button type="submit" class="btn btn-outline-secondary btn-sm" data-submit-once>
+                Rebuild from ledger
+            </button>
+        </form>
+    }
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="stockGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 2.5rem;"></th>
+                    <th>Product</th>
+                    <th>Brand</th>
+                    <th class="text-end">On hand</th>
+                    <th class="text-end">Reserved</th>
+                    <th class="text-end">Available</th>
+                    @if (showCost)
+                    {
+                        <th class="text-end">Avg cost</th>
+                        <th class="text-end">Value</th>
+                    }
+                    <th>Earliest expiry</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<p class="text-muted small mt-3 mb-0">
+    Every figure is a projection of the stock ledger. If one ever looks wrong,
+    @(canRebuild ? "rebuild it" : "ask an owner to rebuild it") &mdash; the ledger is append-only, so the
+    balance is what gets corrected, never the history.
+</p>
+
+@section Scripts {
+    <script>
+        (function () {
+            var showCost = @Json.Serialize(showCost);
+            var batchesUrl = "@Url.Action("Batches")";
+
+            function number(value) {
+                return Number(value || 0).toLocaleString("en-BD", { maximumFractionDigits: 2 });
+            }
+
+            function money(value) {
+                if (value === null || typeof value === "undefined") {
+                    return '<span class="text-muted small">&mdash;</span>';
+                }
+
+                return "৳ " + Number(value).toLocaleString("en-BD", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            var columns = [
+                {
+                    // Expander. Batch detail is a click away rather than always
+                    // on screen: most rows have one batch and nothing to say.
+                    data: null,
+                    orderable: false,
+                    className: "text-center js-expand",
+                    defaultContent: '<button type="button" class="btn btn-sm btn-link p-0">+</button>'
+                },
+                {
+                    data: "productName",
+                    name: "name",
+                    render: function (name, type, row) {
+                        var line = echo.escape(name);
+
+                        if (row.variantName && row.variantName !== "Standard") {
+                            line += ' <span class="text-muted">· ' + echo.escape(row.variantName) + "</span>";
+                        }
+
+                        return line + '<div class="text-muted small">' + echo.escape(row.sku) +
+                            (row.batchCount > 1 ? " · " + row.batchCount + " batches" : "") + "</div>";
+                    }
+                },
+                { data: "brandName", name: "brand", render: echo.escape },
+                { data: "quantityOnHand", name: "onHand", className: "text-end", render: number },
+                {
+                    data: "quantityReserved",
+                    orderable: false,
+                    className: "text-end",
+                    render: function (reserved) {
+                        return reserved > 0
+                            ? number(reserved)
+                            : '<span class="text-muted small">&mdash;</span>';
+                    }
+                },
+                {
+                    data: "quantityAvailable",
+                    orderable: false,
+                    className: "text-end fw-semibold",
+                    render: function (available) {
+                        // Negative available means more is promised than exists.
+                        var variant = available < 0 ? "text-danger" : "";
+                        return '<span class="' + variant + '">' + number(available) + "</span>";
+                    }
+                }
+            ];
+
+            if (showCost) {
+                columns.push({
+                    data: "averageUnitCost",
+                    orderable: false,
+                    className: "text-end",
+                    render: money
+                });
+
+                columns.push({ data: "stockValue", name: "value", className: "text-end", render: money });
+            }
+
+            columns.push({
+                data: "earliestExpiry",
+                name: "expiry",
+                render: function (expiry) {
+                    if (!expiry) {
+                        return '<span class="text-muted small">&mdash;</span>';
+                    }
+
+                    var days = Math.round((new Date(expiry) - new Date()) / 86400000);
+
+                    if (days < 0) {
+                        return echo.render.badge("Expired", "danger");
+                    }
+
+                    if (days <= 90) {
+                        return echo.render.badge(days + " days", "warning");
+                    }
+
+                    return echo.escape(expiry);
+                }
+            });
+
+            var grid = echo.grid("#stockGrid", {
+                url: "@Url.Action("Data")",
+                order: [],
+                emptyMessage: "No stock yet. Receive a delivery to get started.",
+                searchPlaceholder: "Search product, SKU, brand or barcode...",
+
+                filters: function () {
+                    return {
+                        warehouseId: $("#warehouseFilter").val(),
+                        includeZero: $("#includeZero").is(":checked")
+                    };
+                },
+
+                columns: columns
+            });
+
+            // Batch drill-down
+            $("#stockGrid tbody").on("click", "td.js-expand", function () {
+                var tr = $(this).closest("tr");
+                var row = grid.row(tr);
+
+                if (row.child.isShown()) {
+                    row.child.hide();
+                    tr.removeClass("table-active");
+                    $(this).find("button").text("+");
+                    return;
+                }
+
+                var data = row.data();
+
+                $.get(batchesUrl, {
+                    productVariantId: data.productVariantId,
+                    warehouseId: $("#warehouseFilter").val() || data.warehouseId
+                }).done(function (html) {
+                    row.child(html).show();
+                    tr.addClass("table-active");
+                    tr.find("td.js-expand button").text("−");
+                });
+            });
+
+            echo.bindFilters(grid, "#warehouseFilter, #includeZero");
+        })();
+    </script>
+}

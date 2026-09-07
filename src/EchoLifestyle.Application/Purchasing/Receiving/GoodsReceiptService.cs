@@ -1,6 +1,7 @@
 using System.Globalization;
 using EchoLifestyle.Application.Common.Interfaces;
 using EchoLifestyle.Application.Common.Results;
+using EchoLifestyle.Application.Common.Text;
 using EchoLifestyle.Application.Purchasing.LandedCost;
 using EchoLifestyle.Domain.Inventory;
 using EchoLifestyle.Domain.Purchasing;
@@ -20,7 +21,7 @@ namespace EchoLifestyle.Application.Purchasing.Receiving;
 /// same posting code. Stock must have exactly one way into this system, or the
 /// two paths will drift and only one of them will be right.
 /// </summary>
-public class GoodsReceiptService
+public partial class GoodsReceiptService
 {
     private readonly IApplicationDbContext _db;
     private readonly IDateTimeProvider _clock;
@@ -502,30 +503,19 @@ public class GoodsReceiptService
     }
 
     /// <summary>
-    /// GRN-YYMM-0001, restarting each month.
-    ///
-    /// Read inside the posting transaction, so two people receiving at once
-    /// cannot take the same number - the second waits, reads the first, and
-    /// takes the next. The unique index is the backstop.
+    /// GRN-YYMM-0001, restarting each month. Read inside the posting
+    /// transaction; see <see cref="DocumentNumber"/> for why that matters.
     /// </summary>
     private async Task<string> NextReceiptNumberAsync(DateOnly date, CancellationToken cancellationToken)
     {
-        var prefix = $"GRN-{date:yyMM}-";
+        var prefix = DocumentNumber.Prefix(DocumentNumber.GoodsReceipt, date);
 
         var used = await _db.GoodsReceipts
             .Where(r => r.Number.StartsWith(prefix))
             .Select(r => r.Number)
             .ToListAsync(cancellationToken);
 
-        var highest = used
-            .Select(n => int.TryParse(
-                n[prefix.Length..], NumberStyles.None, CultureInfo.InvariantCulture, out var value)
-                ? value
-                : 0)
-            .DefaultIfEmpty(0)
-            .Max();
-
-        return $"{prefix}{highest + 1:D4}";
+        return DocumentNumber.Next(prefix, used);
     }
 
     private static OperationResult<ReceiptPlan> Fail(string error, string? field = null) =>

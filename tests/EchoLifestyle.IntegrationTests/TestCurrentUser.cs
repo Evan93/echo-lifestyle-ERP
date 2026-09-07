@@ -23,7 +23,13 @@ public class TestCurrentUser : ICurrentUser
 
     public bool IsOwner { get; set; }
 
-    public bool HasPermission(string permission) => IsOwner;
+    /// <summary>
+    /// Individual grants, for the tests that need a user who is not an owner.
+    /// An owner still holds everything, which is the production rule.
+    /// </summary>
+    public HashSet<string> Grants { get; } = [];
+
+    public bool HasPermission(string permission) => IsOwner || Grants.Contains(permission);
 
     public bool CanAccessBranch(long branchId) => IsOwner || BranchIds.Contains(branchId);
 

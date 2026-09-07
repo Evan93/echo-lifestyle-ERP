@@ -118,9 +118,23 @@ public class BackOfficeMenu
                     Action = "Index",
                     Permission = Permissions.Procurement.SupplierView,
                 },
-                new NavItem { Text = "Quick purchase", Icon = "dot", Permission = Permissions.Procurement.GoodsReceiptCreate, ComingInPhase = "2" },
+                new NavItem
+                {
+                    Text = "Quick purchase",
+                    Icon = "dot",
+                    Controller = "GoodsReceipts",
+                    Action = "Quick",
+                    Permission = Permissions.Procurement.GoodsReceiptCreate,
+                },
+                new NavItem
+                {
+                    Text = "Goods receipts",
+                    Icon = "dot",
+                    Controller = "GoodsReceipts",
+                    Action = "Index",
+                    Permission = Permissions.Procurement.GoodsReceiptCreate,
+                },
                 new NavItem { Text = "Purchase orders", Icon = "dot", Permission = Permissions.Procurement.PurchaseOrderCreate, ComingInPhase = "2" },
-                new NavItem { Text = "Goods receipts", Icon = "dot", Permission = Permissions.Procurement.GoodsReceiptCreate, ComingInPhase = "2" },
             ],
         },
 
@@ -130,11 +144,49 @@ public class BackOfficeMenu
             Icon = "layers",
             Children =
             [
-                new NavItem { Text = "Stock on hand", Icon = "dot", Permission = Permissions.Inventory.StockView, ComingInPhase = "3" },
-                new NavItem { Text = "Stock ledger", Icon = "dot", Permission = Permissions.Inventory.StockView, ComingInPhase = "3" },
-                new NavItem { Text = "Transfers", Icon = "dot", Permission = Permissions.Inventory.TransferCreate, ComingInPhase = "3" },
-                new NavItem { Text = "Adjustments", Icon = "dot", Permission = Permissions.Inventory.AdjustmentCreate, ComingInPhase = "3" },
-                new NavItem { Text = "Near expiry", Icon = "dot", Permission = Permissions.Inventory.StockView, ComingInPhase = "3" },
+                new NavItem
+                {
+                    Text = "Stock on hand",
+                    Icon = "dot",
+                    Controller = "Stock",
+                    Action = "Index",
+                    Permission = Permissions.Inventory.StockView,
+                },
+                new NavItem
+                {
+                    Text = "Stock ledger",
+                    Icon = "dot",
+                    Controller = "Stock",
+                    Action = "Ledger",
+                    Permission = Permissions.Inventory.StockView,
+                },
+                new NavItem
+                {
+                    Text = "Near expiry",
+                    Icon = "dot",
+                    Controller = "Stock",
+                    Action = "Expiring",
+                    Permission = Permissions.Inventory.StockView,
+                },
+                new NavItem
+                {
+                    Text = "Adjustments",
+                    Icon = "dot",
+                    Controller = "StockAdjustments",
+                    Action = "Index",
+                    Permission = Permissions.Inventory.AdjustmentCreate,
+                },
+                new NavItem
+                {
+                    Text = "Stock counts",
+                    Icon = "dot",
+                    Controller = "StockCounts",
+                    Action = "Index",
+                    Permission = Permissions.Inventory.CountCreate,
+                },
+
+                // Transfers wait for a second location to move stock between.
+                new NavItem { Text = "Transfers", Icon = "dot", Permission = Permissions.Inventory.TransferCreate, ComingInPhase = "later" },
             ],
         },
 
