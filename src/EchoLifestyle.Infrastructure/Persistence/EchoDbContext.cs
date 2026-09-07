@@ -3,8 +3,11 @@ using EchoLifestyle.Domain.Administration;
 using EchoLifestyle.Domain.Auditing;
 using EchoLifestyle.Domain.Catalog;
 using EchoLifestyle.Domain.Common;
+using EchoLifestyle.Domain.Crm;
+using EchoLifestyle.Domain.Finance;
 using EchoLifestyle.Domain.Inventory;
 using EchoLifestyle.Domain.Purchasing;
+using EchoLifestyle.Domain.Sales;
 using EchoLifestyle.Domain.Security;
 using EchoLifestyle.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -30,6 +33,9 @@ public class EchoDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
     public const string CatalogSchema = "catalog";
     public const string InventorySchema = "inventory";
     public const string PurchasingSchema = "purchasing";
+    public const string CrmSchema = "crm";
+    public const string SalesSchema = "sales";
+    public const string FinanceSchema = "finance";
 
     public EchoDbContext(DbContextOptions<EchoDbContext> options)
         : base(options)
@@ -109,6 +115,32 @@ public class EchoDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
 
     public DbSet<PurchaseCharge> PurchaseCharges => Set<PurchaseCharge>();
 
+    public DbSet<Customer> Customers => Set<Customer>();
+
+    public DbSet<CustomerAddress> CustomerAddresses => Set<CustomerAddress>();
+
+    public DbSet<Division> Divisions => Set<Division>();
+
+    public DbSet<District> Districts => Set<District>();
+
+    public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
+
+    public DbSet<SalesOrderLine> SalesOrderLines => Set<SalesOrderLine>();
+
+    public DbSet<StockReservation> StockReservations => Set<StockReservation>();
+
+    public DbSet<SalesOrderStatusChange> SalesOrderStatusChanges => Set<SalesOrderStatusChange>();
+
+    public DbSet<CashTransaction> CashTransactions => Set<CashTransaction>();
+
+    public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
+
+    public DbSet<Partner> Partners => Set<Partner>();
+
+    public DbSet<CourierRemittance> CourierRemittances => Set<CourierRemittance>();
+
+    public DbSet<CourierRemittanceLine> CourierRemittanceLines => Set<CourierRemittanceLine>();
+
     /// <inheritdoc />
     public async Task<T> ExecuteInTransactionAsync<T>(
         Func<CancellationToken, Task<T>> operation,
@@ -186,6 +218,13 @@ public class EchoDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
         builder.Entity<Category>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<Product>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<Supplier>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<Customer>().HasQueryFilter(e => !e.IsDeleted);
+
+        // Addresses are not soft-deletable themselves, but a deleted customer's
+        // addresses must not surface in a district report or a courier export.
+        // Filtering through the parent is the only way to get that without
+        // every caller remembering to join.
+        builder.Entity<CustomerAddress>().HasQueryFilter(a => !a.Customer!.IsDeleted);
 
         // Variants are not soft-deletable themselves, but they are queried
         // directly all over the system - variant pickers, barcode lookups,

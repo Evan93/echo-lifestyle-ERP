@@ -1,0 +1,148 @@
+@using EchoLifestyle.Application.Finance.Cash
+@model IReadOnlyList<ExpenseCategoryRow>
+@{
+    ViewData["Subtitle"] = "What money can be spent on.";
+}
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">Categories</span>
+                <a class="btn btn-sm btn-outline-secondary" asp-action="Expenses">Expense report</a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>What belongs here</th>
+                            <th class="text-end">Used</th>
+                            <th class="text-end">In use</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var category in Model)
+                        {
+                            <tr class="@(category.IsActive ? null : "text-muted")">
+                                <td>
+                                    <form asp-action="SaveCategory" method="post"
+                                          class="d-flex align-items-center gap-2"
+                                          id="category-@category.Id">
+                                        <input type="hidden" name="Id" value="@category.Id" />
+                                        <input type="hidden" name="DisplayOrder"
+                                               value="@category.DisplayOrder" />
+
+                                        @if (category.IsSystem)
+                                        {
+                                            <input type="hidden" name="Name" value="@category.Name" />
+                                            <span class="fw-semibold">@category.Name</span>
+                                        }
+                                        else
+                                        {
+                                            <input name="Name" value="@category.Name" maxlength="100"
+                                                   class="form-control form-control-sm" />
+                                        }
+                                    </form>
+
+                                    @if (category.IsCostOfSale)
+                                    {
+                                        <span class="badge text-bg-light border">rises with sales</span>
+                                    }
+                                </td>
+                                <td class="small text-muted">
+                                    @if (category.IsSystem)
+                                    {
+                                        <input type="hidden" name="Description" form="category-@category.Id"
+                                               value="@category.Description" />
+                                        <input type="hidden" name="IsCostOfSale" form="category-@category.Id"
+                                               value="@category.IsCostOfSale.ToString().ToLowerInvariant()" />
+                                        @category.Description
+                                    }
+                                    else
+                                    {
+                                        <input name="Description" form="category-@category.Id"
+                                               value="@category.Description" maxlength="300"
+                                               class="form-control form-control-sm" />
+                                        <label class="form-check form-check-inline small mt-1">
+                                            <input class="form-check-input" type="checkbox"
+                                                   name="IsCostOfSale" value="true"
+                                                   form="category-@category.Id"
+                                                   checked="@category.IsCostOfSale" />
+                                            <span class="form-check-label">Rises with sales</span>
+                                        </label>
+                                    }
+                                </td>
+                                <td class="text-end text-muted">@category.TimesUsed</td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end align-items-center gap-2">
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox"
+                                                   name="IsActive" value="true"
+                                                   form="category-@category.Id"
+                                                   checked="@category.IsActive" />
+                                        </div>
+                                        <button type="submit" form="category-@category.Id"
+                                                class="btn btn-sm btn-outline-secondary">Save</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-body border-top">
+                <p class="text-muted small mb-0">
+                    Categories are switched off, never deleted &mdash; an expense recorded last March
+                    still points at one. Built-in categories cannot be renamed, because the next
+                    startup would recreate the original name and split a year of spending across
+                    two headings that mean the same thing.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-4">
+        <div class="card">
+            <div class="card-header fw-semibold">Add a category</div>
+            <div class="card-body">
+                <form asp-action="SaveCategory" method="post">
+                    <input type="hidden" name="Id" value="0" />
+                    <input type="hidden" name="IsActive" value="true" />
+                    <input type="hidden" name="DisplayOrder" value="@(Model.Count + 1)" />
+
+                    <div class="mb-2">
+                        <label class="form-label small" for="newName">Name</label>
+                        <input id="newName" name="Name" maxlength="100" required
+                               class="form-control form-control-sm" placeholder="Influencer fees" />
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small" for="newDescription">What belongs here</label>
+                        <textarea id="newDescription" name="Description" rows="2" maxlength="300"
+                                  class="form-control form-control-sm"></textarea>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="newCostOfSale"
+                               name="IsCostOfSale" value="true" />
+                        <label class="form-check-label small" for="newCostOfSale">
+                            Rises with sales
+                        </label>
+                        <div class="form-text">
+                            Tick for costs that grow with every parcel &mdash; packaging, delivery,
+                            payment charges. They are reported against gross margin rather than as
+                            the cost of being open.
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-sm btn-echo w-100" data-submit-once>
+                        Add
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

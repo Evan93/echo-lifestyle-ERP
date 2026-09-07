@@ -1,0 +1,403 @@
+/* ==========================================================================
+   Echo Lifestyle - storefront
+
+   Same palette as the back office, opposite intent. The admin shell is dense
+   because people work in it all day; this is browsed, so it is generous:
+   larger type, more air, and the serif from the logo doing the talking.
+
+   Loaded instead of site.css, not alongside it. Nothing here overrides the
+   back office and nothing there leaks in.
+   ========================================================================== */
+
+:root {
+    --shop-wine-900: #2a0713;
+    --shop-wine-700: #4d1028;
+    --shop-wine-600: #70203e;
+    --shop-wine-100: #f7e9ee;
+
+    --shop-rose-400: #e6aa96;
+    --shop-rose-500: #c98b6e;
+    --shop-rose-600: #a9705a;
+
+    --shop-ink: #1c1418;
+    --shop-ink-soft: #6b6169;
+    --shop-line: #e7e2e5;
+    --shop-surface: #ffffff;
+    --shop-canvas: #fbf9fa;
+
+    --shop-display: Georgia, "Times New Roman", serif;
+
+    --shop-header-height: 68px;
+}
+
+body {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--shop-ink);
+    background: var(--shop-surface);
+}
+
+.shop-display {
+    font-family: var(--shop-display);
+    letter-spacing: -0.01em;
+}
+
+a {
+    color: var(--shop-wine-600);
+}
+
+a:hover {
+    color: var(--shop-wine-700);
+}
+
+/* --- header --------------------------------------------------------------- */
+
+.shop-announce {
+    background: var(--shop-wine-900);
+    color: var(--shop-rose-400);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.4rem 0;
+    text-align: center;
+}
+
+.shop-header {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    background: var(--shop-surface);
+    border-bottom: 1px solid var(--shop-line);
+}
+
+.shop-header__bar {
+    min-height: var(--shop-header-height);
+}
+
+.shop-logo {
+    font-family: var(--shop-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--shop-wine-700);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.shop-logo:hover {
+    color: var(--shop-wine-600);
+}
+
+.shop-logo img {
+    height: 34px;
+    width: auto;
+}
+
+.shop-nav {
+    border-top: 1px solid var(--shop-line);
+}
+
+.shop-nav__link {
+    display: inline-block;
+    padding: 0.65rem 0;
+    margin-right: 1.6rem;
+    color: var(--shop-ink);
+    text-decoration: none;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-bottom: 2px solid transparent;
+}
+
+.shop-nav__link:hover,
+.shop-nav__link.is-active {
+    color: var(--shop-wine-600);
+    border-bottom-color: var(--shop-wine-600);
+}
+
+.shop-search .form-control {
+    border-right: 0;
+}
+
+.shop-search .btn {
+    border-color: var(--bs-border-color);
+    border-left: 0;
+}
+
+/* --- product tiles -------------------------------------------------------- */
+
+.shop-card {
+    display: block;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+}
+
+.shop-card__frame {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    background: var(--shop-canvas);
+    border: 1px solid var(--shop-line);
+    overflow: hidden;
+}
+
+.shop-card__frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform .45s ease;
+}
+
+.shop-card:hover .shop-card__frame img {
+    transform: scale(1.04);
+}
+
+/* No photograph yet. A grey box with the product's initial beats a broken
+   image icon, and it makes the gap in the photography obvious. */
+.shop-card__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-family: var(--shop-display);
+    font-size: 2.5rem;
+    color: var(--shop-rose-500);
+    background: var(--shop-wine-100);
+}
+
+.shop-card__flag {
+    position: absolute;
+    top: .5rem;
+    left: .5rem;
+    background: var(--shop-wine-600);
+    color: #fff;
+    font-size: .7rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: .15rem .5rem;
+}
+
+.shop-card__veil {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, .72);
+    font-size: .8rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--shop-ink-soft);
+}
+
+.shop-card__brand {
+    font-size: .72rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--shop-ink-soft);
+    margin-top: .6rem;
+}
+
+.shop-card__name {
+    font-size: .95rem;
+    line-height: 1.35;
+    margin: .15rem 0 .3rem;
+}
+
+.shop-card:hover .shop-card__name {
+    color: var(--shop-wine-600);
+}
+
+.shop-price {
+    font-weight: 600;
+}
+
+.shop-price__was {
+    color: var(--shop-ink-soft);
+    text-decoration: line-through;
+    font-weight: 400;
+    margin-left: .35rem;
+}
+
+/* --- sections ------------------------------------------------------------- */
+
+.shop-hero {
+    background:
+        radial-gradient(900px 420px at 20% -10%, var(--shop-wine-100), transparent 70%),
+        var(--shop-canvas);
+    border-bottom: 1px solid var(--shop-line);
+}
+
+.shop-section__title {
+    font-family: var(--shop-display);
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.shop-rule {
+    height: 1px;
+    background: var(--shop-line);
+    flex: 1;
+}
+
+.shop-tile {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid var(--shop-line);
+    padding: 1.1rem;
+    height: 100%;
+    background: var(--shop-surface);
+}
+
+.shop-tile:hover {
+    border-color: var(--shop-rose-500);
+    color: var(--shop-wine-600);
+}
+
+/* --- product page --------------------------------------------------------- */
+
+.shop-gallery__main {
+    aspect-ratio: 1 / 1;
+    background: var(--shop-canvas);
+    border: 1px solid var(--shop-line);
+    overflow: hidden;
+}
+
+.shop-gallery__main img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.shop-thumb {
+    width: 68px;
+    height: 68px;
+    object-fit: cover;
+    border: 1px solid var(--shop-line);
+    cursor: pointer;
+    background: var(--shop-canvas);
+}
+
+.shop-thumb.is-active {
+    border-color: var(--shop-wine-600);
+}
+
+/* A shade is a colour. Rendering it as a circle rather than a dropdown row is
+   the single cheapest thing this page does for a cosmetics catalogue. */
+.shop-swatch {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--shop-line);
+    padding: 0;
+    position: relative;
+}
+
+.shop-swatch.is-active {
+    box-shadow: 0 0 0 2px var(--shop-surface), 0 0 0 3px var(--shop-wine-600);
+}
+
+.shop-swatch.is-out::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: 50%;
+    background: linear-gradient(to bottom right,
+        transparent calc(50% - 1px), var(--shop-ink-soft) 50%,
+        transparent calc(50% + 1px));
+    opacity: .7;
+}
+
+.shop-chip {
+    border: 1px solid var(--shop-line);
+    background: var(--shop-surface);
+    padding: .35rem .85rem;
+    font-size: .85rem;
+}
+
+.shop-chip.is-active {
+    border-color: var(--shop-wine-600);
+    color: var(--shop-wine-600);
+}
+
+.shop-chip:disabled {
+    color: var(--shop-ink-soft);
+    text-decoration: line-through;
+    background: var(--shop-canvas);
+}
+
+.shop-price--lead {
+    font-family: var(--shop-display);
+    font-size: 1.9rem;
+}
+
+.btn-shop {
+    background: var(--shop-wine-600);
+    border-color: var(--shop-wine-600);
+    color: #fff;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    font-size: .85rem;
+    padding: .7rem 1.6rem;
+}
+
+.btn-shop:hover,
+.btn-shop:focus {
+    background: var(--shop-wine-700);
+    border-color: var(--shop-wine-700);
+    color: #fff;
+}
+
+.btn-shop:disabled {
+    background: var(--shop-ink-soft);
+    border-color: var(--shop-ink-soft);
+    color: #fff;
+    opacity: .55;
+}
+
+.shop-accordion .accordion-button:not(.collapsed) {
+    background: var(--shop-wine-100);
+    color: var(--shop-wine-700);
+}
+
+.shop-accordion .accordion-button:focus {
+    box-shadow: none;
+    border-color: var(--shop-line);
+}
+
+/* --- footer --------------------------------------------------------------- */
+
+.shop-footer {
+    background: var(--shop-wine-900);
+    color: #c9b6bd;
+    margin-top: 4rem;
+    padding: 3rem 0 2rem;
+}
+
+.shop-footer a {
+    color: #c9b6bd;
+    text-decoration: none;
+}
+
+.shop-footer a:hover {
+    color: var(--shop-rose-400);
+}
+
+.shop-footer__title {
+    color: #fff;
+    font-size: .78rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-bottom: .75rem;
+}
+
+@media (max-width: 575.98px) {
+    .shop-price--lead {
+        font-size: 1.5rem;
+    }
+
+    .shop-section__title {
+        font-size: 1.25rem;
+    }
+}

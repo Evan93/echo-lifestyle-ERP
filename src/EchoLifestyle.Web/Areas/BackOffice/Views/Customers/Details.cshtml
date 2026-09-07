@@ -1,0 +1,464 @@
+@using EchoLifestyle.Application.Crm.Customers
+@using EchoLifestyle.Domain.Crm
+@model CustomerDetail
+@{
+    ViewData["Subtitle"] = $"{Model.Code} · joined {Clock.ToBusinessTime(Model.CreatedAtUtc):d MMM yyyy}";
+
+    var canSeePii = ViewData["CanSeePii"] as bool? ?? false;
+    var canEdit = ViewData["CanEdit"] as bool? ?? false;
+    var canBlock = ViewData["CanBlock"] as bool? ?? false;
+
+    var divisions = ViewData["Divisions"] as IReadOnlyList<DivisionOption> ?? [];
+    var districts = ViewData["Districts"] as IReadOnlyList<DistrictOption> ?? [];
+
+    // Editing an address needs both permissions. Someone who can edit but not
+    // see contact details is looking at a masked street line and a masked
+    // number - saving that form would write the mask over the real address.
+    var canEditAddresses = canEdit && canSeePii;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+        @if (Model.IsBlocked)
+        {
+            <span class="badge text-bg-danger">Blocked</span>
+        }
+        @if (Model.CustomerType == CustomerType.Wholesale)
+        {
+            <span class="badge text-bg-info">Wholesale</span>
+        }
+        @if (!Model.IsActive)
+        {
+            <span class="badge text-bg-secondary">Inactive</span>
+        }
+        @if (Model.HasAccount)
+        {
+            <span class="badge text-bg-light border">Website login</span>
+        }
+    </div>
+
+    <div class="d-flex gap-2">
+        @if (canEdit)
+        {
+            <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+        }
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Index">All customers</a>
+    </div>
+</div>
+
+@if (Model.IsBlocked)
+{
+    <div class="alert alert-danger d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <strong>Orders from this customer should not be taken.</strong>
+            <div class="small mt-1">@Model.BlockReason</div>
+            @if (Model.BlockedAtUtc is not null)
+            {
+                <div class="small text-muted">
+                    Blocked @Clock.ToBusinessTime(Model.BlockedAtUtc.Value).ToString("d MMM yyyy")
+                </div>
+            }
+        </div>
+
+        @if (canBlock)
+        {
+            <form asp-action="Unblock" method="post" class="d-flex gap-2">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input name="note" class="form-control form-control-sm" style="width: 16rem;"
+                       maxlength="500" placeholder="Note (optional)" />
+                <button type="submit" class="btn btn-sm btn-outline-light" data-submit-once>
+                    Unblock
+                </button>
+            </form>
+        }
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">Delivery addresses</span>
+                @if (canEditAddresses)
+                {
+                    <button type="button" class="btn btn-sm btn-echo" id="addAddress">Add an address</button>
+                }
+            </div>
+
+            @if (Model.Addresses.Count == 0)
+            {
+                <div class="card-body text-center text-muted py-5">
+                    <p class="mb-1">No address yet.</p>
+                    <p class="small mb-0">Nothing can be shipped to this customer until there is one.</p>
+                </div>
+            }
+            else
+            {
+                <div class="list-group list-group-flush">
+                    @foreach (var address in Model.Addresses)
+                    {
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="fw-semibold">@address.Label</span>
+                                        @if (address.IsDefault)
+                                        {
+                                            <span class="badge text-bg-success">Default</span>
+                                        }
+                                        @if (address.IsInsideCity)
+                                        {
+                                            <span class="badge text-bg-light border">Inside city</span>
+                                        }
+                                    </div>
+
+                                    <div>@address.AddressLine</div>
+                                    <div class="small text-muted">
+                                        @address.AreaOrThana, @address.DistrictName, @address.DivisionName
+                                        @if (!string.IsNullOrWhiteSpace(address.PostCode))
+                                        {
+                                            <text> &middot; @address.PostCode</text>
+                                        }
+                                    </div>
+
+                                    @if (!string.IsNullOrWhiteSpace(address.Landmark))
+                                    {
+                                        <div class="small text-muted">Landmark: @address.Landmark</div>
+                                    }
+
+                                    <div class="small mt-1">
+                                        @address.RecipientName
+                                        <span class="font-monospace text-muted">
+                                            @(canSeePii
+                                                ? EchoLifestyle.Application.Common.Text.BangladeshPhone
+                                                    .Format(address.RecipientPhone)
+                                                : address.RecipientPhone)
+                                        </span>
+                                    </div>
+
+                                    @if (!string.IsNullOrWhiteSpace(address.DeliveryNotes))
+                                    {
+                                        <div class="small text-warning-emphasis mt-1">
+                                            @address.DeliveryNotes
+                                        </div>
+                                    }
+                                </div>
+
+                                @if (canEditAddresses)
+                                {
+                                    <div class="d-flex gap-1 flex-wrap">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary js-edit-address"
+                                                data-address="@Json.Serialize(address)">Edit</button>
+
+                                        @if (!address.IsDefault)
+                                        {
+                                            <form asp-action="SetDefaultAddress" method="post">
+                                                <input type="hidden" name="customerId" value="@Model.Id" />
+                                                <input type="hidden" name="addressId" value="@address.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                                    Make default
+                                                </button>
+                                            </form>
+
+                                            <form asp-action="DeleteAddress" method="post"
+                                                  onsubmit="return confirm('Remove this address?');">
+                                                <input type="hidden" name="customerId" value="@Model.Id" />
+                                                <input type="hidden" name="addressId" value="@address.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    Remove
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="card-body border-top">
+                <p class="text-muted small mb-0">
+                    Couriers price by district, which is why it is a real field rather than part of the
+                    address text. The landmark is often what actually finds the door.
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Orders</div>
+            <div class="card-body text-center text-muted py-4">
+                <p class="mb-0 small">Order history appears here once sales are built.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-4">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Contact</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-5 text-muted fw-normal">Mobile</dt>
+                    <dd class="col-7 mb-2 font-monospace">@Model.PhoneDisplay</dd>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.AlternatePhone))
+                    {
+                        <dt class="col-5 text-muted fw-normal">Other</dt>
+                        <dd class="col-7 mb-2 font-monospace">@Model.AlternatePhone</dd>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Email))
+                    {
+                        <dt class="col-5 text-muted fw-normal">Email</dt>
+                        <dd class="col-7 mb-2">@Model.Email</dd>
+                    }
+
+                    <dt class="col-5 text-muted fw-normal">Came from</dt>
+                    <dd class="col-7 mb-2">
+                        @(Model.Source == CustomerSource.Unknown ? "—" : Model.Source.ToString())
+                    </dd>
+
+                    @if (Model.DateOfBirth is not null)
+                    {
+                        <dt class="col-5 text-muted fw-normal">Birthday</dt>
+                        <dd class="col-7 mb-2">@Model.DateOfBirth.Value.ToString("d MMMM")</dd>
+                    }
+
+                    @if (Model.CustomerType == CustomerType.Wholesale)
+                    {
+                        <dt class="col-5 text-muted fw-normal">Price list</dt>
+                        <dd class="col-7 mb-0">@(Model.PriceListName ?? "Standard retail")</dd>
+                    }
+                </dl>
+
+                @if (!canSeePii)
+                {
+                    <div class="alert alert-light border small mt-3 mb-0">
+                        Masked for your role. Enough to confirm the right customer, not enough to
+                        copy out.
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Notes))
+        {
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Notes</div>
+                <div class="card-body">
+                    <p class="mb-0 small" style="white-space: pre-line;">@Model.Notes</p>
+                </div>
+            </div>
+        }
+
+        @if (canBlock && !Model.IsBlocked)
+        {
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Block</div>
+                <div class="card-body">
+                    <form asp-action="Block" method="post">
+                        <input type="hidden" name="Id" value="@Model.Id" />
+                        <label class="form-label small" for="blockReason">Reason</label>
+                        <input id="blockReason" name="Reason" class="form-control form-control-sm mb-2"
+                               maxlength="500" required
+                               placeholder="Refused three COD parcels in a row." />
+                        <button type="submit" class="btn btn-outline-danger btn-sm w-100" data-submit-once>
+                            Block this customer
+                        </button>
+                    </form>
+
+                    <p class="text-muted small mt-2 mb-0">
+                        Cash on delivery means a refused parcel costs a courier fee. Blocking warns
+                        whoever takes the next order, before they confirm it.
+                    </p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@if (canEditAddresses)
+{
+    <div class="modal fade" id="addressModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <form asp-action="SaveAddress" method="post" class="modal-content" autocomplete="off">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addressModalTitle">Add an address</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" name="CustomerId" value="@Model.Id" />
+                    <input type="hidden" name="Id" id="AddressId" />
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="Label">Label</label>
+                            <input id="Label" name="Label" class="form-control" maxlength="50"
+                                   value="Home" required />
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="RecipientName">Deliver to</label>
+                            <input id="RecipientName" name="RecipientName" class="form-control"
+                                   maxlength="200" placeholder="@Model.FullName" />
+                            <div class="form-text">Blank uses the customer's own name.</div>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="RecipientPhone">Their number</label>
+                            <input id="RecipientPhone" name="RecipientPhone" class="form-control"
+                                   inputmode="tel" maxlength="20" />
+                            <div class="form-text">The one the rider calls on arrival.</div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="DivisionId">Division</label>
+                            <select id="DivisionId" name="DivisionId" class="form-select">
+                                <option value="">Choose...</option>
+                                @foreach (var division in divisions)
+                                {
+                                    <option value="@division.Id">@division.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="DistrictId">District</label>
+                            <select id="DistrictId" name="DistrictId" class="form-select" required></select>
+                        </div>
+
+                        <div class="col-12 col-md-7">
+                            <label class="form-label" for="AreaOrThana">Area / thana</label>
+                            <input id="AreaOrThana" name="AreaOrThana" class="form-control"
+                                   maxlength="150" required placeholder="Bashundhara R/A, Block C" />
+                        </div>
+
+                        <div class="col-12 col-md-5">
+                            <label class="form-label" for="PostCode">Post code</label>
+                            <input id="PostCode" name="PostCode" class="form-control" maxlength="10" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label" for="AddressLine">House, road, flat</label>
+                            <input id="AddressLine" name="AddressLine" class="form-control"
+                                   maxlength="500" required placeholder="House 42, Road 7, Flat B3" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label" for="Landmark">Landmark</label>
+                            <input id="Landmark" name="Landmark" class="form-control" maxlength="200"
+                                   placeholder="Beside the Aarong showroom" />
+                            <div class="form-text">Often the only part that finds the door.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label" for="DeliveryNotes">Notes for the courier</label>
+                            <input id="DeliveryNotes" name="DeliveryNotes" class="form-control"
+                                   maxlength="500" placeholder="Call before 6, the gate closes after that" />
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="IsDefault"
+                                       name="IsDefault" value="true" />
+                                <input type="hidden" name="IsDefault" value="false" />
+                                <label class="form-check-label" for="IsDefault">
+                                    Make this the default address
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-echo" data-submit-once>Save address</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var districts = @Json.Serialize(districts);
+            var modalElement = document.getElementById("addressModal");
+
+            if (!modalElement) {
+                return;
+            }
+
+            var modal = new bootstrap.Modal(modalElement);
+
+            // All sixty-four districts are already here, so changing the
+            // division filters in the browser rather than asking the server.
+            function fillDistricts(divisionId, selectedId) {
+                var $district = jQuery("#DistrictId");
+                $district.empty();
+
+                var matches = districts.filter(function (d) {
+                    return !divisionId || String(d.divisionId) === String(divisionId);
+                });
+
+                if (!divisionId) {
+                    $district.append(jQuery("<option>").val("").text("Choose a division first"));
+                    return;
+                }
+
+                matches.forEach(function (d) {
+                    // The old spelling is in the option text on purpose - it is
+                    // what browsers type-ahead against, and what people type.
+                    $district.append(jQuery("<option>").val(d.id).text(d.display));
+                });
+
+                if (selectedId) {
+                    $district.val(selectedId);
+                }
+            }
+
+            jQuery("#DivisionId").on("change", function () {
+                fillDistricts(jQuery(this).val(), null);
+            });
+
+            jQuery("#addAddress").on("click", function () {
+                jQuery("#addressModalTitle").text("Add an address");
+                jQuery("#AddressId").val("");
+                jQuery("#Label").val("Home");
+                jQuery("#RecipientName, #RecipientPhone, #AreaOrThana, #AddressLine, #Landmark, #PostCode, #DeliveryNotes")
+                    .val("");
+                jQuery("#IsDefault").prop("checked", @Json.Serialize(Model.Addresses.Count == 0));
+                jQuery("#DivisionId").val("");
+                fillDistricts("", null);
+
+                modal.show();
+            });
+
+            jQuery(".js-edit-address").on("click", function () {
+                var address = jQuery(this).data("address");
+
+                jQuery("#addressModalTitle").text("Edit address");
+                jQuery("#AddressId").val(address.id);
+                jQuery("#Label").val(address.label);
+                jQuery("#RecipientName").val(address.recipientName);
+                jQuery("#RecipientPhone").val(address.recipientPhone);
+                jQuery("#AreaOrThana").val(address.areaOrThana);
+                jQuery("#AddressLine").val(address.addressLine);
+                jQuery("#Landmark").val(address.landmark || "");
+                jQuery("#PostCode").val(address.postCode || "");
+                jQuery("#DeliveryNotes").val(address.deliveryNotes || "");
+                jQuery("#IsDefault").prop("checked", address.isDefault);
+                jQuery("#DivisionId").val(address.divisionId);
+
+                fillDistricts(address.divisionId, address.districtId);
+
+                modal.show();
+            });
+
+            fillDistricts("", null);
+        })();
+    </script>
+}

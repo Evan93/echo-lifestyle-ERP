@@ -1,0 +1,310 @@
+@using EchoLifestyle.Application.Finance.Remittances
+@using EchoLifestyle.Domain.Finance
+@model RemittanceDetail
+@{
+    ViewData["Subtitle"] =
+        $"{Model.CourierName} · money arrived {Model.RemittanceDate:d MMM yyyy}";
+
+    var unsettled = ViewData["Unsettled"] as IReadOnlyList<UnsettledOrder> ?? [];
+
+    // Everything this courier holds, plus anything already on the statement -
+    // an order settled on a draft still needs a row to untick.
+    var existing = Model.Lines.ToDictionary(l => l.SalesOrderId);
+}
+
+<div class="alert alert-light border small">
+    Tick the orders the courier's statement lists, enter what they say was collected, and mark
+    anything that came back. Nothing is recorded until you post it.
+</div>
+
+<form asp-action="Reconcile" method="post" autocomplete="off" id="reconcileForm">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">@Model.CourierName is holding @unsettled.Count parcel(s)</span>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="selectAll" />
+                        <label class="form-check-label small" for="selectAll">Tick everything</label>
+                    </div>
+                </div>
+
+                @if (unsettled.Count == 0)
+                {
+                    <div class="card-body text-center text-muted py-5">
+                        <p class="mb-1">Nothing outstanding with @Model.CourierName.</p>
+                        <p class="small mb-0">
+                            Either everything is settled, or the parcels were dispatched under a
+                            different courier name.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0" id="statementTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 2.5rem;"></th>
+                                    <th>Order</th>
+                                    <th style="width: 5rem;" class="text-end">Days</th>
+                                    <th style="width: 8rem;" class="text-end">Owed</th>
+                                    <th style="width: 9rem;" class="text-end">Collected</th>
+                                    <th style="width: 12rem;">Came back?</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (var i = 0; i < unsettled.Count; i++)
+                                {
+                                    var index = i;
+                                    var order = unsettled[index];
+                                    existing.TryGetValue(order.SalesOrderId, out var line);
+
+                                    var isOn = line is not null;
+                                    var collected = line?.AmountCollected ?? order.Outstanding;
+
+                                    <tr data-row class="@(isOn ? "table-active" : null)">
+                                        <td>
+                                            <input type="hidden" name="Rows[@index].SalesOrderId"
+                                                   value="@order.SalesOrderId" />
+                                            <input class="form-check-input js-on" type="checkbox"
+                                                   name="Rows[@index].IsOnStatement" value="true"
+                                                   @(isOn ? "checked" : "") />
+                                            <input type="hidden" name="Rows[@index].IsOnStatement"
+                                                   value="false" />
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">
+                                                <a asp-controller="Orders" asp-action="Details"
+                                                   asp-route-id="@order.SalesOrderId" target="_blank">
+                                                    @order.Number
+                                                </a>
+                                            </div>
+                                            <div class="small text-muted">
+                                                @order.CustomerName &middot; @order.DistrictName
+                                                @if (order.ConsignmentNumber is not null)
+                                                {
+                                                    <text> &middot; </text>
+                                                    <code>@order.ConsignmentNumber</code>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="@(order.DaysWithCourier > 10 ? "text-danger fw-semibold" : "text-muted")">
+                                                @order.DaysWithCourier
+                                            </span>
+                                        </td>
+                                        <td class="text-end js-owed" data-owed="@order.Outstanding">
+                                            &#2547; @order.Outstanding.ToString("N2")
+                                        </td>
+                                        <td>
+                                            <input name="Rows[@index].AmountCollected" type="number"
+                                                   step="0.01" min="0" max="@order.Outstanding"
+                                                   value="@collected.ToString("0.##")"
+                                                   class="form-control form-control-sm text-end js-collected" />
+                                        </td>
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input js-returned" type="checkbox"
+                                                       id="ret_@index" name="Rows[@index].IsReturned"
+                                                       value="true" @(line?.IsReturned == true ? "checked" : "") />
+                                                <input type="hidden" name="Rows[@index].IsReturned"
+                                                       value="false" />
+                                                <label class="form-check-label small" for="ret_@index">
+                                                    Returned
+                                                </label>
+                                            </div>
+                                            <input name="Rows[@index].ReturnReason"
+                                                   value="@line?.ReturnReason"
+                                                   class="form-control form-control-sm mt-1 js-reason"
+                                                   maxlength="500" placeholder="Why?"
+                                                   style="@(line?.IsReturned == true ? "" : "display:none;")" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-4">
+            <div class="card mb-3 position-sticky" style="top: 1rem;">
+                <div class="card-header fw-semibold">Does it add up?</div>
+                <div class="card-body">
+                    <dl class="row mb-3 small">
+                        <dt class="col-7 text-muted fw-normal">Collected</dt>
+                        <dd class="col-5 text-end mb-1" id="grossTotal">&#2547; 0.00</dd>
+
+                        <dt class="col-7 text-muted fw-normal">Less charges</dt>
+                        <dd class="col-5 text-end mb-1" id="feeShown">&#2547; 0.00</dd>
+
+                        <dt class="col-7 text-muted fw-normal">Less other</dt>
+                        <dd class="col-5 text-end mb-1" id="otherShown">&#2547; 0.00</dd>
+
+                        <dt class="col-7 fw-semibold border-top pt-2">Should have arrived</dt>
+                        <dd class="col-5 text-end fw-semibold border-top pt-2 mb-0" id="expectedNet">
+                            &#2547; 0.00
+                        </dd>
+                    </dl>
+
+                    <div class="mb-2">
+                        <label asp-for="CourierFee" class="form-label small"></label>
+                        <input asp-for="CourierFee" id="CourierFee" type="number" step="0.01" min="0"
+                               value="@Model.CourierFee.ToString("0.##")"
+                               class="form-control form-control-sm text-end" />
+                        <div class="form-text">
+                            Recorded as money out, so the cost of delivery shows up somewhere.
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label asp-for="OtherDeduction" class="form-label small"></label>
+                        <input asp-for="OtherDeduction" id="OtherDeduction" type="number"
+                               step="0.01" min="0" value="@Model.OtherDeduction.ToString("0.##")"
+                               class="form-control form-control-sm text-end" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="NetReceived" class="form-label small fw-semibold"></label>
+                        <input asp-for="NetReceived" id="NetReceived" type="number" step="0.01" min="0"
+                               value="@Model.NetReceived.ToString("0.##")"
+                               class="form-control text-end" />
+                        <div class="form-text">What the bank or bKash message actually says.</div>
+                    </div>
+
+                    <div class="alert alert-success py-2 small mb-3" id="balanced" style="display:none;">
+                        <strong>It balances.</strong> The statement and the money agree.
+                    </div>
+
+                    <div class="alert alert-danger py-2 small mb-3" id="unbalanced" style="display:none;">
+                        <strong>Off by <span id="gapAmount"></span>.</strong>
+                        Check the statement before posting.
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="AcceptDiscrepancy"
+                                   name="AcceptDiscrepancy" value="true" />
+                            <input type="hidden" name="AcceptDiscrepancy" value="false" />
+                            <label class="form-check-label" for="AcceptDiscrepancy">
+                                Post anyway and record the difference
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-7">
+                            <label asp-for="StatementReference" class="form-label small"></label>
+                            <input asp-for="StatementReference" value="@Model.StatementReference"
+                                   class="form-control form-control-sm" maxlength="100" />
+                        </div>
+                        <div class="col-5">
+                            <label asp-for="RemittanceDate" class="form-label small"></label>
+                            <input asp-for="RemittanceDate" value="@Model.RemittanceDate.ToString("yyyy-MM-dd")"
+                                   type="date" class="form-control form-control-sm" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ReceivedVia" class="form-label small"></label>
+                        <select asp-for="ReceivedVia" class="form-select form-select-sm"
+                                asp-items="Html.GetEnumSelectList<PaymentMethodKind>()"></select>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="action" value="save"
+                                class="btn btn-outline-secondary">
+                            Save and keep going
+                        </button>
+                        <button type="submit" name="action" value="post" class="btn btn-echo"
+                                data-submit-once
+                                onclick="return confirm('Post this payout? Orders will be settled, returns go back on the shelf, and the cash entries are permanent.');">
+                            Post the payout
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            @* The cancel form lives outside the reconcile form below - nesting
+               one form inside another is invalid HTML and browsers drop the
+               inner one silently. *@
+            <button type="submit" form="cancelPayout" class="btn btn-sm btn-outline-danger w-100">
+                Abandon this payout
+            </button>
+        </div>
+    </div>
+</form>
+
+<form asp-action="Cancel" method="post" id="cancelPayout"
+      onsubmit="return confirm('Abandon this reconciliation? Nothing has been recorded.');">
+    <input type="hidden" name="id" value="@Model.Id" />
+</form>
+
+@section Scripts {
+    <script>
+        (function () {
+            var $rows = jQuery("#statementTable tbody tr[data-row]");
+
+            function money(value) {
+                return "৳ " + Number(value || 0).toLocaleString("en-BD", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            function refresh() {
+                var gross = 0;
+
+                $rows.each(function () {
+                    var $row = jQuery(this);
+                    var on = $row.find(".js-on").is(":checked");
+                    var returned = $row.find(".js-returned").is(":checked");
+                    var $collected = $row.find(".js-collected");
+
+                    $row.toggleClass("table-active", on && !returned);
+                    $row.toggleClass("table-danger", on && returned);
+
+                    // A returned parcel collected nothing. Disabling the box
+                    // says so more clearly than letting somebody type a figure
+                    // the server will throw away.
+                    $collected.prop("disabled", !on || returned);
+                    $row.find(".js-reason").toggle(returned);
+
+                    if (on && !returned) {
+                        gross += Number($collected.val() || 0);
+                    }
+                });
+
+                var fee = Number(jQuery("#CourierFee").val() || 0);
+                var other = Number(jQuery("#OtherDeduction").val() || 0);
+                var net = Number(jQuery("#NetReceived").val() || 0);
+                var expected = gross - fee - other;
+                var gap = net - expected;
+
+                jQuery("#grossTotal").text(money(gross));
+                jQuery("#feeShown").text(money(fee));
+                jQuery("#otherShown").text(money(other));
+                jQuery("#expectedNet").text(money(expected));
+
+                // Only worth saying either way once a figure has been entered.
+                var settled = net > 0 || gross > 0;
+
+                jQuery("#balanced").toggle(settled && Math.abs(gap) < 0.005);
+                jQuery("#unbalanced").toggle(settled && Math.abs(gap) >= 0.005);
+                jQuery("#gapAmount").text(money(Math.abs(gap)) +
+                    (gap > 0 ? " more than expected" : " short"));
+            }
+
+            jQuery("#statementTable").on("change input", "input", refresh);
+            jQuery("#CourierFee, #OtherDeduction, #NetReceived").on("input change", refresh);
+
+            jQuery("#selectAll").on("change", function () {
+                $rows.find(".js-on").prop("checked", jQuery(this).is(":checked"));
+                refresh();
+            });
+
+            refresh();
+        })();
+    </script>
+}

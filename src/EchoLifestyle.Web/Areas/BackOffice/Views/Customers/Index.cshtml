@@ -1,0 +1,164 @@
+@{
+    ViewData["Title"] = "Customers";
+    ViewData["Subtitle"] = "One number, one customer. That is what keeps their order history together.";
+
+    var canSeePii = ViewData["CanSeePii"] as bool? ?? false;
+    var canEdit = CurrentUser.HasPermission(Permissions.Crm.CustomerEdit);
+}
+
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-end gap-2 flex-wrap">
+        <div>
+            <label class="form-label mb-1 small text-muted" for="statusFilter">Show</label>
+            <select id="statusFilter" class="form-select form-select-sm" style="width: auto;">
+                <option value="0">Active</option>
+                <option value="1">Inactive</option>
+                <option value="2">All</option>
+            </select>
+        </div>
+
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="blockedOnly" />
+            <label class="form-check-label small" for="blockedOnly">Blocked only</label>
+        </div>
+    </div>
+
+    @if (canEdit)
+    {
+        <a class="btn btn-echo btn-sm" asp-action="Create">New customer</a>
+    }
+</div>
+
+@if (!canSeePii)
+{
+    <div class="alert alert-light border small">
+        Contact details are masked for your role. You can see enough to confirm you have the right
+        customer; the full number needs the <code>Crm.Customer.ViewPii</code> permission.
+    </div>
+}
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="customersGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>Customer</th>
+                    <th>Mobile</th>
+                    <th>Where</th>
+                    <th>Came from</th>
+                    <th>Status</th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<p class="text-muted small mt-3 mb-0">
+    Search accepts a number in any form &mdash; <code>01712345678</code>, <code>+880 1712-345678</code>,
+    or pasted straight out of a Messenger thread.
+</p>
+
+@section Scripts {
+    <script>
+        (function () {
+            var detailsUrlTemplate = "@Url.Action("Details", new { id = "__id__" })";
+
+            function spaced(text) {
+                return String(text || "").replace(/([a-z])([A-Z])/g, "$1 $2");
+            }
+
+            var grid = echo.grid("#customersGrid", {
+                url: "@Url.Action("Data")",
+                order: [],
+                emptyMessage: "No customers yet.",
+                searchPlaceholder: "Search name, code, mobile or email...",
+
+                filters: function () {
+                    return {
+                        status: $("#statusFilter").val(),
+                        blockedOnly: $("#blockedOnly").is(":checked")
+                    };
+                },
+
+                columns: [
+                    {
+                        data: "fullName",
+                        name: "name",
+                        render: function (name, type, row) {
+                            return echo.escape(name) +
+                                '<div class="text-muted small">' + echo.escape(row.code) +
+                                (row.hasAccount ? " · has a website login" : "") + "</div>";
+                        }
+                    },
+                    {
+                        data: "phone",
+                        orderable: false,
+                        render: function (phone, type, row) {
+                            var line = '<span class="font-monospace">' + echo.escape(phone) + "</span>";
+
+                            if (row.email) {
+                                line += '<div class="text-muted small">' + echo.escape(row.email) + "</div>";
+                            }
+
+                            return line;
+                        }
+                    },
+                    {
+                        data: "districtName",
+                        orderable: false,
+                        render: function (district, type, row) {
+                            if (!district) {
+                                return '<span class="text-muted small">No address</span>';
+                            }
+
+                            return echo.escape(district) +
+                                (row.addressCount > 1
+                                    ? '<div class="text-muted small">' + row.addressCount + " addresses</div>"
+                                    : "");
+                        }
+                    },
+                    {
+                        data: "source",
+                        orderable: false,
+                        render: function (source) {
+                            return source === "Unknown"
+                                ? '<span class="text-muted small">&mdash;</span>'
+                                : echo.escape(spaced(source));
+                        }
+                    },
+                    {
+                        data: "isBlocked",
+                        orderable: false,
+                        render: function (blocked, type, row) {
+                            if (blocked) {
+                                return echo.render.badge("Blocked", "danger") +
+                                    '<div class="text-muted small text-truncate" style="max-width: 14rem;">' +
+                                    echo.escape(row.blockReason || "") + "</div>";
+                            }
+
+                            if (row.customerType === "Wholesale") {
+                                return echo.render.badge("Wholesale", "info");
+                            }
+
+                            return row.isActive
+                                ? '<span class="text-muted small">&mdash;</span>'
+                                : echo.render.badge("Inactive", "secondary");
+                        }
+                    },
+                    {
+                        data: "id",
+                        orderable: false,
+                        className: "text-end",
+                        render: function (id) {
+                            return '<a class="btn btn-sm btn-outline-secondary" href="' +
+                                echo.escape(detailsUrlTemplate.replace("__id__", id)) + '">Open</a>';
+                        }
+                    }
+                ]
+            });
+
+            echo.bindFilters(grid, "#statusFilter, #blockedOnly");
+        })();
+    </script>
+}

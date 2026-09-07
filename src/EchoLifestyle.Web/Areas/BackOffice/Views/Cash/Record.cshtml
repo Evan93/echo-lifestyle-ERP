@@ -1,0 +1,225 @@
+@using EchoLifestyle.Application.Finance.Cash
+@using EchoLifestyle.Domain.Finance
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Finance
+@model RecordCashFormModel
+@{
+    ViewData["Subtitle"] = "One movement of money, straight into the log.";
+
+    // Partner money is dropped from the list rather than shown and refused -
+    // an option somebody cannot use is a question they have to ask.
+    var kinds = CashService.RecordableKinds
+        .Where(k => Model.CanRecordPartnerMoney || !CashTransaction.RequiresPartner(k))
+        .ToList();
+
+    string Label(CashKind kind) => kind switch
+    {
+        CashKind.Expense => "Expense - something the business paid for",
+        CashKind.SupplierPayment => "Supplier payment - settling a bill for stock",
+        CashKind.CustomerRefund => "Customer refund - money back to a customer",
+        CashKind.OrderCollection => "Order payment - a customer paid us directly",
+        CashKind.PartnerCapital => "Partner capital - a partner put money in",
+        CashKind.PartnerDrawing => "Partner drawing - a partner took money out",
+        _ => "Opening balance - cash that existed before this system",
+    };
+}
+
+<form asp-action="Record" method="post" novalidate autocomplete="off">
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">What moved</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Kind" class="form-label"></label>
+                            <select asp-for="Kind" id="kind" class="form-select">
+                                @foreach (var kind in kinds)
+                                {
+                                    <option value="@kind" selected="@(Model.Kind == kind)">
+                                        @Label(kind)
+                                    </option>
+                                }
+                            </select>
+                            <div class="form-text" id="directionHint"></div>
+                        </div>
+
+                        <div class="col-6 col-md-4">
+                            <label asp-for="Amount" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">&#2547;</span>
+                                <input asp-for="Amount" class="form-control" type="number"
+                                       step="0.01" min="0.01" />
+                            </div>
+                            <span asp-validation-for="Amount" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-6 col-md-4">
+                            <label asp-for="Method" class="form-label"></label>
+                            <select asp-for="Method" class="form-select"
+                                    asp-items="Html.GetEnumSelectList<PaymentMethodKind>()"></select>
+                            <div class="form-text">Which pot it came out of, or went into.</div>
+                        </div>
+
+                        <div class="col-6 col-md-4">
+                            <label asp-for="TransactionDate" class="form-label"></label>
+                            <input asp-for="TransactionDate" class="form-control" type="date" />
+                        </div>
+
+                        <div class="col-12" data-when="Expense">
+                            <label asp-for="ExpenseCategoryId" class="form-label"></label>
+                            <select asp-for="ExpenseCategoryId" class="form-select">
+                                <option value="">Choose a category...</option>
+                                @foreach (var category in Model.Categories)
+                                {
+                                    <option value="@category.Id"
+                                            selected="@(Model.ExpenseCategoryId == category.Id)">
+                                        @category.Name@(category.IsCostOfSale ? " (rises with sales)" : "")
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="ExpenseCategoryId" class="text-danger small"></span>
+                            <div class="form-text">
+                                An uncategorised expense is a number nobody can act on in six months.
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6" data-when="SupplierPayment">
+                            <label asp-for="SupplierId" class="form-label"></label>
+                            <select asp-for="SupplierId" class="form-select">
+                                <option value="">Choose a supplier...</option>
+                                @foreach (var supplier in Model.Suppliers)
+                                {
+                                    <option value="@supplier.Id"
+                                            selected="@(Model.SupplierId == supplier.Id)">
+                                        @supplier.Display
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="SupplierId" class="text-danger small"></span>
+                        </div>
+
+                        @if (Model.CanRecordPartnerMoney)
+                        {
+                            <div class="col-12 col-md-6" data-when="PartnerCapital PartnerDrawing">
+                                <label asp-for="PartnerId" class="form-label"></label>
+                                <select asp-for="PartnerId" class="form-select">
+                                    <option value="">Whose money?</option>
+                                    @foreach (var partner in Model.Partners)
+                                    {
+                                        <option value="@partner.Id"
+                                                selected="@(Model.PartnerId == partner.Id)">
+                                            @partner.Name
+                                        </option>
+                                    }
+                                </select>
+                                <span asp-validation-for="PartnerId" class="text-danger small"></span>
+                            </div>
+                        }
+
+                        <div class="col-12 col-md-6" data-when="CustomerRefund OrderCollection">
+                            <label asp-for="OrderNumber" class="form-label"></label>
+                            <input asp-for="OrderNumber" class="form-control" placeholder="SO-2609-0117" />
+                            <span asp-validation-for="OrderNumber" class="text-danger small"></span>
+                            <div class="form-text">
+                                The order's number, as it appears on the parcel.
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="ReferenceNumber" class="form-label"></label>
+                            <input asp-for="ReferenceNumber" class="form-control"
+                                   placeholder="bKash transaction id, cheque number, receipt" />
+                            <div class="form-text">
+                                The string somebody quotes when the money is disputed.
+                            </div>
+                        </div>
+
+                        @if (Model.Branches.Count > 1)
+                        {
+                            <div class="col-12 col-md-6">
+                                <label asp-for="BranchId" class="form-label"></label>
+                                <select asp-for="BranchId" class="form-select">
+                                    @foreach (var branch in Model.Branches)
+                                    {
+                                        <option value="@branch.Id" selected="@(Model.BranchId == branch.Id)">
+                                            @branch.Name
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="BranchId" />
+                        }
+
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label"></label>
+                            <textarea asp-for="Notes" class="form-control" rows="2"
+                                      placeholder="Two rolls of bubble wrap and a box of poly mailers."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Before you save</div>
+                <div class="card-body small">
+                    <p>
+                        There is no in-or-out box. What you pick above decides it: an expense is
+                        money out, capital is money in. A wrongly signed entry is invisible &mdash;
+                        the totals still add up, they are just wrong by twice the amount &mdash; so
+                        the choice is not offered.
+                    </p>
+                    <p class="mb-0">
+                        Nothing here can be edited afterwards. A mistake is cancelled by a reversing
+                        entry, and both stay on the log. That is what makes the log worth reading.
+                    </p>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-echo" data-submit-once>Record it</button>
+                <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var kind = document.getElementById("kind");
+            var hint = document.getElementById("directionHint");
+
+            // Mirrors CashTransaction.NaturalDirection. Cosmetic only - the
+            // server decides the direction and the database refuses anything
+            // else, so a stale copy here misleads nobody's data.
+            var inbound = ["OrderCollection", "PartnerCapital", "Opening"];
+
+            function apply() {
+                var value = kind.value;
+
+                document.querySelectorAll("[data-when]").forEach(function (el) {
+                    var wanted = el.getAttribute("data-when").split(" ");
+                    el.hidden = wanted.indexOf(value) === -1;
+                });
+
+                hint.textContent = inbound.indexOf(value) === -1
+                    ? "Money out."
+                    : "Money in.";
+            }
+
+            kind.addEventListener("change", apply);
+            apply();
+        })();
+    </script>
+}

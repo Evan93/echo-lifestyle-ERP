@@ -196,10 +196,29 @@ public class BackOfficeMenu
             Icon = "cart",
             Children =
             [
-                new NavItem { Text = "Quick sale", Icon = "dot", Permission = Permissions.Sales.OrderCreate, ComingInPhase = "4" },
-                new NavItem { Text = "Orders", Icon = "dot", Permission = Permissions.Sales.OrderView, ComingInPhase = "4" },
-                new NavItem { Text = "Returns", Icon = "dot", Permission = Permissions.Sales.ReturnApprove, ComingInPhase = "4" },
-                new NavItem { Text = "Deliveries", Icon = "dot", Permission = Permissions.Sales.OrderView, ComingInPhase = "4" },
+                new NavItem
+                {
+                    Text = "New order",
+                    Icon = "dot",
+                    Controller = "Orders",
+                    Action = "Create",
+                    Permission = Permissions.Sales.OrderCreate,
+                },
+                new NavItem
+                {
+                    Text = "Orders",
+                    Icon = "dot",
+                    Controller = "Orders",
+                    Action = "Index",
+                    Permission = Permissions.Sales.OrderView,
+                },
+
+                // Returns are recorded on the order itself, and on a courier
+                // payout - a parcel coming back is a state of that order, not a
+                // document of its own. Refunding the money is a cash entry,
+                // under Finance. A screen listing returns on their own is
+                // reporting, and waits for the reports.
+                new NavItem { Text = "Returns", Icon = "dot", Permission = Permissions.Sales.ReturnApprove, ComingInPhase = "later" },
             ],
         },
 
@@ -209,7 +228,14 @@ public class BackOfficeMenu
             Icon = "users",
             Children =
             [
-                new NavItem { Text = "Customers", Icon = "dot", Permission = Permissions.Crm.CustomerView, ComingInPhase = "4" },
+                new NavItem
+                {
+                    Text = "Customers",
+                    Icon = "dot",
+                    Controller = "Customers",
+                    Action = "Index",
+                    Permission = Permissions.Crm.CustomerView,
+                },
                 new NavItem { Text = "Loyalty", Icon = "dot", Permission = Permissions.Crm.CustomerView, ComingInPhase = "7" },
             ],
         },
@@ -220,11 +246,57 @@ public class BackOfficeMenu
             Icon = "coins",
             Children =
             [
-                new NavItem { Text = "Journals", Icon = "dot", Permission = Permissions.Finance.JournalView, ComingInPhase = "4" },
-                new NavItem { Text = "Chart of accounts", Icon = "dot", Permission = Permissions.Finance.JournalView, ComingInPhase = "4" },
-                new NavItem { Text = "Expenses", Icon = "dot", Permission = Permissions.Finance.JournalView, ComingInPhase = "4" },
-                new NavItem { Text = "Partner capital", Icon = "dot", Permission = Permissions.Finance.PartnerLedgerView, ComingInPhase = "4" },
-                new NavItem { Text = "Period close", Icon = "dot", Permission = Permissions.Finance.PeriodClose, ComingInPhase = "5" },
+                new NavItem
+                {
+                    Text = "Cash",
+                    Icon = "dot",
+                    Controller = "Cash",
+                    Action = "Index",
+                    Permission = Permissions.Finance.CashView,
+                },
+                new NavItem
+                {
+                    Text = "Record money",
+                    Icon = "dot",
+                    Controller = "Cash",
+                    Action = "Record",
+                    Permission = Permissions.Finance.CashRecord,
+                },
+                new NavItem
+                {
+                    Text = "Expenses",
+                    Icon = "dot",
+                    Controller = "Cash",
+                    Action = "Expenses",
+                    Permission = Permissions.Finance.CashView,
+                },
+                new NavItem
+                {
+                    Text = "Courier payouts",
+                    Icon = "dot",
+                    Controller = "Remittances",
+                    Action = "Index",
+                    Permission = Permissions.Finance.CashView,
+                },
+                new NavItem
+                {
+                    Text = "Partner capital",
+                    Icon = "dot",
+                    Controller = "Cash",
+                    Action = "Partners",
+                    Permission = Permissions.Finance.PartnerLedgerView,
+                },
+                new NavItem
+                {
+                    Text = "Expense categories",
+                    Icon = "dot",
+                    Controller = "Cash",
+                    Action = "Categories",
+                    Permission = Permissions.Finance.ExpenseCategoryEdit,
+                },
+                new NavItem { Text = "Journals", Icon = "dot", Permission = Permissions.Finance.JournalView, ComingInPhase = "6" },
+                new NavItem { Text = "Chart of accounts", Icon = "dot", Permission = Permissions.Finance.JournalView, ComingInPhase = "6" },
+                new NavItem { Text = "Period close", Icon = "dot", Permission = Permissions.Finance.PeriodClose, ComingInPhase = "6" },
             ],
         },
 

@@ -1,0 +1,400 @@
+@using System.Text.Json
+@model ShopProductDetail
+@{
+    var opening = Model.OpeningVariant;
+    var initial = string.IsNullOrWhiteSpace(Model.Name)
+        ? "E"
+        : Model.Name.Trim().Substring(0, 1).ToUpperInvariant();
+
+    // Everything the page needs to switch shade without a round trip. Prices
+    // still come from the server on every render - this is display, not a
+    // price the browser gets to assert (rule 4).
+    var variantJson = JsonSerializer.Serialize(Model.Variants.Select(v => new
+    {
+        id = v.Id,
+        name = v.VariantName,
+        sku = v.Sku,
+        price = v.Price,
+        compareAt = v.CompareAtPrice,
+        available = v.Available,
+        inStock = v.InStock,
+        values = v.OptionValueIds,
+    }));
+
+    var imageJson = JsonSerializer.Serialize(Model.Images.Select(i => new
+    {
+        variantId = i.ProductVariantId,
+        path = Url.Content("~/" + i.Path.TrimStart('/')),
+        alt = i.AltText,
+    }));
+}
+
+<div class="container py-4 py-lg-5">
+
+    @if (Model.Breadcrumb.Count > 0)
+    {
+        <nav aria-label="Breadcrumb">
+            <ol class="breadcrumb small">
+                <li class="breadcrumb-item">
+                    <a asp-route="storefront-home">Home</a>
+                </li>
+                @foreach (var crumb in Model.Breadcrumb)
+                {
+                    <li class="breadcrumb-item">
+                        <a asp-route="storefront-category" asp-route-slug="@crumb.Slug">@crumb.Name</a>
+                    </li>
+                }
+                <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+            </ol>
+        </nav>
+    }
+
+    <div class="row g-4 g-lg-5">
+        <div class="col-12 col-lg-6">
+            <div class="shop-gallery__main mb-3">
+                @if (Model.Images.Count > 0)
+                {
+                    <img id="galleryMain"
+                         src="@Url.Content("~/" + Model.Images[0].Path.TrimStart('/'))"
+                         alt="@(string.IsNullOrWhiteSpace(Model.Images[0].AltText)
+                                   ? Model.Name : Model.Images[0].AltText)" />
+                }
+                else
+                {
+                    <div class="shop-card__placeholder h-100">@initial</div>
+                }
+            </div>
+
+            @if (Model.Images.Count > 1)
+            {
+                <div class="d-flex flex-wrap gap-2" id="galleryThumbs">
+                    @for (var index = 0; index < Model.Images.Count; index++)
+                    {
+                        var image = Model.Images[index];
+                        <img class="shop-thumb @(index == 0 ? "is-active" : null)"
+                             src="@Url.Content("~/" + image.Path.TrimStart('/'))"
+                             alt="@image.AltText"
+                             data-variant-id="@image.ProductVariantId"
+                             loading="lazy" />
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="text-muted small text-uppercase mb-1" style="letter-spacing: .08em;">
+                <a class="text-decoration-none text-muted"
+                   asp-route="storefront-brand" asp-route-slug="@Model.Brand.Slug">
+                    @Model.Brand.Name
+                </a>
+            </div>
+
+            <h1 class="shop-display h2 mb-3">@Model.Name</h1>
+
+            @if (!string.IsNullOrWhiteSpace(Model.ShortDescription))
+            {
+                <p class="text-muted">@Model.ShortDescription</p>
+            }
+
+            <div class="my-4">
+                <span class="shop-price--lead" id="priceNow">
+                    @if (opening?.Price is not null)
+                    {
+                        <text>&#2547; @opening.Price.Value.ToString("N0")</text>
+                    }
+                    else
+                    {
+                        <text>&mdash;</text>
+                    }
+                </span>
+                <span class="shop-price__was" id="priceWas"
+                      hidden="@(opening?.IsDiscounted != true)">
+                    @if (opening?.CompareAtPrice is not null)
+                    {
+                        <text>&#2547; @opening.CompareAtPrice.Value.ToString("N0")</text>
+                    }
+                </span>
+            </div>
+
+            @if (Model.Options.Count > 0)
+            {
+                foreach (var option in Model.Options)
+                {
+                    var isShade = option.Values.Any(v => !string.IsNullOrWhiteSpace(v.SwatchHex));
+
+                    <div class="mb-3" data-option-id="@option.Id">
+                        <div class="small fw-semibold mb-2">
+                            @option.Name
+                            <span class="text-muted fw-normal" data-option-label="@option.Id"></span>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var value in option.Values)
+                            {
+                                @if (isShade && !string.IsNullOrWhiteSpace(value.SwatchHex))
+                                {
+                                    <button type="button" class="shop-swatch"
+                                            style="background: @value.SwatchHex;"
+                                            data-value-id="@value.Id"
+                                            data-option-id="@option.Id"
+                                            title="@value.Value"
+                                            aria-label="@value.Value"></button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="shop-chip"
+                                            data-value-id="@value.Id"
+                                            data-option-id="@option.Id">
+                                        @value.Value
+                                    </button>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            }
+
+            <div class="my-3 small" id="stockLine">
+                @if (Model.InStock)
+                {
+                    <span class="text-success">In stock</span>
+                }
+                else
+                {
+                    <span class="text-danger">Out of stock</span>
+                }
+            </div>
+
+            @* Phase 5b turns this into a real cart. Until then it is honest
+               about what actually happens: you message them. A dead "Add to
+               cart" button that does nothing is worse than no button. *@
+            <div class="d-grid gap-2 d-sm-flex mb-4">
+                <button type="button" class="btn btn-shop" disabled>
+                    Ordering opens soon
+                </button>
+            </div>
+
+            <p class="text-muted small">
+                To order now, message us on Facebook or Instagram with the product name and
+                shade. Cash on delivery, anywhere in Bangladesh.
+            </p>
+
+            <div class="accordion shop-accordion mt-4" id="productDetail">
+                @if (!string.IsNullOrWhiteSpace(Model.LongDescription))
+                {
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#paneAbout">
+                                About this product
+                            </button>
+                        </h2>
+                        <div id="paneAbout" class="accordion-collapse collapse show"
+                             data-bs-parent="#productDetail">
+                            <div class="accordion-body small" style="white-space: pre-line;">@Model.LongDescription</div>
+                        </div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.HowToUse))
+                {
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#paneUse">
+                                How to use
+                            </button>
+                        </h2>
+                        <div id="paneUse" class="accordion-collapse collapse"
+                             data-bs-parent="#productDetail">
+                            <div class="accordion-body small" style="white-space: pre-line;">@Model.HowToUse</div>
+                        </div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.Ingredients))
+                {
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#paneIngredients">
+                                Ingredients
+                            </button>
+                        </h2>
+                        <div id="paneIngredients" class="accordion-collapse collapse"
+                             data-bs-parent="#productDetail">
+                            <div class="accordion-body small" style="white-space: pre-line;">@Model.Ingredients</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var variants = @Html.Raw(variantJson);
+            var images = @Html.Raw(imageJson);
+            var openingId = @(opening?.Id.ToString() ?? "null");
+
+            var selection = {};
+            var main = document.getElementById("galleryMain");
+            var priceNow = document.getElementById("priceNow");
+            var priceWas = document.getElementById("priceWas");
+            var stockLine = document.getElementById("stockLine");
+
+            function money(value) {
+                return "৳ " + Number(value).toLocaleString("en-BD", {
+                    maximumFractionDigits: 0
+                });
+            }
+
+            function matching() {
+                var chosen = Object.keys(selection).map(function (k) { return selection[k]; });
+
+                if (chosen.length === 0) {
+                    return null;
+                }
+
+                return variants.find(function (v) {
+                    return chosen.every(function (id) { return v.values.indexOf(id) !== -1; });
+                }) || null;
+            }
+
+            // A value is offerable if some in-stock variant carries it alongside
+            // whatever else is already chosen. Crossing out the rest is the
+            // difference between browsing shades and guessing them.
+            function reachable(optionId, valueId) {
+                var others = Object.keys(selection)
+                    .filter(function (k) { return k !== String(optionId); })
+                    .map(function (k) { return selection[k]; });
+
+                return variants.some(function (v) {
+                    return v.inStock
+                        && v.values.indexOf(valueId) !== -1
+                        && others.every(function (id) { return v.values.indexOf(id) !== -1; });
+                });
+            }
+
+            function showImageFor(variantId) {
+                if (!main) {
+                    return;
+                }
+
+                var own = images.find(function (i) { return i.variantId === variantId; });
+
+                if (own) {
+                    main.src = own.path;
+                    main.alt = own.alt || main.alt;
+                }
+            }
+
+            function render() {
+                document.querySelectorAll("[data-value-id]").forEach(function (el) {
+                    var optionId = el.getAttribute("data-option-id");
+                    var valueId = Number(el.getAttribute("data-value-id"));
+                    var active = selection[optionId] === valueId;
+
+                    el.classList.toggle("is-active", active);
+
+                    var ok = reachable(optionId, valueId);
+                    el.classList.toggle("is-out", !ok);
+
+                    if (el.classList.contains("shop-chip")) {
+                        el.disabled = !ok;
+                    }
+                });
+
+                document.querySelectorAll("[data-option-label]").forEach(function (el) {
+                    var optionId = el.getAttribute("data-option-label");
+                    var valueId = selection[optionId];
+                    var button = valueId
+                        ? document.querySelector('[data-value-id="' + valueId + '"]')
+                        : null;
+
+                    el.textContent = button
+                        ? " · " + (button.getAttribute("title") || button.textContent.trim())
+                        : "";
+                });
+
+                var variant = matching();
+
+                if (!variant) {
+                    return;
+                }
+
+                priceNow.textContent = variant.price === null ? "—" : money(variant.price);
+
+                var discounted = variant.compareAt !== null
+                    && variant.price !== null
+                    && variant.compareAt > variant.price;
+
+                priceWas.hidden = !discounted;
+                priceWas.textContent = discounted ? money(variant.compareAt) : "";
+
+                stockLine.innerHTML = variant.inStock
+                    ? '<span class="text-success">In stock</span>'
+                    : '<span class="text-danger">Out of stock</span>';
+
+                showImageFor(variant.id);
+            }
+
+            document.querySelectorAll("[data-value-id]").forEach(function (el) {
+                el.addEventListener("click", function () {
+                    if (el.disabled) {
+                        return;
+                    }
+
+                    var optionId = el.getAttribute("data-option-id");
+                    var valueId = Number(el.getAttribute("data-value-id"));
+
+                    selection[optionId] = selection[optionId] === valueId ? undefined : valueId;
+
+                    if (selection[optionId] === undefined) {
+                        delete selection[optionId];
+                    }
+
+                    render();
+                });
+            });
+
+            var thumbs = document.getElementById("galleryThumbs");
+
+            if (thumbs) {
+                thumbs.addEventListener("click", function (e) {
+                    if (e.target.tagName !== "IMG") {
+                        return;
+                    }
+
+                    main.src = e.target.src;
+                    main.alt = e.target.alt;
+
+                    thumbs.querySelectorAll("img").forEach(function (t) {
+                        t.classList.toggle("is-active", t === e.target);
+                    });
+                });
+            }
+
+            // Open on the variant the server chose, so the page lands on
+            // something buyable rather than the first shade that happens to be
+            // out of stock.
+            if (openingId !== null) {
+                var start = variants.find(function (v) { return v.id === openingId; });
+
+                if (start) {
+                    start.values.forEach(function (valueId) {
+                        var el = document.querySelector('[data-value-id="' + valueId + '"]');
+
+                        if (el) {
+                            selection[el.getAttribute("data-option-id")] = valueId;
+                        }
+                    });
+                }
+            }
+
+            render();
+        })();
+    </script>
+}

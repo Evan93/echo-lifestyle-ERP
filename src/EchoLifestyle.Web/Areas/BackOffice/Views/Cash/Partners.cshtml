@@ -1,0 +1,155 @@
+@using EchoLifestyle.Application.Finance.Cash
+@using EchoLifestyle.Domain.Finance
+@model IReadOnlyList<PartnerLedgerRow>
+@{
+    ViewData["Subtitle"] = "What each partner has put in, and taken out.";
+
+    var canRecord = ViewData["CanRecord"] as bool? ?? false;
+    var totalIn = Model.Sum(p => p.CapitalIn);
+    var totalOut = Model.Sum(p => p.Drawings);
+}
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">Capital accounts</span>
+                @if (canRecord)
+                {
+                    <span class="d-flex gap-2">
+                        <a class="btn btn-sm btn-echo" asp-action="Record"
+                           asp-route-kind="@CashKind.PartnerCapital">Money in</a>
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Record"
+                           asp-route-kind="@CashKind.PartnerDrawing">Money out</a>
+                    </span>
+                }
+            </div>
+
+            @if (Model.Count == 0)
+            {
+                <div class="card-body text-center text-muted py-5">
+                    No partners recorded. Owner accounts become partners automatically when the
+                    system next starts; add one here for anybody who put money in without a login.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Partner</th>
+                                <th class="text-end">Put in</th>
+                                <th class="text-end">Taken out</th>
+                                <th class="text-end">Standing at</th>
+                                <th class="text-end">Last movement</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var partner in Model)
+                            {
+                                <tr class="@(partner.IsActive ? null : "text-muted")">
+                                    <td>
+                                        <span class="fw-semibold">@partner.Name</span>
+                                        @if (partner.OwnershipPercent is not null)
+                                        {
+                                            <span class="text-muted small">
+                                                &middot; @partner.OwnershipPercent.Value.ToString("N0")%
+                                            </span>
+                                        }
+                                        @if (!partner.IsActive)
+                                        {
+                                            <span class="badge text-bg-secondary ms-1">inactive</span>
+                                        }
+                                    </td>
+                                    <td class="text-end text-success">
+                                        @(partner.CapitalIn == 0m
+                                            ? "—"
+                                            : "৳ " + partner.CapitalIn.ToString("N2"))
+                                    </td>
+                                    <td class="text-end text-danger">
+                                        @(partner.Drawings == 0m
+                                            ? "—"
+                                            : "৳ " + partner.Drawings.ToString("N2"))
+                                    </td>
+                                    <td class="text-end fw-semibold @(partner.Balance < 0m ? "text-danger" : null)">
+                                        &#2547; @partner.Balance.ToString("N2")
+                                    </td>
+                                    <td class="text-end text-muted small">
+                                        @(partner.LastMovement?.ToString("d MMM yyyy") ?? "never")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="border-top">
+                            <tr>
+                                <th>Total</th>
+                                <th class="text-end">&#2547; @totalIn.ToString("N2")</th>
+                                <th class="text-end">&#2547; @totalOut.ToString("N2")</th>
+                                <th class="text-end">&#2547; @((totalIn - totalOut).ToString("N2"))</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="card-body border-top">
+                    <p class="text-muted small mb-0">
+                        Money in minus money out, since the beginning. This is not a share of the
+                        profit &mdash; nothing is distributed here. It is the answer to "what am I
+                        in for?", which is the question that gets asked and, without a record,
+                        cannot be answered.
+                    </p>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (canRecord)
+    {
+        <div class="col-12 col-xl-4">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Add a partner</div>
+                <div class="card-body">
+                    <form asp-action="SavePartner" method="post">
+                        <div class="mb-2">
+                            <label class="form-label small" for="partnerName">Name</label>
+                            <input id="partnerName" name="Name" class="form-control form-control-sm"
+                                   maxlength="150" required />
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label small" for="partnerShare">Share (%)</label>
+                            <input id="partnerShare" name="OwnershipPercent" type="number"
+                                   step="0.01" min="0" max="100"
+                                   class="form-control form-control-sm" />
+                            <div class="form-text">
+                                For reference only. Nothing is calculated from it.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small" for="partnerNotes">Notes</label>
+                            <textarea id="partnerNotes" name="Notes" rows="2" maxlength="500"
+                                      class="form-control form-control-sm"></textarea>
+                        </div>
+
+                        <input type="hidden" name="Id" value="0" />
+                        <input type="hidden" name="IsActive" value="true" />
+
+                        <button type="submit" class="btn btn-sm btn-echo w-100" data-submit-once>
+                            Add
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <p class="text-muted small">
+                Partners are never deleted &mdash; the transactions pointing at them are permanent,
+                and a partner who leaves keeps their capital account. The last active partner cannot
+                be deactivated either, because that would leave nowhere to record the money still
+                moving.
+            </p>
+        </div>
+    }
+</div>

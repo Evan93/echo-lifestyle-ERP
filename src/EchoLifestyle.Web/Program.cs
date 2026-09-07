@@ -200,9 +200,53 @@ app.UseAuthorization();
 
 app.UseStatusCodePagesWithReExecute("/error/{0}");
 
-app.MapControllerRoute(
-    name: "areas",
-    pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
+// ---------------------------------------------------------------------------
+// Routes
+//
+// The back office is pinned to its own literal prefix rather than the usual
+// {area:exists} pattern. With two areas, {area:exists} would also answer the
+// storefront at /Storefront/Catalog/Product?slug=x - a second URL for every
+// page, which search engines treat as duplicate content and which nothing
+// would ever link to on purpose.
+//
+// Storefront URLs are short on purpose: they get typed, shared in Messenger
+// and printed on packaging.
+// ---------------------------------------------------------------------------
+
+app.MapAreaControllerRoute(
+    name: "backoffice",
+    areaName: "BackOffice",
+    pattern: "BackOffice/{controller=Dashboard}/{action=Index}/{id?}");
+
+app.MapAreaControllerRoute(
+    name: "storefront-product",
+    areaName: "Storefront",
+    pattern: "p/{slug}",
+    defaults: new { controller = "Catalog", action = "Product" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-category",
+    areaName: "Storefront",
+    pattern: "c/{slug}",
+    defaults: new { controller = "Catalog", action = "Category" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-brand",
+    areaName: "Storefront",
+    pattern: "b/{slug}",
+    defaults: new { controller = "Catalog", action = "Brand" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-search",
+    areaName: "Storefront",
+    pattern: "search",
+    defaults: new { controller = "Catalog", action = "Search" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-home",
+    areaName: "Storefront",
+    pattern: "",
+    defaults: new { controller = "Home", action = "Index" });
 
 app.MapControllerRoute(
     name: "default",

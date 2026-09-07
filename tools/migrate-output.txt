@@ -1,11 +1,11 @@
 Echo Lifestyle ERP - Migrations
-Generated: Mon 09/07/2026  9:03:14.50
-Command: add InventoryAdjustmentsAndCounts
+Generated: Mon 09/07/2026 22:55:13.83
+Command: add FinanceExpensesAndPartners
 
 Tool 'dotnet-ef' (version '10.0.11') was restored. Available commands: dotnet-ef
 
 Restore was successful.
-===== dotnet ef migrations add InventoryAdjustmentsAndCounts =====
+===== dotnet ef migrations add FinanceExpensesAndPartners =====
 Build started...
 Build succeeded.
 Done. To undo this action, use 'ef migrations remove'

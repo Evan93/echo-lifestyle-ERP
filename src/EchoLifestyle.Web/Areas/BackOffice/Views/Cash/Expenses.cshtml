@@ -1,0 +1,120 @@
+@using EchoLifestyle.Application.Finance.Cash
+@model ExpenseBreakdown
+@{
+    ViewData["Subtitle"] = $"{Model.From:d MMM yyyy} to {Model.To:d MMM yyyy}";
+    var largest = Model.Rows.Count == 0 ? 0m : Model.Rows.Max(r => Math.Abs(r.Amount));
+}
+
+<form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-6 col-md-3">
+        <label class="form-label mb-1 small text-muted" for="from">From</label>
+        <input type="date" id="from" name="from" value="@Model.From.ToString("yyyy-MM-dd")"
+               class="form-control form-control-sm" />
+    </div>
+    <div class="col-6 col-md-3">
+        <label class="form-label mb-1 small text-muted" for="to">To</label>
+        <input type="date" id="to" name="to" value="@Model.To.ToString("yyyy-MM-dd")"
+               class="form-control form-control-sm" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Show</button>
+    </div>
+    <div class="col text-end">
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Index">Cash log</a>
+        @if (CurrentUser.HasPermission(Permissions.Finance.ExpenseCategoryEdit))
+        {
+            <a class="btn btn-sm btn-outline-secondary" asp-action="Categories">Categories</a>
+        }
+    </div>
+</form>
+
+<div class="row g-3 mb-3">
+    <div class="col-12 col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small">Spent in this period</div>
+                <div class="fs-4 fw-semibold">&#2547; @Model.Total.ToString("N2")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small">Rises with sales</div>
+                <div class="fs-5 fw-semibold">&#2547; @Model.CostOfSale.ToString("N2")</div>
+                <div class="text-muted small">Packaging, delivery, payment charges.</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small">Cost of being open</div>
+                <div class="fs-5 fw-semibold">&#2547; @Model.Operating.ToString("N2")</div>
+                <div class="text-muted small">Rent, salaries, advertising.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header fw-semibold">Where it went</div>
+
+    @if (Model.Rows.Count == 0)
+    {
+        <div class="card-body text-center text-muted py-5">
+            No expenses recorded in this period.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Category</th>
+                        <th style="width: 30%;"></th>
+                        <th class="text-end">Entries</th>
+                        <th class="text-end">Share</th>
+                        <th class="text-end">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        var width = largest == 0m
+                            ? 0
+                            : (int)Math.Round(Math.Abs(row.Amount) / largest * 100m);
+
+                        <tr>
+                            <td>
+                                <span class="fw-semibold">@row.CategoryName</span>
+                                @if (row.IsCostOfSale)
+                                {
+                                    <span class="badge text-bg-light border ms-1">with sales</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="progress" style="height: .5rem;" role="presentation">
+                                    <div class="progress-bar @(row.IsCostOfSale ? "bg-warning" : "bg-secondary")"
+                                         style="width: @width%;"></div>
+                                </div>
+                            </td>
+                            <td class="text-end text-muted">@row.Entries</td>
+                            <td class="text-end text-muted">@row.ShareOfTotal.ToString("N1")%</td>
+                            <td class="text-end fw-semibold">&#2547; @row.Amount.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-body border-top">
+            <p class="text-muted small mb-0">
+                Amounts are net of reversals, so a corrected entry does not inflate its category.
+                Keeping the costs that rise with sales apart from the rest is what lets "are we
+                making money on this product?" and "are we making money?" be different questions.
+            </p>
+        </div>
+    }
+</div>

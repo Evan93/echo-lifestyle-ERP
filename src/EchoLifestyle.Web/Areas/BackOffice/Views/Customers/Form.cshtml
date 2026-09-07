@@ -1,0 +1,166 @@
+@using EchoLifestyle.Domain.Crm
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Crm
+@model CustomerFormModel
+@{
+    ViewData["Subtitle"] = Model.IsEdit
+        ? "The mobile number identifies this customer everywhere else in the system."
+        : "A name and a mobile number is enough. Everything else can wait.";
+}
+
+<form asp-action="@(Model.IsEdit ? "Edit" : "Create")" asp-route-id="@(Model.IsEdit ? Model.Id : null)"
+      method="post" novalidate autocomplete="off">
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Who they are</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-7">
+                            <label asp-for="FullName" class="form-label"></label>
+                            <input asp-for="FullName" class="form-control" autofocus />
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-5">
+                            <label asp-for="Phone" class="form-label"></label>
+                            <input asp-for="Phone" class="form-control font-monospace"
+                                   inputmode="tel" placeholder="01712345678" />
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                            <div class="form-text">
+                                +880, spaces and dashes are all fine &mdash; it is stored one way.
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-5">
+                            <label asp-for="AlternatePhone" class="form-label"></label>
+                            <input asp-for="AlternatePhone" class="form-control" inputmode="tel" />
+                            <div class="form-text">A number to try when the first one is off.</div>
+                        </div>
+
+                        <div class="col-12 col-md-7">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" type="email" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                            <div class="form-text">Leave blank if they do not use one. Most do not.</div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Source" class="form-label"></label>
+                            <select asp-for="Source" class="form-select"
+                                    asp-items="Html.GetEnumSelectList<CustomerSource>()"></select>
+                            <div class="form-text">
+                                The only marketing attribution that survives contact with reality.
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="DateOfBirth" class="form-label"></label>
+                            <input asp-for="DateOfBirth" class="form-control" type="date" />
+                            <div class="form-text">Optional. For birthday offers later.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Notes</div>
+                <div class="card-body">
+                    <textarea asp-for="Notes" class="form-control" rows="3"
+                              placeholder="Prefers evening delivery. Always asks for the sample sachets."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">How they buy</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="CustomerType" class="form-label"></label>
+                        <select asp-for="CustomerType" id="CustomerType" class="form-select"
+                                asp-items="Html.GetEnumSelectList<CustomerType>()"></select>
+                    </div>
+
+                    <div class="mb-3" id="priceListPicker" style="display: none;">
+                        <label asp-for="PriceListId" class="form-label"></label>
+                        <select asp-for="PriceListId" class="form-select">
+                            <option value="">Standard retail prices</option>
+                            @foreach (var list in Model.PriceLists)
+                            {
+                                <option value="@list.Id" selected="@(Model.PriceListId == list.Id)">
+                                    @list.Name
+                                </option>
+                            }
+                        </select>
+                        <div class="form-text">
+                            Overrides selling prices for this customer only.
+                        </div>
+                    </div>
+
+                    <div class="form-check">
+                        <input asp-for="IsActive" class="form-check-input" />
+                        <label asp-for="IsActive" class="form-check-label"></label>
+                        <div class="form-text">
+                            Inactive customers stay in reports and history; they just stop appearing
+                            when somebody types a new order.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.IsEdit)
+            {
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold">Code</div>
+                    <div class="card-body">
+                        <input asp-for="Code" class="form-control font-monospace" />
+                        <span asp-validation-for="Code" class="text-danger small"></span>
+                        <div class="form-text">Generated on creation. Changing it changes nothing else.</div>
+                    </div>
+                </div>
+            }
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-echo" data-submit-once>
+                    @(Model.IsEdit ? "Save changes" : "Create customer")
+                </button>
+                <a class="btn btn-outline-secondary"
+                   asp-action="@(Model.IsEdit ? "Details" : "Index")"
+                   asp-route-id="@(Model.IsEdit ? Model.Id : null)">Cancel</a>
+            </div>
+
+            @if (!Model.IsEdit)
+            {
+                <p class="text-muted small mt-3">
+                    Delivery addresses are added on the customer's own page, once this is saved &mdash;
+                    most customers end up with more than one.
+                </p>
+            }
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (function () {
+            var $type = jQuery("#CustomerType");
+
+            function sync() {
+                // A price list only means something for wholesale. Showing it to
+                // every retail customer invites somebody to set one by accident.
+                jQuery("#priceListPicker").toggle($type.val() === "@((int)CustomerType.Wholesale)"
+                    || $type.val() === "@nameof(CustomerType.Wholesale)");
+            }
+
+            $type.on("change", sync);
+            sync();
+        })();
+    </script>
+}

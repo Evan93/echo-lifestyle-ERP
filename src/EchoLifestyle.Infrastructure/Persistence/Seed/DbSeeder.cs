@@ -2,6 +2,8 @@ using System.Security.Claims;
 using EchoLifestyle.Application.Common.Authorization;
 using EchoLifestyle.Domain.Administration;
 using EchoLifestyle.Domain.Catalog;
+using EchoLifestyle.Domain.Crm;
+using EchoLifestyle.Domain.Finance;
 using EchoLifestyle.Domain.Security;
 using EchoLifestyle.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -45,7 +47,199 @@ public class DbSeeder
         await SeedRolesAsync(cancellationToken);
         var branchId = await SeedOrganisationAsync(options, cancellationToken);
         await SeedCatalogBaselineAsync(cancellationToken);
+        await SeedGeographyAsync(cancellationToken);
+        await SeedExpenseCategoriesAsync(cancellationToken);
         await SeedOwnersAsync(options, branchId, isDevelopment);
+
+        // After the owners, because a partner is seeded from the account that
+        // already exists rather than from a name written twice.
+        await SeedPartnersAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// The categories money gets spent in.
+    ///
+    /// Idempotent by name and marked IsSystem, which is what stops a later run
+    /// recreating a category somebody deliberately deactivated. Descriptions and
+    /// the cost-of-sale flag are refreshed on every run so a correction here
+    /// reaches an existing database; the name and the active flag are not,
+    /// because those belong to whoever is using the system.
+    /// </summary>
+    private async Task SeedExpenseCategoriesAsync(CancellationToken cancellationToken)
+    {
+        var order = 0;
+        var added = 0;
+
+        foreach (var seed in FinanceSeed.ExpenseCategories)
+        {
+            order++;
+
+            var category = await _db.ExpenseCategories
+                .FirstOrDefaultAsync(c => c.Name == seed.Name, cancellationToken);
+
+            if (category is null)
+            {
+                _db.ExpenseCategories.Add(new ExpenseCategory
+                {
+                    Name = seed.Name,
+                    Description = seed.Description,
+                    IsCostOfSale = seed.CostOfSale,
+                    IsSystem = true,
+                    IsActive = true,
+                    DisplayOrder = order,
+                });
+
+                added++;
+                continue;
+            }
+
+            category.Description = seed.Description;
+            category.IsCostOfSale = seed.CostOfSale;
+            category.IsSystem = true;
+        }
+
+        if (_db.ChangeTracker.HasChanges())
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        if (added > 0)
+        {
+            _logger.LogInformation("Seeded {Count} expense categories", added);
+        }
+    }
+
+    /// <summary>
+    /// A partner record for every owner account.
+    ///
+    /// Seeded from the accounts rather than from a hard-coded pair of names, so
+    /// the capital screen is usable from the first login without anybody having
+    /// been named in configuration twice. Linked by user id, so renaming an
+    /// account does not create a second partner - and the partner record stays
+    /// when the account eventually does not.
+    /// </summary>
+    private async Task SeedPartnersAsync(CancellationToken cancellationToken)
+    {
+        var owners = await _userManager.GetUsersInRoleAsync(Roles.Owner);
+
+        if (owners.Count == 0)
+        {
+            return;
+        }
+
+        var order = 0;
+
+        foreach (var owner in owners.OrderBy(o => o.UserName ?? string.Empty, StringComparer.Ordinal))
+        {
+            order++;
+
+            var exists = await _db.Partners
+                .AnyAsync(p => p.UserId == owner.Id, cancellationToken);
+
+            if (exists)
+            {
+                continue;
+            }
+
+            var name = string.IsNullOrWhiteSpace(owner.FullName)
+                ? owner.UserName ?? $"Partner {order}"
+                : owner.FullName;
+
+            // A partner may already have been added by hand under this name
+            // before the account existed. Link the two rather than creating a
+            // second capital account for the same person.
+            var byName = await _db.Partners
+                .FirstOrDefaultAsync(p => p.Name == name, cancellationToken);
+
+            if (byName is not null)
+            {
+                if (byName.UserId is null)
+                {
+                    byName.UserId = owner.Id;
+                }
+
+                continue;
+            }
+
+            _db.Partners.Add(new Partner
+            {
+                Name = name,
+                UserId = owner.Id,
+                IsActive = true,
+                DisplayOrder = order,
+                Notes = "Created from the owner account on first run.",
+            });
+        }
+
+        if (_db.ChangeTracker.HasChanges())
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("Seeded partner records from owner accounts");
+        }
+    }
+
+    /// <summary>
+    /// The eight divisions and sixty-four districts of Bangladesh.
+    ///
+    /// Reference data, not user data: nobody should be typing "Chattogram" into
+    /// an address, because every courier prices by district code and a
+    /// free-text spelling is worthless to them. Idempotent by name, so adding a
+    /// missing district later is a one-line change to the seed rather than a
+    /// migration.
+    /// </summary>
+    private async Task SeedGeographyAsync(CancellationToken cancellationToken)
+    {
+        var order = 0;
+
+        foreach (var seed in GeographySeed.Divisions)
+        {
+            order++;
+
+            var division = await _db.Divisions
+                .FirstOrDefaultAsync(d => d.Name == seed.Name, cancellationToken);
+
+            if (division is null)
+            {
+                division = new Division
+                {
+                    Name = seed.Name,
+                    NameBn = seed.NameBn,
+                    DisplayOrder = order,
+                    IsActive = true,
+                };
+
+                _db.Divisions.Add(division);
+
+                // Saved per division so the districts below have a real id to
+                // hang off, without the seeder needing to know how EF orders
+                // its inserts.
+                await _db.SaveChangesAsync(cancellationToken);
+            }
+
+            var districtOrder = 0;
+
+            foreach (var name in seed.Districts)
+            {
+                districtOrder++;
+
+                if (await _db.Districts.AnyAsync(d => d.Name == name, cancellationToken))
+                {
+                    continue;
+                }
+
+                _db.Districts.Add(new District
+                {
+                    DivisionId = division.Id,
+                    Name = name,
+                    FormerName = GeographySeed.FormerNames.GetValueOrDefault(name),
+                    IsInsideCity = GeographySeed.InsideCity.Contains(name),
+                    DisplayOrder = districtOrder,
+                    IsActive = true,
+                });
+            }
+
+            await _db.SaveChangesAsync(cancellationToken);
+        }
     }
 
     /// <summary>

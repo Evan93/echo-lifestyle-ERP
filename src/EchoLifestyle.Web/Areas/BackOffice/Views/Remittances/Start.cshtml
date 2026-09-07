@@ -1,0 +1,122 @@
+@using EchoLifestyle.Domain.Finance
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Finance
+@model StartRemittanceFormModel
+@{
+    ViewData["Subtitle"] = "One transfer, many parcels. This is where it gets matched up.";
+}
+
+<form asp-action="Start" method="post" novalidate autocomplete="off">
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="alert alert-danger py-2 small" role="alert"></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">The payout</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label asp-for="CourierName" class="form-label"></label>
+                            <input asp-for="CourierName" class="form-control" list="courierList"
+                                   placeholder="Steadfast" />
+                            <datalist id="courierList">
+                                @foreach (var courier in Model.KnownCouriers)
+                                {
+                                    <option value="@courier"></option>
+                                }
+                            </datalist>
+                            <span asp-validation-for="CourierName" class="text-danger small"></span>
+                            <div class="form-text">
+                                Must match the name used when the parcels were dispatched.
+                            </div>
+                        </div>
+
+                        <div class="col-6 col-md-3">
+                            <label asp-for="RemittanceDate" class="form-label"></label>
+                            <input asp-for="RemittanceDate" class="form-control" type="date" />
+                            <div class="form-text">Blank means today.</div>
+                        </div>
+
+                        <div class="col-6 col-md-3">
+                            <label asp-for="ReceivedVia" class="form-label"></label>
+                            <select asp-for="ReceivedVia" class="form-select"
+                                    asp-items="Html.GetEnumSelectList<PaymentMethodKind>()"></select>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="StatementReference" class="form-label"></label>
+                            <input asp-for="StatementReference" class="form-control"
+                                   placeholder="Their payout or invoice number" />
+                            <div class="form-text">
+                                The string to quote back when a transfer goes missing.
+                            </div>
+                        </div>
+
+                        @if (Model.Branches.Count > 1)
+                        {
+                            <div class="col-12 col-md-6">
+                                <label asp-for="BranchId" class="form-label"></label>
+                                <select asp-for="BranchId" class="form-select">
+                                    @foreach (var branch in Model.Branches)
+                                    {
+                                        <option value="@branch.Id" selected="@(Model.BranchId == branch.Id)">
+                                            @branch.Name
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="BranchId" />
+                        }
+
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label"></label>
+                            <textarea asp-for="Notes" class="form-control" rows="2"
+                                      placeholder="Weekly payout, covers last Thursday to Wednesday."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">What happens next</div>
+                <div class="card-body small">
+                    <ol class="ps-3 mb-3">
+                        <li class="mb-2">
+                            Everything this courier is still holding is listed for you to tick off
+                            against their statement.
+                        </li>
+                        <li class="mb-2">
+                            Enter what they say was collected for each, and mark anything that came
+                            back.
+                        </li>
+                        <li class="mb-0">
+                            Posting settles those orders, records the courier's charges as a real
+                            cost, and puts refused parcels back on the shelf.
+                        </li>
+                    </ol>
+
+                    <div class="alert alert-light border py-2 mb-0">
+                        Nothing is recorded until you post. A draft can sit half-finished for as long
+                        as it takes to get the statement.
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-echo" data-submit-once>Start reconciling</button>
+                <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

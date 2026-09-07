@@ -1,0 +1,22 @@
+@model ShopListingViewModel
+
+<div class="container py-4 py-lg-5">
+    <div class="mb-2">
+        <h1 class="shop-display h2 mb-1">@Model.Heading</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.Subheading))
+        {
+            <div class="text-muted small text-uppercase" style="letter-spacing: .08em;">
+                @Model.Subheading
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Description))
+    {
+        <p class="text-muted" style="max-width: 60ch;">@Model.Description</p>
+    }
+
+    <hr class="my-4" />
+
+    <partial name="_ProductGrid" model="Model" />
+</div>

@@ -1,0 +1,57 @@
+@model ShopProductCard
+@{
+    // A product always has a name, but a public page is not the place to find
+    // out otherwise.
+    var initial = string.IsNullOrWhiteSpace(Model.Name)
+        ? "E"
+        : Model.Name.Trim().Substring(0, 1).ToUpperInvariant();
+}
+
+<a class="shop-card" asp-route="storefront-product" asp-route-slug="@Model.Slug">
+    <div class="shop-card__frame">
+        @if (!string.IsNullOrWhiteSpace(Model.ImagePath))
+        {
+            <img src="@Url.Content("~/" + Model.ImagePath.TrimStart('/'))"
+                 alt="@(string.IsNullOrWhiteSpace(Model.ImageAlt) ? Model.Name : Model.ImageAlt)"
+                 loading="lazy" />
+        }
+        else
+        {
+            @* No photograph yet. Better an initial than a broken image, and it
+               makes the gap in the photography visible rather than ugly. *@
+            <div class="shop-card__placeholder">@initial</div>
+        }
+
+        @if (Model.IsDiscounted && Model.InStock)
+        {
+            <span class="shop-card__flag">@Model.DiscountPercent% off</span>
+        }
+
+        @if (!Model.InStock)
+        {
+            @* Shown, not hidden. Somebody who searched for this should learn it
+               exists and come back, rather than decide you never carried it. *@
+            <span class="shop-card__veil">Out of stock</span>
+        }
+    </div>
+
+    <div class="shop-card__brand">@Model.BrandName</div>
+    <div class="shop-card__name">@Model.Name</div>
+
+    <div class="shop-price">
+        @if (Model.Price is not null)
+        {
+            @if (Model.PriceVaries)
+            {
+                <span class="text-muted small">From </span>
+            }
+
+            <text>&#2547; @Model.Price.Value.ToString("N0")</text>
+
+            @if (Model.IsDiscounted)
+            {
+                <span class="shop-price__was">&#2547; @Model.CompareAtPrice!.Value.ToString("N0")</span>
+            }
+        }
+    </div>
+</a>

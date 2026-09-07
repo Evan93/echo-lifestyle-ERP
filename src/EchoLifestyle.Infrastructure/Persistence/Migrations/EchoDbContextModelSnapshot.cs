@@ -1111,6 +1111,676 @@ namespace EchoLifestyle.Infrastructure.Persistence.Migrations
                     b.ToTable("UnitsOfMeasure", "catalog");
                 });
 
+            modelBuilder.Entity("EchoLifestyle.Domain.Crm.Customer", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AlternatePhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("BlockReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("BlockedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("BlockedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("CustomerType")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("DateOfBirth")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("nchar(11)")
+                        .IsFixedLength();
+
+                    b.Property<long?>("PriceListId")
+                        .HasColumnType("bigint");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("FullName");
+
+                    b.HasIndex("IsBlocked")
+                        .HasFilter("[IsBlocked] = 1");
+
+                    b.HasIndex("Phone")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Customers_Phone")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("PriceListId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Customers_UserId")
+                        .HasFilter("[UserId] IS NOT NULL");
+
+                    b.ToTable("Customers", "crm");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Crm.CustomerAddress", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AddressLine")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("AreaOrThana")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("CustomerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("DeliveryNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("DistrictId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("DivisionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Landmark")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("ModifiedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("PostCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("RecipientName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("RecipientPhone")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("nchar(11)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_CustomerAddresses_OneDefault")
+                        .HasFilter("[IsDefault] = 1");
+
+                    b.HasIndex("DistrictId");
+
+                    b.HasIndex("DivisionId");
+
+                    b.ToTable("CustomerAddresses", "crm");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Crm.District", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<long>("DivisionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FormerName")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsInsideCity")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("NameBn")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DivisionId");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Districts", "crm");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Crm.Division", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("NameBn")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Divisions", "crm");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Finance.CashTransaction", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<long>("BranchId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CourierRemittanceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CustomerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("ExpenseCategoryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Method")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ModifiedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<long?>("PartnerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ReferenceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<long?>("ReversesCashTransactionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<long?>("SalesOrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("SupplierId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateOnly>("TransactionDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CourierRemittanceId")
+                        .HasFilter("[CourierRemittanceId] IS NOT NULL");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("Number")
+                        .IsUnique();
+
+                    b.HasIndex("ReversesCashTransactionId")
+                        .IsUnique()
+                        .HasFilter("[ReversesCashTransactionId] IS NOT NULL");
+
+                    b.HasIndex("SalesOrderId")
+                        .HasFilter("[SalesOrderId] IS NOT NULL");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("ExpenseCategoryId", "TransactionDate")
+                        .HasFilter("[ExpenseCategoryId] IS NOT NULL");
+
+                    b.HasIndex("PartnerId", "TransactionDate")
+                        .HasFilter("[PartnerId] IS NOT NULL");
+
+                    b.HasIndex("TransactionDate", "Direction");
+
+                    b.HasIndex("TransactionDate", "Method");
+
+                    b.ToTable("CashTransactions", "finance", t =>
+                        {
+                            t.HasCheckConstraint("CK_CashTransactions_AmountPositive", "[Amount] > 0");
+
+                            t.HasCheckConstraint("CK_CashTransactions_DirectionMatchesKind", "[ReversesCashTransactionId] IS NOT NULL OR ([Kind] IN (1, 5, 8) AND [Direction] = 1) OR ([Kind] IN (2, 3, 4, 6, 7) AND [Direction] = 2) OR [Kind] IN (9, 10)");
+
+                            t.HasCheckConstraint("CK_CashTransactions_ExpenseHasCategory", "[Kind] <> 4 OR [ExpenseCategoryId] IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_CashTransactions_NotSelfReversing", "[ReversesCashTransactionId] IS NULL OR [ReversesCashTransactionId] <> [Id]");
+
+                            t.HasCheckConstraint("CK_CashTransactions_PartnerMovementHasPartner", "[Kind] NOT IN (5, 6) OR [PartnerId] IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_CashTransactions_SupplierPaymentHasSupplier", "[Kind] <> 3 OR [SupplierId] IS NOT NULL");
+                        });
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Finance.CourierRemittance", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("BranchId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("CourierFee")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<string>("CourierName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("GrossCollected")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<DateTime?>("ModifiedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("NetReceived")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<decimal>("OtherDeduction")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<DateTime?>("PostedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("PostedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("ReceivedVia")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("RemittanceDate")
+                        .HasColumnType("date");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("StatementReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("Number")
+                        .IsUnique();
+
+                    b.HasIndex("CourierName", "RemittanceDate");
+
+                    b.HasIndex("Status", "RemittanceDate");
+
+                    b.ToTable("CourierRemittances", "finance", t =>
+                        {
+                            t.HasCheckConstraint("CK_CourierRemittances_AmountsNotNegative", "[GrossCollected] >= 0 AND [CourierFee] >= 0 AND [OtherDeduction] >= 0 AND [NetReceived] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Finance.CourierRemittanceLine", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("AmountCollected")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<long>("CourierRemittanceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsReturned")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ReturnReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<long>("SalesOrderId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesOrderId");
+
+                    b.HasIndex("CourierRemittanceId", "SalesOrderId")
+                        .IsUnique();
+
+                    b.ToTable("CourierRemittanceLines", "finance", t =>
+                        {
+                            t.HasCheckConstraint("CK_CourierRemittanceLines_CollectedNotNegative", "[AmountCollected] >= 0");
+
+                            t.HasCheckConstraint("CK_CourierRemittanceLines_ReturnedCollectsNothing", "[IsReturned] = 0 OR [AmountCollected] = 0");
+                        });
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Finance.ExpenseCategory", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsCostOfSale")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("IsActive", "DisplayOrder");
+
+                    b.ToTable("ExpenseCategories", "finance");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Finance.Partner", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal?>("OwnershipPercent")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("[UserId] IS NOT NULL");
+
+                    b.ToTable("Partners", "finance", t =>
+                        {
+                            t.HasCheckConstraint("CK_Partners_OwnershipPercentInRange", "[OwnershipPercent] IS NULL OR ([OwnershipPercent] >= 0 AND [OwnershipPercent] <= 100)");
+                        });
+                });
+
             modelBuilder.Entity("EchoLifestyle.Domain.Inventory.StockAdjustment", b =>
                 {
                     b.Property<long>("Id")
@@ -1895,6 +2565,351 @@ namespace EchoLifestyle.Infrastructure.Persistence.Migrations
                     b.ToTable("Suppliers", "purchasing");
                 });
 
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.SalesOrder", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AddressLine")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("AmountCollected")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<string>("AreaOrThana")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<long>("BranchId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CancelledByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Channel")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CollectedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ConsignmentNumber")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<decimal>("CostOfGoods")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<string>("CourierName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CustomerAddressId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("CustomerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeliveredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("DeliveryCharge")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<string>("DeliveryNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<DateTime?>("DispatchedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DistrictName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("DivisionName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<decimal>("GrandTotal")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<bool>("IsInsideCity")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Landmark")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("ModifiedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateOnly>("OrderDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PostCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("RecipientName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("RecipientPhone")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("nchar(11)")
+                        .IsFixedLength();
+
+                    b.Property<string>("ReturnReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ReturnedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<long>("WarehouseId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("ConsignmentNumber")
+                        .HasFilter("[ConsignmentNumber] IS NOT NULL");
+
+                    b.HasIndex("Number")
+                        .IsUnique();
+
+                    b.HasIndex("OrderDate");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.HasIndex("CustomerId", "OrderDate");
+
+                    b.HasIndex("Status", "OrderDate");
+
+                    b.ToTable("SalesOrders", "sales", t =>
+                        {
+                            t.HasCheckConstraint("CK_SalesOrders_AmountsNotNegative", "[SubTotal] >= 0 AND [DiscountAmount] >= 0 AND [DeliveryCharge] >= 0 AND [AmountCollected] >= 0");
+
+                            t.HasCheckConstraint("CK_SalesOrders_CollectedNotAboveTotal", "[AmountCollected] <= [GrandTotal]");
+                        });
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.SalesOrderLine", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("CostOfGoods")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<long>("ProductVariantId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<long>("SalesOrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Sku")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<string>("VariantName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductVariantId");
+
+                    b.HasIndex("SalesOrderId");
+
+                    b.ToTable("SalesOrderLines", "sales", t =>
+                        {
+                            t.HasCheckConstraint("CK_SalesOrderLines_PriceNotNegative", "[UnitPrice] >= 0 AND [DiscountAmount] >= 0");
+
+                            t.HasCheckConstraint("CK_SalesOrderLines_QuantityPositive", "[Quantity] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.SalesOrderStatusChange", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("FromStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<long>("SalesOrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("ToStatus")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesOrderId", "OccurredAtUtc");
+
+                    b.ToTable("SalesOrderStatusChanges", "sales");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.StockReservation", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ModifiedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ProductVariantId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<long>("SalesOrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SalesOrderLineId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("StockBatchId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("WarehouseId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesOrderId");
+
+                    b.HasIndex("SalesOrderLineId");
+
+                    b.HasIndex("StockBatchId", "WarehouseId");
+
+                    b.ToTable("StockReservations", "inventory", t =>
+                        {
+                            t.HasCheckConstraint("CK_StockReservations_QuantityPositive", "[Quantity] > 0");
+                        });
+                });
+
             modelBuilder.Entity("EchoLifestyle.Domain.Security.UserBranch", b =>
                 {
                     b.Property<long>("Id")
@@ -2384,6 +3399,144 @@ namespace EchoLifestyle.Infrastructure.Persistence.Migrations
                     b.Navigation("ProductVariant");
                 });
 
+            modelBuilder.Entity("EchoLifestyle.Domain.Crm.Customer", b =>
+                {
+                    b.HasOne("EchoLifestyle.Domain.Catalog.PriceList", "PriceList")
+                        .WithMany()
+                        .HasForeignKey("PriceListId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("PriceList");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Crm.CustomerAddress", b =>
+                {
+                    b.HasOne("EchoLifestyle.Domain.Crm.Customer", "Customer")
+                        .WithMany("Addresses")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EchoLifestyle.Domain.Crm.District", "District")
+                        .WithMany()
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EchoLifestyle.Domain.Crm.Division", "Division")
+                        .WithMany()
+                        .HasForeignKey("DivisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("District");
+
+                    b.Navigation("Division");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Crm.District", b =>
+                {
+                    b.HasOne("EchoLifestyle.Domain.Crm.Division", "Division")
+                        .WithMany("Districts")
+                        .HasForeignKey("DivisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Division");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Finance.CashTransaction", b =>
+                {
+                    b.HasOne("EchoLifestyle.Domain.Administration.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EchoLifestyle.Domain.Finance.CourierRemittance", "CourierRemittance")
+                        .WithMany()
+                        .HasForeignKey("CourierRemittanceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EchoLifestyle.Domain.Crm.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EchoLifestyle.Domain.Finance.ExpenseCategory", "ExpenseCategory")
+                        .WithMany()
+                        .HasForeignKey("ExpenseCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EchoLifestyle.Domain.Finance.Partner", "Partner")
+                        .WithMany()
+                        .HasForeignKey("PartnerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EchoLifestyle.Domain.Finance.CashTransaction", "Reverses")
+                        .WithMany()
+                        .HasForeignKey("ReversesCashTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EchoLifestyle.Domain.Sales.SalesOrder", "SalesOrder")
+                        .WithMany()
+                        .HasForeignKey("SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EchoLifestyle.Domain.Purchasing.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("CourierRemittance");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("ExpenseCategory");
+
+                    b.Navigation("Partner");
+
+                    b.Navigation("Reverses");
+
+                    b.Navigation("SalesOrder");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Finance.CourierRemittance", b =>
+                {
+                    b.HasOne("EchoLifestyle.Domain.Administration.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Finance.CourierRemittanceLine", b =>
+                {
+                    b.HasOne("EchoLifestyle.Domain.Finance.CourierRemittance", "CourierRemittance")
+                        .WithMany("Lines")
+                        .HasForeignKey("CourierRemittanceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EchoLifestyle.Domain.Sales.SalesOrder", "SalesOrder")
+                        .WithMany()
+                        .HasForeignKey("SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CourierRemittance");
+
+                    b.Navigation("SalesOrder");
+                });
+
             modelBuilder.Entity("EchoLifestyle.Domain.Inventory.StockAdjustment", b =>
                 {
                     b.HasOne("EchoLifestyle.Domain.Administration.Branch", "Branch")
@@ -2597,6 +3750,90 @@ namespace EchoLifestyle.Infrastructure.Persistence.Migrations
                     b.Navigation("GoodsReceipt");
                 });
 
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.SalesOrder", b =>
+                {
+                    b.HasOne("EchoLifestyle.Domain.Administration.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EchoLifestyle.Domain.Crm.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EchoLifestyle.Domain.Administration.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.SalesOrderLine", b =>
+                {
+                    b.HasOne("EchoLifestyle.Domain.Catalog.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EchoLifestyle.Domain.Sales.SalesOrder", "SalesOrder")
+                        .WithMany("Lines")
+                        .HasForeignKey("SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ProductVariant");
+
+                    b.Navigation("SalesOrder");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.SalesOrderStatusChange", b =>
+                {
+                    b.HasOne("EchoLifestyle.Domain.Sales.SalesOrder", "SalesOrder")
+                        .WithMany("StatusHistory")
+                        .HasForeignKey("SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SalesOrder");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.StockReservation", b =>
+                {
+                    b.HasOne("EchoLifestyle.Domain.Sales.SalesOrder", "SalesOrder")
+                        .WithMany("Reservations")
+                        .HasForeignKey("SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EchoLifestyle.Domain.Sales.SalesOrderLine", "SalesOrderLine")
+                        .WithMany()
+                        .HasForeignKey("SalesOrderLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EchoLifestyle.Domain.Inventory.StockBatch", "StockBatch")
+                        .WithMany()
+                        .HasForeignKey("StockBatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SalesOrder");
+
+                    b.Navigation("SalesOrderLine");
+
+                    b.Navigation("StockBatch");
+                });
+
             modelBuilder.Entity("EchoLifestyle.Domain.Security.UserBranch", b =>
                 {
                     b.HasOne("EchoLifestyle.Domain.Administration.Branch", "Branch")
@@ -2721,6 +3958,21 @@ namespace EchoLifestyle.Infrastructure.Persistence.Migrations
                     b.Navigation("PriceListItems");
                 });
 
+            modelBuilder.Entity("EchoLifestyle.Domain.Crm.Customer", b =>
+                {
+                    b.Navigation("Addresses");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Crm.Division", b =>
+                {
+                    b.Navigation("Districts");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Finance.CourierRemittance", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
             modelBuilder.Entity("EchoLifestyle.Domain.Inventory.StockAdjustment", b =>
                 {
                     b.Navigation("Lines");
@@ -2741,6 +3993,15 @@ namespace EchoLifestyle.Infrastructure.Persistence.Migrations
                     b.Navigation("Charges");
 
                     b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.SalesOrder", b =>
+                {
+                    b.Navigation("Lines");
+
+                    b.Navigation("Reservations");
+
+                    b.Navigation("StatusHistory");
                 });
 #pragma warning restore 612, 618
         }

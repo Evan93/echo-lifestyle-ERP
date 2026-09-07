@@ -1,0 +1,140 @@
+@model ShopHome
+@{
+    ViewData["Title"] = null;
+    ViewData["MetaDescription"] =
+        "Genuine skincare, haircare and cosmetics, delivered across Bangladesh. Cash on delivery.";
+}
+
+<section class="shop-hero py-5">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <div class="col-12 col-lg-7">
+                <h1 class="shop-display display-6 mb-3">
+                    Skincare and haircare,<br />sourced genuine.
+                </h1>
+                <p class="text-muted mb-4" style="max-width: 46ch;">
+                    A small, edited range &mdash; nothing on this site is here to fill a shelf.
+                    Cash on delivery anywhere in Bangladesh, and every order confirmed by phone
+                    before it ships.
+                </p>
+
+                @if (Model.Categories.Count > 0)
+                {
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var category in Model.Categories.Take(5))
+                        {
+                            <a class="shop-chip text-decoration-none"
+                               asp-route="storefront-category" asp-route-slug="@category.Slug">
+                                @category.Name
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@if (Model.NewArrivals.Count > 0)
+{
+    <section class="container py-5">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <h2 class="shop-section__title">New in</h2>
+            <span class="shop-rule"></span>
+        </div>
+
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 g-lg-4">
+            @foreach (var product in Model.NewArrivals)
+            {
+                <div class="col">
+                    <partial name="_ProductCard" model="product" />
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@if (Model.OnOffer.Count > 0)
+{
+    <section class="container py-5 border-top">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <h2 class="shop-section__title">On offer</h2>
+            <span class="shop-rule"></span>
+        </div>
+
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 g-lg-4">
+            @foreach (var product in Model.OnOffer)
+            {
+                <div class="col">
+                    <partial name="_ProductCard" model="product" />
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@if (Model.Categories.Count > 0)
+{
+    <section class="container py-5 border-top">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <h2 class="shop-section__title">Shop by category</h2>
+            <span class="shop-rule"></span>
+        </div>
+
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
+            @foreach (var category in Model.Categories)
+            {
+                <div class="col">
+                    <a class="shop-tile" asp-route="storefront-category" asp-route-slug="@category.Slug">
+                        <div class="fw-semibold">@category.Name</div>
+                        @if (category.Children.Count > 0)
+                        {
+                            <div class="text-muted small mt-1">
+                                @string.Join(" · ", category.Children.Take(4).Select(c => c.Name))
+                            </div>
+                        }
+                    </a>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@if (Model.FeaturedBrands.Count > 0)
+{
+    <section class="container py-5 border-top">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <h2 class="shop-section__title">Brands we carry</h2>
+            <span class="shop-rule"></span>
+        </div>
+
+        <div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3">
+            @foreach (var brand in Model.FeaturedBrands)
+            {
+                <div class="col">
+                    <a class="shop-tile text-center" asp-route="storefront-brand"
+                       asp-route-slug="@brand.Slug">
+                        <div class="fw-semibold">@brand.Name</div>
+                        @if (!string.IsNullOrWhiteSpace(brand.OriginCountry))
+                        {
+                            <div class="text-muted small">@brand.OriginCountry</div>
+                        }
+                    </a>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@if (Model.NewArrivals.Count == 0)
+{
+    <section class="container py-5">
+        <div class="border text-center text-muted py-5 px-3">
+            <p class="mb-1">Nothing is published yet.</p>
+            <p class="small mb-0">
+                Products appear here once they are marked published in the back office and have a
+                price on the retail list.
+            </p>
+        </div>
+    </section>
+}

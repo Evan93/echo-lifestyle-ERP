@@ -1,0 +1,27 @@
+@model ShopListingViewModel
+
+<div class="container py-4 py-lg-5">
+    <h1 class="shop-display h2 mb-2">@Model.Heading</h1>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Description))
+    {
+        <p class="text-muted" style="max-width: 60ch;">@Model.Description</p>
+    }
+
+    @if (Model.Children.Count > 0)
+    {
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            @foreach (var child in Model.Children)
+            {
+                <a class="shop-chip text-decoration-none"
+                   asp-route="storefront-category" asp-route-slug="@child.Slug">
+                    @child.Name
+                </a>
+            }
+        </div>
+    }
+
+    <hr class="my-4" />
+
+    <partial name="_ProductGrid" model="Model" />
+</div>

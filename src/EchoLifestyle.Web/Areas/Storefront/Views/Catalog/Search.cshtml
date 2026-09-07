@@ -1,0 +1,20 @@
+@model ShopListingViewModel
+
+<div class="container py-4 py-lg-5">
+    <h1 class="shop-display h3 mb-4">@Model.Heading</h1>
+
+    @if (string.IsNullOrWhiteSpace(Model.Query))
+    {
+        <form asp-route="storefront-search" method="get" role="search" style="max-width: 420px;">
+            <div class="input-group">
+                <input type="search" name="q" class="form-control"
+                       placeholder="Product, brand or SKU" aria-label="Search" autofocus />
+                <button class="btn btn-shop" type="submit">Search</button>
+            </div>
+        </form>
+    }
+    else
+    {
+        <partial name="_ProductGrid" model="Model" />
+    }
+</div>

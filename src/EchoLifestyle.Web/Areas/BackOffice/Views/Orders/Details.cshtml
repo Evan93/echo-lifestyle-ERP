@@ -1,0 +1,467 @@
+@using EchoLifestyle.Application.Sales.Orders
+@using EchoLifestyle.Domain.Sales
+@model SalesOrderDetail
+@{
+    ViewData["Subtitle"] = $"{Model.CustomerName} · {Model.OrderDate:d MMM yyyy} · {Model.DistrictName}";
+
+    var canCreate = ViewData["CanCreate"] as bool? ?? false;
+    var canConfirm = ViewData["CanConfirm"] as bool? ?? false;
+    var canDispatch = ViewData["CanDispatch"] as bool? ?? false;
+    var canCancel = ViewData["CanCancel"] as bool? ?? false;
+    var showCost = ViewData["ShowCost"] as bool? ?? false;
+
+    var statusVariant = Model.Status switch
+    {
+        SalesOrderStatus.Draft => "light border",
+        SalesOrderStatus.Confirmed => "warning",
+        SalesOrderStatus.Packed => "info",
+        SalesOrderStatus.Dispatched => "primary",
+        SalesOrderStatus.Delivered => "success",
+        SalesOrderStatus.Returned => "danger",
+        _ => "secondary",
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="badge text-bg-@statusVariant">@Model.Status</span>
+
+        @if (Model.AmountOutstanding > 0m && Model.Status == SalesOrderStatus.Delivered)
+        {
+            <span class="badge text-bg-danger">
+                &#2547; @Model.AmountOutstanding.ToString("N2") short
+            </span>
+        }
+
+        @if (Model.ConsignmentNumber is not null)
+        {
+            <span class="text-muted small">
+                @Model.CourierName &middot; <code>@Model.ConsignmentNumber</code>
+            </span>
+        }
+    </div>
+
+    <div class="d-flex gap-2">
+        @if (canCreate && Model.Status == SalesOrderStatus.Draft)
+        {
+            <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+        }
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Index">All orders</a>
+    </div>
+</div>
+
+@if (Model.Status == SalesOrderStatus.Draft)
+{
+    <div class="alert alert-light border">
+        <strong>Nothing is reserved yet.</strong>
+        This is a draft &mdash; the stock on it can still be sold to somebody else. Confirm it once
+        the customer has said yes.
+    </div>
+}
+else if (SalesOrder.HoldsReservations(Model.Status))
+{
+    <div class="alert alert-warning">
+        <strong>Stock is reserved but has not left.</strong>
+        These units are still on the shelf and no longer sellable to anyone else. The ledger records
+        nothing until dispatch, because nothing has moved.
+    </div>
+}
+else if (Model.Status == SalesOrderStatus.Returned)
+{
+    <div class="alert alert-danger">
+        <strong>Came back.</strong> @Model.ReturnReason
+        <div class="small mt-1">
+            The goods are back on the shelf, in the batches they left from. Nothing was collected.
+        </div>
+    </div>
+}
+else if (Model.Status == SalesOrderStatus.Cancelled)
+{
+    <div class="alert alert-secondary">
+        <strong>Cancelled.</strong> @Model.CancelReason
+        <div class="small mt-1">Nothing shipped, and anything reserved went back on the shelf.</div>
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">What was ordered</div>
+
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th class="text-end">Qty</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-end">Line total</th>
+                            @if (showCost)
+                            {
+                                <th class="text-end">Cost</th>
+                                <th class="text-end">Margin</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in Model.Lines)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@line.ProductName</div>
+                                    <div class="small text-muted">
+                                        @line.Sku
+                                        @if (line.VariantName != "Standard")
+                                        {
+                                            <text> &middot; @line.VariantName</text>
+                                        }
+                                    </div>
+
+                                    @if (line.Reserved.Count > 0)
+                                    {
+                                        <div class="small text-warning-emphasis mt-1">
+                                            Reserved:
+                                            @string.Join(", ", line.Reserved.Select(r =>
+                                                (r.IsAutoGenerated ? "untracked batch" : r.BatchNumber)
+                                                + $" ×{r.Quantity:N0}"))
+                                        </div>
+                                    }
+                                </td>
+                                <td class="text-end">@line.Quantity.ToString("N0")</td>
+                                <td class="text-end">
+                                    &#2547; @line.UnitPrice.ToString("N2")
+                                    @if (line.DiscountAmount > 0m)
+                                    {
+                                        <div class="text-muted small">
+                                            less @line.DiscountAmount.ToString("N2")
+                                        </div>
+                                    }
+                                </td>
+                                <td class="text-end">&#2547; @line.LineTotal.ToString("N2")</td>
+                                @if (showCost)
+                                {
+                                    <td class="text-end">
+                                        @if (line.CostOfGoods == 0m)
+                                        {
+                                            <span class="text-muted small">&mdash;</span>
+                                        }
+                                        else
+                                        {
+                                            <text>&#2547; @line.CostOfGoods.ToString("N2")</text>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        @if (line.CostOfGoods == 0m)
+                                        {
+                                            <span class="text-muted small">&mdash;</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="@(line.Margin > 0m ? "text-success" : "text-danger")">
+                                                &#2547; @line.Margin.ToString("N2")
+                                            </span>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (showCost && Model.CostOfGoods == 0m
+                 && Model.Status is not (SalesOrderStatus.Cancelled or SalesOrderStatus.Returned))
+            {
+                <div class="card-body border-top">
+                    <p class="text-muted small mb-0">
+                        Cost is blank until dispatch. Which batch ships is decided then, first expired
+                        first out, and batches do not share a cost &mdash; so margin only becomes
+                        knowable once the parcel has actually gone.
+                    </p>
+                </div>
+            }
+        </div>
+
+        @if (Model.History.Count > 0)
+        {
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">What happened</div>
+                <div class="list-group list-group-flush">
+                    @foreach (var entry in Model.History.Reverse())
+                    {
+                        <div class="list-group-item py-2">
+                            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                                <div>
+                                    <span class="fw-semibold">@entry.ToStatus</span>
+                                    <span class="text-muted small">from @entry.FromStatus</span>
+                                    @if (!string.IsNullOrWhiteSpace(entry.Note))
+                                    {
+                                        <div class="small text-muted">@entry.Note</div>
+                                    }
+                                </div>
+                                <span class="text-muted small">
+                                    @Clock.ToBusinessTime(entry.OccurredAtUtc).ToString("d MMM, h:mm tt")
+                                </span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-12 col-xl-4">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Money</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-7 text-muted fw-normal">Goods</dt>
+                    <dd class="col-5 text-end mb-1">&#2547; @Model.SubTotal.ToString("N2")</dd>
+
+                    @if (Model.DiscountAmount > 0m)
+                    {
+                        <dt class="col-7 text-muted fw-normal">Discount</dt>
+                        <dd class="col-5 text-end mb-1">&minus; @Model.DiscountAmount.ToString("N2")</dd>
+                    }
+
+                    <dt class="col-7 text-muted fw-normal">Delivery</dt>
+                    <dd class="col-5 text-end mb-1">&#2547; @Model.DeliveryCharge.ToString("N2")</dd>
+
+                    <dt class="col-7 fw-semibold border-top pt-2">To collect</dt>
+                    <dd class="col-5 text-end fw-semibold border-top pt-2 mb-1">
+                        &#2547; @Model.GrandTotal.ToString("N2")
+                    </dd>
+
+                    @if (Model.Status is SalesOrderStatus.Delivered or SalesOrderStatus.Dispatched)
+                    {
+                        <dt class="col-7 text-muted fw-normal">Collected</dt>
+                        <dd class="col-5 text-end mb-1">&#2547; @Model.AmountCollected.ToString("N2")</dd>
+
+                        <dt class="col-7 fw-semibold">Still owed</dt>
+                        <dd class="col-5 text-end fw-semibold mb-0 @(Model.AmountOutstanding > 0m ? "text-danger" : "text-success")">
+                            &#2547; @Model.AmountOutstanding.ToString("N2")
+                        </dd>
+                    }
+
+                    @if (showCost && Model.CostOfGoods > 0m)
+                    {
+                        <dt class="col-7 text-muted fw-normal border-top pt-2">Cost of goods</dt>
+                        <dd class="col-5 text-end mb-1 border-top pt-2">
+                            &#2547; @Model.CostOfGoods.ToString("N2")
+                        </dd>
+
+                        <dt class="col-7 fw-semibold">Margin</dt>
+                        <dd class="col-5 text-end fw-semibold mb-0 @(Model.Margin > 0m ? "text-success" : "text-danger")">
+                            &#2547; @Model.Margin.ToString("N2")
+                        </dd>
+                    }
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Delivering to</div>
+            <div class="card-body">
+                <div class="fw-semibold">@Model.RecipientName</div>
+                <div class="font-monospace small text-muted mb-2">@Model.RecipientPhoneDisplay</div>
+
+                <div class="small">@Model.AddressLine</div>
+                <div class="small text-muted">
+                    @Model.AreaOrThana, @Model.DistrictName, @Model.DivisionName
+                    @if (Model.IsInsideCity)
+                    {
+                        <span class="badge text-bg-light border ms-1">Inside city</span>
+                    }
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Landmark))
+                {
+                    <div class="small text-muted mt-1">Landmark: @Model.Landmark</div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.DeliveryNotes))
+                {
+                    <div class="small text-warning-emphasis mt-2">@Model.DeliveryNotes</div>
+                }
+
+                <hr class="my-3" />
+
+                <dl class="row mb-0 small">
+                    <dt class="col-5 text-muted fw-normal">Customer</dt>
+                    <dd class="col-7 mb-1">
+                        <a asp-controller="Customers" asp-action="Details" asp-route-id="@Model.CustomerId">
+                            @Model.CustomerName
+                        </a>
+                    </dd>
+
+                    <dt class="col-5 text-muted fw-normal">Came in via</dt>
+                    <dd class="col-7 mb-1">@Model.Channel</dd>
+
+                    <dt class="col-5 text-muted fw-normal">Ship from</dt>
+                    <dd class="col-7 mb-0">@Model.WarehouseName</dd>
+                </dl>
+
+                <p class="text-muted small mt-3 mb-0">
+                    Copied onto the order when it was taken, so a later change of address never
+                    rewrites where this parcel went.
+                </p>
+            </div>
+        </div>
+
+        @* The next action, and only the next one. A screen offering every
+           button at once is a screen where somebody presses the wrong one. *@
+
+        @if (Model.Status == SalesOrderStatus.Draft && canConfirm)
+        {
+            <div class="card mb-3 border-warning">
+                <div class="card-header fw-semibold">Confirm</div>
+                <div class="card-body">
+                    <form asp-action="Confirm" method="post">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <input name="note" class="form-control form-control-sm mb-2" maxlength="500"
+                               placeholder="Note (optional)" />
+                        <button type="submit" class="btn btn-echo w-100" data-submit-once>
+                            Confirm and reserve stock
+                        </button>
+                    </form>
+                    <p class="text-muted small mt-2 mb-0">
+                        Takes these units off the shelf for everybody else. Nothing physically moves.
+                    </p>
+                </div>
+            </div>
+        }
+
+        @if (Model.Status == SalesOrderStatus.Confirmed && canDispatch)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form asp-action="Pack" method="post">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-outline-secondary w-100" data-submit-once>
+                            Mark packed
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+
+        @if (SalesOrder.HoldsReservations(Model.Status) && canDispatch)
+        {
+            <div class="card mb-3 border-primary">
+                <div class="card-header fw-semibold">Dispatch</div>
+                <div class="card-body">
+                    <form asp-action="Dispatch" method="post">
+                        <input type="hidden" name="Id" value="@Model.Id" />
+
+                        <label class="form-label small" for="CourierName">Courier</label>
+                        <input id="CourierName" name="CourierName" class="form-control form-control-sm mb-2"
+                               maxlength="100" required list="courierList"
+                               placeholder="Steadfast" />
+                        <datalist id="courierList">
+                            <option value="Steadfast"></option>
+                            <option value="Pathao"></option>
+                            <option value="RedX"></option>
+                            <option value="Sundarban"></option>
+                            <option value="Paperfly"></option>
+                            <option value="Own delivery"></option>
+                        </datalist>
+
+                        <label class="form-label small" for="ConsignmentNumber">Consignment no.</label>
+                        <input id="ConsignmentNumber" name="ConsignmentNumber"
+                               class="form-control form-control-sm mb-2" maxlength="60" />
+
+                        <button type="submit" class="btn btn-echo w-100" data-submit-once
+                                onclick="return confirm('Dispatch this order? Stock leaves and the ledger entries are permanent.');">
+                            Dispatch
+                        </button>
+                    </form>
+
+                    <p class="text-muted small mt-2 mb-0">
+                        This is where stock actually leaves &mdash; oldest batches first, at their own
+                        cost.
+                    </p>
+                </div>
+            </div>
+        }
+
+        @if (Model.Status == SalesOrderStatus.Dispatched && canDispatch)
+        {
+            <div class="card mb-3 border-success">
+                <div class="card-header fw-semibold">Delivered</div>
+                <div class="card-body">
+                    <form asp-action="Deliver" method="post">
+                        <input type="hidden" name="Id" value="@Model.Id" />
+
+                        <label class="form-label small" for="AmountCollected">Collected</label>
+                        <input id="AmountCollected" name="AmountCollected" type="number"
+                               step="0.01" min="0" max="@Model.GrandTotal"
+                               class="form-control form-control-sm mb-1"
+                               placeholder="@Model.GrandTotal.ToString("N2")" />
+                        <div class="form-text mb-2">
+                            Blank means the full amount. Record what actually came back &mdash; couriers
+                            remit short and late.
+                        </div>
+
+                        <button type="submit" class="btn btn-echo w-100" data-submit-once>
+                            Mark delivered
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Came back</div>
+                <div class="card-body">
+                    <form asp-action="Return" method="post">
+                        <input type="hidden" name="Id" value="@Model.Id" />
+                        <input name="Reason" class="form-control form-control-sm mb-2" maxlength="500"
+                               required placeholder="Customer refused at the door" />
+                        <button type="submit" class="btn btn-outline-danger w-100" data-submit-once>
+                            Record as returned
+                        </button>
+                    </form>
+                    <p class="text-muted small mt-2 mb-0">
+                        Puts the goods back into the batches they left from.
+                    </p>
+                </div>
+            </div>
+        }
+
+        @if (canCancel && !SalesOrder.IsFinished(Model.Status)
+             && Model.Status != SalesOrderStatus.Dispatched)
+        {
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Cancel</div>
+                <div class="card-body">
+                    <form asp-action="Cancel" method="post">
+                        <input type="hidden" name="Id" value="@Model.Id" />
+                        <input name="Reason" class="form-control form-control-sm mb-2" maxlength="500"
+                               required placeholder="Customer changed their mind" />
+                        <button type="submit" class="btn btn-outline-danger w-100" data-submit-once>
+                            Cancel order
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+
+        @if (canCreate && Model.Status == SalesOrderStatus.Draft)
+        {
+            <form asp-action="DeleteDraft" method="post" class="mb-3"
+                  onsubmit="return confirm('Delete this draft? Nothing has happened yet, so nothing is reversed.');">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit" class="btn btn-sm btn-outline-danger w-100">Delete draft</button>
+            </form>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.Notes))
+        {
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Notes</div>
+                <div class="card-body">
+                    <p class="mb-0 small" style="white-space: pre-line;">@Model.Notes</p>
+                </div>
+            </div>
+        }
+    </div>
+</div>

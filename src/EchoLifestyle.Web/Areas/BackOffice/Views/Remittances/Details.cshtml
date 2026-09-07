@@ -1,0 +1,218 @@
+@using EchoLifestyle.Application.Finance.Remittances
+@using EchoLifestyle.Domain.Finance
+@model RemittanceDetail
+@{
+    ViewData["Subtitle"] = $"{Model.CourierName} · {Model.RemittanceDate:d MMM yyyy}";
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        @switch (Model.Status)
+        {
+            case CourierRemittanceStatus.Posted:
+                <span class="badge text-bg-success">Posted</span>
+                break;
+            case CourierRemittanceStatus.Cancelled:
+                <span class="badge text-bg-secondary">Cancelled</span>
+                break;
+            default:
+                <span class="badge text-bg-warning">Being reconciled</span>
+                break;
+        }
+
+        @if (!Model.Balances)
+        {
+            <span class="badge text-bg-danger">
+                Off by &#2547; @Math.Abs(Model.Discrepancy).ToString("N2")
+            </span>
+        }
+
+        @if (Model.StatementReference is not null)
+        {
+            <span class="text-muted small"><code>@Model.StatementReference</code></span>
+        }
+
+        @if (Model.PostedAtUtc is not null)
+        {
+            <span class="text-muted small">
+                @Clock.ToBusinessTime(Model.PostedAtUtc.Value).ToString("d MMM yyyy, h:mm tt")
+            </span>
+        }
+    </div>
+
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Index">All payouts</a>
+</div>
+
+@if (Model.Status == CourierRemittanceStatus.Posted && !Model.Balances)
+{
+    <div class="alert alert-warning">
+        <strong>This payout was posted with a difference of
+            &#2547; @Math.Abs(Model.Discrepancy).ToString("N2").</strong>
+        The statement said @Model.ExpectedNet.ToString("N2") should arrive and
+        @Model.NetReceived.ToString("N2") did. Somebody accepted that at the time; the audit trail
+        records who.
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">Orders on this statement</span>
+                <span class="text-muted small">
+                    @Model.CollectedCount settled@(Model.ReturnedCount > 0
+                        ? $", {Model.ReturnedCount} returned"
+                        : "")
+                </span>
+            </div>
+
+            @if (Model.Lines.Count == 0)
+            {
+                <div class="card-body text-center text-muted py-5">
+                    Nothing was matched to this payout.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order</th>
+                                <th>Customer</th>
+                                <th class="text-end">Order total</th>
+                                <th class="text-end">Collected</th>
+                                <th>Outcome</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in Model.Lines)
+                            {
+                                <tr class="@(line.IsReturned ? "table-danger" : null)">
+                                    <td>
+                                        <a asp-controller="Orders" asp-action="Details"
+                                           asp-route-id="@line.SalesOrderId">
+                                            <code>@line.OrderNumber</code>
+                                        </a>
+                                        @if (line.ConsignmentNumber is not null)
+                                        {
+                                            <div class="text-muted small">@line.ConsignmentNumber</div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @line.CustomerName
+                                        <div class="text-muted small">@line.DistrictName</div>
+                                    </td>
+                                    <td class="text-end">&#2547; @line.OrderTotal.ToString("N2")</td>
+                                    <td class="text-end">
+                                        @if (line.IsReturned)
+                                        {
+                                            <span class="text-muted small">&mdash;</span>
+                                        }
+                                        else
+                                        {
+                                            <text>&#2547; @line.AmountCollected.ToString("N2")</text>
+                                        }
+                                    </td>
+                                    <td class="small">
+                                        @if (line.IsReturned)
+                                        {
+                                            <span class="text-danger fw-semibold">Returned</span>
+                                            <div class="text-muted">@line.ReturnReason</div>
+                                        }
+                                        else if (line.AmountCollected < line.OrderTotal)
+                                        {
+                                            <span class="text-warning-emphasis">
+                                                Short by
+                                                &#2547; @((line.OrderTotal - line.AmountCollected).ToString("N2"))
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-success">Paid in full</span>
+                                        }
+
+                                        @if (!string.IsNullOrWhiteSpace(line.Notes))
+                                        {
+                                            <div class="text-muted">@line.Notes</div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-4">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">The money</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-7 text-muted fw-normal">Collected</dt>
+                    <dd class="col-5 text-end mb-1">&#2547; @Model.GrossCollected.ToString("N2")</dd>
+
+                    <dt class="col-7 text-muted fw-normal">Courier charges</dt>
+                    <dd class="col-5 text-end mb-1">&minus; @Model.CourierFee.ToString("N2")</dd>
+
+                    @if (Model.OtherDeduction > 0m)
+                    {
+                        <dt class="col-7 text-muted fw-normal">Other deductions</dt>
+                        <dd class="col-5 text-end mb-1">&minus; @Model.OtherDeduction.ToString("N2")</dd>
+                    }
+
+                    <dt class="col-7 text-muted fw-normal border-top pt-2">Should have arrived</dt>
+                    <dd class="col-5 text-end mb-1 border-top pt-2">
+                        &#2547; @Model.ExpectedNet.ToString("N2")
+                    </dd>
+
+                    <dt class="col-7 fw-semibold">Actually arrived</dt>
+                    <dd class="col-5 text-end fw-semibold mb-0 @(Model.Balances ? "text-success" : "text-danger")">
+                        &#2547; @Model.NetReceived.ToString("N2")
+                    </dd>
+                </dl>
+
+                <p class="text-muted small mt-3 mb-0">
+                    Charges are recorded as money out, not netted away. Hidden inside the receipt
+                    they would be absent from every margin figure in the system.
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Document</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-5 text-muted fw-normal">Number</dt>
+                    <dd class="col-7 mb-2"><code>@Model.Number</code></dd>
+
+                    <dt class="col-5 text-muted fw-normal">Courier</dt>
+                    <dd class="col-7 mb-2">@Model.CourierName</dd>
+
+                    <dt class="col-5 text-muted fw-normal">Received via</dt>
+                    <dd class="col-7 mb-0">@Model.ReceivedVia</dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Notes))
+        {
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Notes</div>
+                <div class="card-body">
+                    <p class="mb-0 small" style="white-space: pre-line;">@Model.Notes</p>
+                </div>
+            </div>
+        }
+
+        @if (Model.Status == CourierRemittanceStatus.Posted)
+        {
+            <p class="text-muted small">
+                Posted. Its cash entries are permanent, so a mistake here is corrected with a
+                reversing entry rather than by editing this.
+            </p>
+        }
+    </div>
+</div>

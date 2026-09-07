@@ -1,0 +1,99 @@
+@model ShopListingViewModel
+@{
+    // Not named 'page'. Razor parses an expression starting with that word as
+    // the page directive, and the file then fails to compile with three errors
+    // that say nothing at all about the real cause.
+    var results = Model.Products;
+
+    (string Key, string Label)[] sorts =
+    [
+        ("new", "Newest"),
+        ("price-asc", "Price: low to high"),
+        ("price-desc", "Price: high to low"),
+        ("name", "Name"),
+    ];
+
+    var currentSort = Model.SortKey;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="text-muted small">
+        @if (results.TotalCount == 0)
+        {
+            <text>No products</text>
+        }
+        else
+        {
+            <text>@results.TotalCount product@(results.TotalCount == 1 ? "" : "s")</text>
+        }
+    </div>
+
+    @if (results.TotalCount > 1)
+    {
+        <div class="d-flex align-items-center gap-2">
+            <label class="text-muted small mb-0" for="shopSort">Sort</label>
+            <select id="shopSort" class="form-select form-select-sm" style="width: auto;"
+                    onchange="window.location = this.value;">
+                @foreach (var (key, label) in sorts)
+                {
+                    <option value="@Url.RouteUrl(Model.RouteName, Model.RouteValues(key, null))"
+                            selected="@(key == currentSort)">
+                        @label
+                    </option>
+                }
+            </select>
+        </div>
+    }
+</div>
+
+@if (results.Products.Count == 0)
+{
+    <div class="border text-center text-muted py-5 px-3">
+        <p class="mb-1">Nothing here yet.</p>
+        <p class="small mb-0">
+            Try another category, or <a asp-route="storefront-home">start from the beginning</a>.
+        </p>
+    </div>
+}
+else
+{
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 g-lg-4">
+        @foreach (var product in results.Products)
+        {
+            <div class="col">
+                <partial name="_ProductCard" model="product" />
+            </div>
+        }
+    </div>
+
+    @if (results.TotalPages > 1)
+    {
+        <nav class="mt-4" aria-label="Pages">
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                <li class="page-item @(results.HasPrevious ? null : "disabled")">
+                    <a class="page-link"
+                       href="@Url.RouteUrl(Model.RouteName, Model.RouteValues(currentSort, results.Page - 1))">
+                        Previous
+                    </a>
+                </li>
+
+                @for (var number = 1; number <= results.TotalPages; number++)
+                {
+                    <li class="page-item @(number == results.Page ? "active" : null)">
+                        <a class="page-link"
+                           href="@Url.RouteUrl(Model.RouteName, Model.RouteValues(currentSort, number))">
+                            @number
+                        </a>
+                    </li>
+                }
+
+                <li class="page-item @(results.HasNext ? null : "disabled")">
+                    <a class="page-link"
+                       href="@Url.RouteUrl(Model.RouteName, Model.RouteValues(currentSort, results.Page + 1))">
+                        Next
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    }
+}

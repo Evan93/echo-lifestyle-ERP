@@ -1,0 +1,264 @@
+@using EchoLifestyle.Application.Finance.Cash
+@using EchoLifestyle.Domain.Finance
+@{
+    ViewData["Title"] = "Cash";
+    ViewData["Subtitle"] = "Every movement of money, and what is left in each pot.";
+
+    var position = ViewData["Position"] as CashPosition ?? new CashPosition();
+    var from = (DateOnly)ViewData["From"]!;
+    var to = (DateOnly)ViewData["To"]!;
+    var canRecord = ViewData["CanRecord"] as bool? ?? false;
+}
+
+<form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-6 col-md-3">
+        <label class="form-label mb-1 small text-muted" for="from">From</label>
+        <input type="date" id="from" name="from" value="@from.ToString("yyyy-MM-dd")"
+               class="form-control form-control-sm" />
+    </div>
+    <div class="col-6 col-md-3">
+        <label class="form-label mb-1 small text-muted" for="to">To</label>
+        <input type="date" id="to" name="to" value="@to.ToString("yyyy-MM-dd")"
+               class="form-control form-control-sm" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Show</button>
+    </div>
+    <div class="col text-end">
+        @if (canRecord)
+        {
+            <a class="btn btn-sm btn-echo" asp-action="Record">Record money</a>
+        }
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Expenses"
+           asp-route-from="@from.ToString("yyyy-MM-dd")" asp-route-to="@to.ToString("yyyy-MM-dd")">
+            Expenses
+        </a>
+    </div>
+</form>
+
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Where the money is</span>
+        <span class="fw-semibold @(position.Closing < 0m ? "text-danger" : null)">
+            &#2547; @position.Closing.ToString("N2")
+        </span>
+    </div>
+
+    @if (position.Rows.Count == 0)
+    {
+        <div class="card-body text-center text-muted py-5">
+            Nothing has moved yet. Record an opening balance to start from what is actually in the
+            drawer.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Held as</th>
+                        <th class="text-end">Opening</th>
+                        <th class="text-end">In</th>
+                        <th class="text-end">Out</th>
+                        <th class="text-end">Closing</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in position.Rows)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@row.Method</td>
+                            <td class="text-end text-muted">@row.Opening.ToString("N2")</td>
+                            <td class="text-end text-success">
+                                @Html.Raw(row.In == 0m ? "&mdash;" : "+ " + row.In.ToString("N2"))
+                            </td>
+                            <td class="text-end text-danger">
+                                @Html.Raw(row.Out == 0m ? "&mdash;" : "&minus; " + row.Out.ToString("N2"))
+                            </td>
+                            <td class="text-end fw-semibold @(row.Closing < 0m ? "text-danger" : null)">
+                                &#2547; @row.Closing.ToString("N2")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot class="border-top">
+                    <tr>
+                        <th>Total</th>
+                        <th class="text-end">@position.Opening.ToString("N2")</th>
+                        <th class="text-end text-success">+ @position.In.ToString("N2")</th>
+                        <th class="text-end text-danger">&minus; @position.Out.ToString("N2")</th>
+                        <th class="text-end">&#2547; @position.Closing.ToString("N2")</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="card-body border-top">
+            <p class="text-muted small mb-0">
+                Opening is everything before @from.ToString("d MMM"), netted from the log rather than
+                stored &mdash; a saved opening balance is one more figure that can disagree with the
+                entries behind it. Count the cash box and check it against the cash row; that
+                comparison is what finds a mistyped entry.
+            </p>
+        </div>
+    }
+</div>
+
+<div class="row g-2 align-items-end mb-3">
+    <div class="col-6 col-md-3">
+        <label class="form-label mb-1 small text-muted" for="kindFilter">Kind</label>
+        <select id="kindFilter" class="form-select form-select-sm">
+            <option value="">All</option>
+            @foreach (var kind in Enum.GetValues<CashKind>())
+            {
+                <option value="@kind">@kind.ToString()</option>
+            }
+        </select>
+    </div>
+    <div class="col-6 col-md-3">
+        <label class="form-label mb-1 small text-muted" for="directionFilter">Direction</label>
+        <select id="directionFilter" class="form-select form-select-sm">
+            <option value="">All</option>
+            <option value="In">Money in</option>
+            <option value="Out">Money out</option>
+        </select>
+    </div>
+    <div class="col-6 col-md-3">
+        <label class="form-label mb-1 small text-muted" for="methodFilter">Held as</label>
+        <select id="methodFilter" class="form-select form-select-sm">
+            <option value="">All</option>
+            @foreach (var method in Enum.GetValues<PaymentMethodKind>())
+            {
+                <option value="@method">@method.ToString()</option>
+            }
+        </select>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="cashGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>Entry</th>
+                    <th>Date</th>
+                    <th>What</th>
+                    <th>Who / what for</th>
+                    <th>Held as</th>
+                    <th class="text-end">Amount</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var detailsUrlTemplate = "@Url.Action("Details", new { id = "__id__" })";
+            var fromValue = "@from.ToString("yyyy-MM-dd")";
+            var toValue = "@to.ToString("yyyy-MM-dd")";
+
+            function money(value) {
+                return "৳ " + Number(value || 0).toLocaleString("en-BD", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            // Camel case out of the enum, back into words. Beats a lookup table
+            // that has to be kept in step with CashKind by hand.
+            function spaced(value) {
+                return String(value || "").replace(/([a-z])([A-Z])/g, "$1 $2");
+            }
+
+            var grid = echo.grid("#cashGrid", {
+                url: "@Url.Action("Data")",
+                order: [],
+                emptyMessage: "Nothing recorded for this period.",
+                searchPlaceholder: "Search entry, order, reference, category or note...",
+
+                filters: function () {
+                    return {
+                        kind: $("#kindFilter").val() || null,
+                        direction: $("#directionFilter").val() || null,
+                        method: $("#methodFilter").val() || null,
+                        from: fromValue,
+                        to: toValue
+                    };
+                },
+
+                columns: [
+                    {
+                        data: "number",
+                        name: "number",
+                        render: function (number, type, row) {
+                            var line = echo.render.code(number);
+
+                            if (row.isReversal) {
+                                line += ' ' + echo.render.badge("reversal", "secondary");
+                            } else if (row.isReversed) {
+                                line += ' ' + echo.render.badge("reversed", "warning");
+                            }
+
+                            if (row.referenceNumber) {
+                                line += '<div class="text-muted small">' +
+                                    echo.escape(row.referenceNumber) + "</div>";
+                            }
+
+                            return line;
+                        }
+                    },
+                    { data: "transactionDate", name: "date", render: echo.escape },
+                    {
+                        data: "kind",
+                        orderable: false,
+                        render: function (kind, type, row) {
+                            var line = echo.escape(spaced(kind));
+
+                            if (row.courierRemittanceId) {
+                                line += '<div class="text-muted small">from a payout</div>';
+                            }
+
+                            return line;
+                        }
+                    },
+                    {
+                        data: "party",
+                        orderable: false,
+                        render: function (party, type, row) {
+                            var line = party ? echo.escape(party) : '<span class="text-muted">&mdash;</span>';
+
+                            if (row.orderNumber) {
+                                line += '<div class="text-muted small">' +
+                                    echo.escape(row.orderNumber) + "</div>";
+                            } else if (row.notes) {
+                                line += '<div class="text-muted small text-truncate" style="max-width: 22rem;">' +
+                                    echo.escape(row.notes) + "</div>";
+                            }
+
+                            return line;
+                        }
+                    },
+                    { data: "method", orderable: false, render: echo.escape },
+                    {
+                        data: "amount",
+                        name: "amount",
+                        className: "text-end fw-semibold",
+                        render: function (amount, type, row) {
+                            var url = detailsUrlTemplate.replace("__id__", row.id);
+                            var isIn = row.direction === "In";
+
+                            return '<a class="' + (isIn ? "text-success" : "text-danger") +
+                                ' text-decoration-none" href="' + echo.escape(url) + '">' +
+                                (isIn ? "+ " : "− ") + money(amount) + "</a>";
+                        }
+                    }
+                ]
+            });
+
+            echo.bindFilters(grid, "#kindFilter, #directionFilter, #methodFilter");
+        })();
+    </script>
+}

@@ -1,0 +1,185 @@
+@using EchoLifestyle.Application.Finance.Cash
+@using EchoLifestyle.Domain.Finance
+@model CashDetail
+@{
+    ViewData["Subtitle"] = CashService.Describe(Model.Kind);
+
+    var canReverse = ViewData["CanReverse"] as bool? ?? false;
+    var isIn = Model.Direction == CashDirection.In;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="badge @(isIn ? "text-bg-success" : "text-bg-danger")">
+            @(isIn ? "Money in" : "Money out")
+        </span>
+
+        @if (Model.IsReversal)
+        {
+            <span class="badge text-bg-secondary">Reversal</span>
+        }
+
+        @if (Model.IsReversed)
+        {
+            <span class="badge text-bg-warning">Reversed</span>
+        }
+
+        <span class="text-muted small">@Model.TransactionDate.ToString("d MMM yyyy")</span>
+    </div>
+
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Index">All entries</a>
+</div>
+
+@if (Model.IsReversed)
+{
+    <div class="alert alert-warning">
+        This entry was cancelled by
+        <a asp-action="Details" asp-route-id="@Model.ReversedById">@Model.ReversedByNumber</a>.
+        Both stay on the log; the pair nets to nothing.
+    </div>
+}
+
+@if (Model.IsReversal)
+{
+    <div class="alert alert-secondary">
+        This entry exists to cancel
+        <a asp-action="Details" asp-route-id="@Model.ReversesId">@Model.ReversesNumber</a>.
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-12 col-lg-7">
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-baseline mb-3">
+                    <span class="text-muted">Amount</span>
+                    <span class="fs-3 fw-semibold @(isIn ? "text-success" : "text-danger")">
+                        @(isIn ? "+" : "−") &#2547; @Model.Amount.ToString("N2")
+                    </span>
+                </div>
+
+                <dl class="row mb-0 small">
+                    <dt class="col-4 text-muted fw-normal">Entry</dt>
+                    <dd class="col-8 mb-2"><code>@Model.Number</code></dd>
+
+                    <dt class="col-4 text-muted fw-normal">What</dt>
+                    <dd class="col-8 mb-2">@CashService.Describe(Model.Kind)</dd>
+
+                    <dt class="col-4 text-muted fw-normal">Held as</dt>
+                    <dd class="col-8 mb-2">@Model.Method</dd>
+
+                    @if (Model.ExpenseCategoryName is not null)
+                    {
+                        <dt class="col-4 text-muted fw-normal">Category</dt>
+                        <dd class="col-8 mb-2">@Model.ExpenseCategoryName</dd>
+                    }
+
+                    @if (Model.PartnerName is not null)
+                    {
+                        <dt class="col-4 text-muted fw-normal">Partner</dt>
+                        <dd class="col-8 mb-2">@Model.PartnerName</dd>
+                    }
+
+                    @if (Model.SupplierName is not null)
+                    {
+                        <dt class="col-4 text-muted fw-normal">Supplier</dt>
+                        <dd class="col-8 mb-2">@Model.SupplierName</dd>
+                    }
+
+                    @if (Model.OrderNumber is not null)
+                    {
+                        <dt class="col-4 text-muted fw-normal">Order</dt>
+                        <dd class="col-8 mb-2">
+                            <a asp-controller="Orders" asp-action="Details"
+                               asp-route-id="@Model.SalesOrderId">
+                                <code>@Model.OrderNumber</code>
+                            </a>
+                            @if (Model.CustomerName is not null)
+                            {
+                                <span class="text-muted">&middot; @Model.CustomerName</span>
+                            }
+                        </dd>
+                    }
+
+                    @if (Model.ReferenceNumber is not null)
+                    {
+                        <dt class="col-4 text-muted fw-normal">Reference</dt>
+                        <dd class="col-8 mb-2"><code>@Model.ReferenceNumber</code></dd>
+                    }
+
+                    <dt class="col-4 text-muted fw-normal">Branch</dt>
+                    <dd class="col-8 mb-2">@Model.BranchName</dd>
+
+                    <dt class="col-4 text-muted fw-normal">Recorded</dt>
+                    <dd class="col-8 mb-0">
+                        @Clock.ToBusinessTime(Model.CreatedAtUtc).ToString("d MMM yyyy, h:mm tt")
+                    </dd>
+                </dl>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Notes))
+                {
+                    <p class="mt-3 mb-0 small" style="white-space: pre-line;">@Model.Notes</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-5">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Correcting this</div>
+            <div class="card-body">
+                @if (Model.CourierRemittanceId is not null)
+                {
+                    <p class="small text-muted">
+                        This entry came from a courier payout. Reversing it corrects the money but
+                        leaves the payout showing what it showed &mdash; check the statement is
+                        really wrong before doing it.
+                    </p>
+                }
+
+                @if (Model.IsReversed)
+                {
+                    <p class="small text-muted mb-0">
+                        Already reversed. Recording it again is the way to reinstate it, which keeps
+                        the mistake and the fix both visible.
+                    </p>
+                }
+                else if (Model.IsReversal)
+                {
+                    <p class="small text-muted mb-0">
+                        A reversal is not itself reversible. Record the original again if it was
+                        cancelled in error.
+                    </p>
+                }
+                else if (!canReverse)
+                {
+                    <p class="small text-muted mb-0">
+                        The log cannot be edited. Reversing an entry needs the finance permission
+                        for it.
+                    </p>
+                }
+                else
+                {
+                    <p class="small text-muted">
+                        Nothing here is editable. A mistake is cancelled by an equal and opposite
+                        entry, dated today, and both stay visible.
+                    </p>
+
+                    <form asp-action="Reverse" method="post">
+                        <input type="hidden" name="id" value="@Model.Id" />
+
+                        <label class="form-label small" for="reason">Why is this being reversed?</label>
+                        <textarea id="reason" name="reason" class="form-control form-control-sm mb-2"
+                                  rows="2" required
+                                  placeholder="Amount was 1,200 not 12,000 - typed an extra zero."></textarea>
+
+                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                data-submit-once>
+                            Reverse @Model.Number
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>

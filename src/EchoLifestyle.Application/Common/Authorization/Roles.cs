@@ -79,10 +79,15 @@ public static class Roles
                 Permissions.Procurement.PurchaseOrderApprove,
                 Permissions.Sales.OrderView,
                 Permissions.Sales.OrderCancel,
+                Permissions.Sales.OrderConfirm,
+                Permissions.Sales.OrderDispatch,
                 Permissions.Sales.DiscountApproveOverLimit,
                 Permissions.Sales.ReturnApprove,
+                Permissions.Finance.CashView,
+                Permissions.Finance.RemittancePost,
                 Permissions.Crm.CustomerView,
                 Permissions.Crm.CustomerViewPii,
+                Permissions.Crm.CustomerBlock,
                 Permissions.Reporting.SalesReportsView,
                 Permissions.Reporting.InventoryReportsView,
                 Permissions.Reporting.FinancialReportsView,
@@ -91,6 +96,8 @@ public static class Roles
 
             [FinanceManager] =
             [
+                Permissions.Finance.CashView,
+                Permissions.Finance.RemittancePost,
                 Permissions.Finance.JournalView,
                 Permissions.Finance.JournalPost,
                 Permissions.Finance.PeriodClose,
@@ -104,6 +111,8 @@ public static class Roles
 
             [Accountant] =
             [
+                Permissions.Finance.CashView,
+                Permissions.Finance.RemittancePost,
                 Permissions.Finance.JournalView,
                 Permissions.Finance.JournalPost,
                 Permissions.Catalog.CostPriceView,
@@ -123,9 +132,14 @@ public static class Roles
                 Permissions.Inventory.CountCreate,
                 Permissions.Sales.OrderView,
                 Permissions.Sales.OrderCreate,
+                Permissions.Sales.OrderConfirm,
+                Permissions.Sales.OrderDispatch,
+                Permissions.Sales.OrderCancel,
                 Permissions.Sales.DiscountApproveOverLimit,
                 Permissions.Sales.ReturnApprove,
                 Permissions.Crm.CustomerView,
+                Permissions.Crm.CustomerEdit,
+                Permissions.Crm.CustomerViewPii,
                 Permissions.Reporting.SalesReportsView,
             ],
 
@@ -137,6 +151,7 @@ public static class Roles
                 Permissions.Inventory.StockView,
                 Permissions.Sales.OrderView,
                 Permissions.Sales.OrderCreate,
+                Permissions.Sales.OrderConfirm,
                 Permissions.Crm.CustomerView,
             ],
 
@@ -155,6 +170,10 @@ public static class Roles
                 Permissions.Inventory.CountPost,
                 Permissions.Inventory.BalanceRebuild,
                 Permissions.Procurement.GoodsReceiptCreate,
+
+                // Packs and ships, but does not take or price orders.
+                Permissions.Sales.OrderView,
+                Permissions.Sales.OrderDispatch,
                 Permissions.Reporting.InventoryReportsView,
             ],
 
@@ -197,10 +216,13 @@ public static class Roles
                 Permissions.Inventory.StockView,
                 Permissions.Sales.OrderView,
                 Permissions.Sales.OrderCreate,
+                Permissions.Sales.OrderConfirm,
+                Permissions.Sales.OrderCancel,
                 Permissions.Sales.ReturnApprove,
                 Permissions.Crm.CustomerView,
                 Permissions.Crm.CustomerEdit,
                 Permissions.Crm.CustomerViewPii,
+                Permissions.Crm.CustomerBlock,
             ],
 
             [MarketingManager] =
@@ -244,6 +266,7 @@ public static class Roles
                 Permissions.Inventory.StockView,
                 Permissions.Procurement.SupplierView,
                 Permissions.Sales.OrderView,
+                Permissions.Finance.CashView,
                 Permissions.Finance.JournalView,
                 Permissions.Reporting.SalesReportsView,
                 Permissions.Reporting.InventoryReportsView,

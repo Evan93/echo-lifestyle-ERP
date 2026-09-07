@@ -103,4 +103,79 @@ public static class AuditActions
     public const string StockCountPosted = "Inventory.Count.Posted";
 
     public const string StockCountCancelled = "Inventory.Count.Cancelled";
+
+    public const string CustomerCreated = "Crm.Customer.Created";
+    public const string CustomerUpdated = "Crm.Customer.Updated";
+
+    /// <summary>
+    /// Refusing further orders from a customer, and lifting that. Both carry
+    /// the reason: a block is a commercial decision somebody will be asked to
+    /// justify, usually by the customer.
+    /// </summary>
+    public const string CustomerBlocked = "Crm.Customer.Blocked";
+
+    public const string CustomerUnblocked = "Crm.Customer.Unblocked";
+
+    /// <summary>
+    /// Somebody opened a customer's full contact details.
+    ///
+    /// Logged for staff, not for owners. The trail exists to answer "who has
+    /// been reading our customers' numbers", and recording the two partners
+    /// looking at their own customer list every day would bury exactly the
+    /// signal it is there to surface. When an export arrives it must log
+    /// regardless of who ran it - bulk exposure is a different question.
+    /// </summary>
+    public const string CustomerPiiViewed = "Crm.Customer.PiiViewed";
+
+    public const string CustomerAddressChanged = "Crm.CustomerAddress.Changed";
+
+    public const string SalesOrderDeleted = "Sales.Order.DraftDeleted";
+
+    /// <summary>
+    /// Stock promised to a customer. Carries the batches reserved, because a
+    /// reserved column that looks wrong is answered by finding what claimed it.
+    /// </summary>
+    public const string SalesOrderConfirmed = "Sales.Order.Confirmed";
+
+    /// <summary>
+    /// Stock actually left. Carries the courier, the consignment number and the
+    /// cost of what went - the point at which margin becomes knowable.
+    /// </summary>
+    public const string SalesOrderDispatched = "Sales.Order.Dispatched";
+
+    /// <summary>
+    /// Delivered, with what was collected against what was owed. Couriers remit
+    /// short and late; the gap is the entire point of recording both.
+    /// </summary>
+    public const string SalesOrderDelivered = "Sales.Order.Delivered";
+
+    /// <summary>
+    /// The parcel came back. Logged with the reason, because refusal patterns
+    /// are only visible in aggregate and only if the reasons were kept.
+    /// </summary>
+    public const string SalesOrderReturned = "Sales.Order.Returned";
+
+    public const string SalesOrderCancelled = "Sales.Order.Cancelled";
+
+    /// <summary>
+    /// A courier settling up. Carries gross, fee, net and the discrepancy -
+    /// a payout that did not add up is the event somebody will need to find
+    /// three months later, when the numbers stop working.
+    /// </summary>
+    public const string CourierRemittancePosted = "Finance.Remittance.Posted";
+
+    /// <summary>
+    /// Money written to the log by hand - an expense, a supplier payment, a
+    /// partner's capital. Everything else that moves money is a side effect of
+    /// a document; these are the entries somebody simply asserted, so the entry
+    /// is recorded whole.
+    /// </summary>
+    public const string CashRecorded = "Finance.Cash.Recorded";
+
+    /// <summary>
+    /// An entry cancelled by a reversing one. The log cannot be edited, so this
+    /// is the trail of every correction: what was wrong, what replaced it, and
+    /// the reason somebody had to type.
+    /// </summary>
+    public const string CashReversed = "Finance.Cash.Reversed";
 }

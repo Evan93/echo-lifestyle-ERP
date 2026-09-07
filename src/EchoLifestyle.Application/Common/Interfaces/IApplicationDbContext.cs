@@ -1,8 +1,11 @@
 using EchoLifestyle.Domain.Administration;
 using EchoLifestyle.Domain.Auditing;
 using EchoLifestyle.Domain.Catalog;
+using EchoLifestyle.Domain.Crm;
+using EchoLifestyle.Domain.Finance;
 using EchoLifestyle.Domain.Inventory;
 using EchoLifestyle.Domain.Purchasing;
+using EchoLifestyle.Domain.Sales;
 using EchoLifestyle.Domain.Security;
 using Microsoft.EntityFrameworkCore;
 
@@ -90,6 +93,49 @@ public interface IApplicationDbContext
     DbSet<GoodsReceiptLine> GoodsReceiptLines { get; }
 
     DbSet<PurchaseCharge> PurchaseCharges { get; }
+
+    /// <summary>
+    /// Identified by phone, not by name. The number is normalised and unique,
+    /// which is what stops the same person becoming three customers with no
+    /// history between them.
+    /// </summary>
+    DbSet<Customer> Customers { get; }
+
+    DbSet<CustomerAddress> CustomerAddresses { get; }
+
+    /// <summary>Reference data. Seeded, never edited by users.</summary>
+    DbSet<Division> Divisions { get; }
+
+    DbSet<District> Districts { get; }
+
+    DbSet<SalesOrder> SalesOrders { get; }
+
+    DbSet<SalesOrderLine> SalesOrderLines { get; }
+
+    /// <summary>
+    /// Stock promised to an order but not yet shipped. Raises the reserved
+    /// column on a balance; writes no ledger entry, because nothing has moved.
+    /// </summary>
+    DbSet<StockReservation> StockReservations { get; }
+
+    DbSet<SalesOrderStatusChange> SalesOrderStatusChanges { get; }
+
+    /// <summary>
+    /// Every movement of money. Append-only, like the stock ledger and for the
+    /// same reason - an order's collected figure is a projection of these rows,
+    /// never a number somebody typed over the top.
+    /// </summary>
+    DbSet<CashTransaction> CashTransactions { get; }
+
+    /// <summary>What money is spent on. Reference data, seeded and extendable.</summary>
+    DbSet<ExpenseCategory> ExpenseCategories { get; }
+
+    /// <summary>Whose money the business is running on.</summary>
+    DbSet<Partner> Partners { get; }
+
+    DbSet<CourierRemittance> CourierRemittances { get; }
+
+    DbSet<CourierRemittanceLine> CourierRemittanceLines { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

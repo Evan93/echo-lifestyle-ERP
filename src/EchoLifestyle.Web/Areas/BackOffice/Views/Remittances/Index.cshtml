@@ -1,0 +1,211 @@
+@using EchoLifestyle.Application.Finance.Remittances
+@{
+    ViewData["Title"] = "Courier payouts";
+    ViewData["Subtitle"] = "Who is holding your money, and what they have sent back.";
+
+    var exposure = ViewData["Exposure"] as IReadOnlyList<CourierExposure> ?? [];
+    var canPost = ViewData["CanPost"] as bool? ?? false;
+    var total = exposure.Sum(e => e.Outstanding);
+}
+
+@if (exposure.Count > 0)
+{
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Out with couriers right now</span>
+            <span class="fw-semibold @(total > 0 ? "text-danger" : null)">
+                &#2547; @total.ToString("N2")
+            </span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Courier</th>
+                        <th class="text-end">Parcels</th>
+                        <th class="text-end">Holding</th>
+                        <th class="text-end">Oldest</th>
+                        <th class="text-end"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var courier in exposure)
+                    {
+                        <tr class="@(courier.OldestDays > 14 ? "table-warning" : null)">
+                            <td class="fw-semibold">@courier.CourierName</td>
+                            <td class="text-end">@courier.Parcels</td>
+                            <td class="text-end">&#2547; @courier.Outstanding.ToString("N2")</td>
+                            <td class="text-end">
+                                <span class="@(courier.OldestDays > 14 ? "text-danger fw-semibold" : "text-muted")">
+                                    @courier.OldestDays days
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                @if (canPost)
+                                {
+                                    <a class="btn btn-sm btn-echo" asp-action="Start"
+                                       asp-route-courier="@courier.CourierName">
+                                        Record a payout
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-body border-top">
+            <p class="text-muted small mb-0">
+                Money the business has earned but does not have. A courier sitting on a parcel for
+                more than a fortnight is worth a phone call &mdash; that is usually where a refused
+                delivery has gone unreported.
+            </p>
+        </div>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+    <div>
+        <label class="form-label mb-1 small text-muted" for="statusFilter">Status</label>
+        <select id="statusFilter" class="form-select form-select-sm" style="width: auto;">
+            <option value="">All</option>
+            <option value="Draft">Being reconciled</option>
+            <option value="Posted">Posted</option>
+            <option value="Cancelled">Cancelled</option>
+        </select>
+    </div>
+
+    @if (canPost)
+    {
+        <a class="btn btn-echo btn-sm" asp-action="Start">Record a payout</a>
+    }
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table id="remittancesGrid" class="table table-hover align-middle mb-0 w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>Number</th>
+                    <th>Courier</th>
+                    <th>Arrived</th>
+                    <th class="text-end">Collected</th>
+                    <th class="text-end">Charges</th>
+                    <th class="text-end">Received</th>
+                    <th>Status</th>
+                    <th class="text-end"></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var detailsUrlTemplate = "@Url.Action("Details", new { id = "__id__" })";
+            var reconcileUrlTemplate = "@Url.Action("Reconcile", new { id = "__id__" })";
+
+            function money(value) {
+                return "৳ " + Number(value || 0).toLocaleString("en-BD", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            var grid = echo.grid("#remittancesGrid", {
+                url: "@Url.Action("Data")",
+                order: [],
+                emptyMessage: "No payouts recorded yet.",
+                searchPlaceholder: "Search number, courier or statement reference...",
+
+                filters: function () {
+                    return { status: $("#statusFilter").val() || null };
+                },
+
+                columns: [
+                    {
+                        data: "number",
+                        name: "number",
+                        render: function (number, type, row) {
+                            var line = echo.render.code(number);
+
+                            if (row.statementReference) {
+                                line += '<div class="text-muted small">' +
+                                    echo.escape(row.statementReference) + "</div>";
+                            }
+
+                            return line;
+                        }
+                    },
+                    {
+                        data: "courierName",
+                        name: "courier",
+                        render: function (name, type, row) {
+                            var line = echo.escape(name);
+                            var meta = row.lineCount + " order(s)";
+
+                            if (row.returnedCount > 0) {
+                                meta += ", " + row.returnedCount + " returned";
+                            }
+
+                            return line + '<div class="text-muted small">' + meta + "</div>";
+                        }
+                    },
+                    { data: "remittanceDate", name: "date", render: echo.escape },
+                    { data: "grossCollected", orderable: false, className: "text-end", render: money },
+                    { data: "courierFee", orderable: false, className: "text-end", render: money },
+                    {
+                        data: "netReceived",
+                        orderable: false,
+                        className: "text-end fw-semibold",
+                        render: function (net, type, row) {
+                            var line = money(net);
+
+                            // A payout that did not add up is the thing worth
+                            // seeing from the list, not from inside the document.
+                            if (Math.abs(Number(row.discrepancy)) >= 0.005) {
+                                line += '<div class="text-danger small">off by ' +
+                                    money(Math.abs(row.discrepancy)) + "</div>";
+                            }
+
+                            return line;
+                        }
+                    },
+                    {
+                        data: "status",
+                        orderable: false,
+                        render: function (status) {
+                            if (status === "Posted") {
+                                return echo.render.badge("Posted", "success");
+                            }
+
+                            return status === "Cancelled"
+                                ? echo.render.badge("Cancelled", "secondary")
+                                : echo.render.badge("Reconciling", "warning");
+                        }
+                    },
+                    {
+                        data: "id",
+                        orderable: false,
+                        className: "text-end",
+                        render: function (id, type, row) {
+                            var open = row.status === "Draft";
+                            var url = (open ? reconcileUrlTemplate : detailsUrlTemplate)
+                                .replace("__id__", id);
+
+                            return '<a class="btn btn-sm ' +
+                                (open ? "btn-echo" : "btn-outline-secondary") +
+                                '" href="' + echo.escape(url) + '">' +
+                                (open ? "Continue" : "View") + "</a>";
+                        }
+                    }
+                ]
+            });
+
+            echo.bindFilters(grid, "#statusFilter");
+        })();
+    </script>
+}

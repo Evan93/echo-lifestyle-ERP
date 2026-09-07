@@ -95,6 +95,57 @@ one is a defect, not a style preference.
 14. **Cost is frozen onto a document line when it posts, not when it is written.**
     A pending adjustment carries no value, because the batch it names can be
     recosted or sold down before anybody approves it.
+15. **A customer is identified by phone number, not by name.** Numbers are
+    normalised through `BangladeshPhone` before they are stored and are unique
+    among non-deleted customers. Orders arrive by Messenger, Instagram and
+    phone; the name is written three ways and the number is not. Never store a
+    raw number, never add a second write path that skips normalisation.
+16. **Contact details are masked in the service, not in the view.** Anyone
+    without `Crm.Customer.ViewPii` receives an already-masked object, so a new
+    screen, endpoint or export cannot forget. Do not add a method that returns
+    an unmasked number without the same check.
+17. **Confirming an order reserves; dispatching issues.** A reservation raises
+    `QuantityReserved` and writes no ledger entry, because nothing has moved.
+    Only dispatch writes an `Issue` entry, first expired first out, at each
+    batch's own cost. Never collapse the two, and never write a ledger entry for
+    a reservation.
+18. **Available is on hand minus reserved.** Every sales-facing screen shows
+    availability, never on-hand — on-hand includes stock already in somebody
+    else's box.
+19. **Plan the whole document, then apply it.** Reserving and dispatching both
+    decide every line before touching anything. `ExecuteInTransactionAsync`
+    commits whatever the delegate leaves behind, so returning a failure
+    part-way through a loop would commit the half that already ran.
+20. **Delivery addresses are copied onto an order, never referenced.** A
+    customer who moves house must not rewrite where last month's parcel went.
+    The same applies to product name, SKU and price on an order line.
+21. **Money is recorded through `CashTransactionWriter`, never by typing over a
+    column.** `CashTransaction` is append-only, exactly like the stock ledger,
+    and `SalesOrder.AmountCollected` is a projection of it. That is what makes
+    "why does this order say it is paid?" answerable. Corrections are reversing
+    entries.
+22. **A courier's fee is money out, not a netting-off.** Deducting it silently
+    from a receipt would leave the cost of delivery absent from every margin
+    figure in the system.
+23. **A payout that does not add up stops.** Gross minus deductions must equal
+    what arrived, or somebody has to tick "post anyway" and the difference is
+    recorded and audited. Never default that on.
+24. **The kind of money decides its direction; nobody is asked.** An expense is
+    money out, capital is money in — `CashTransaction.NaturalDirection` says so
+    and a check constraint enforces it. Never add an in/out control to a form: a
+    wrongly signed entry is invisible, because the totals still add up and are
+    simply wrong by twice the amount.
+25. **A correction is a reversal that keeps the original's kind and party.**
+    Same kind, same category, same partner, same order, direction flipped, dated
+    today. That is what lets every report net correctly without knowing
+    reversals exist — a reversal recorded as a generic "adjustment" would leave
+    its category permanently overstated. One reversal per entry, and a reversal
+    is never itself reversed.
+26. **There is no expense document.** An expense paid when it is incurred *is* a
+    cash transaction, so it is one row in the log with a category on it. A
+    second table holding the same facts is a second table to disagree with the
+    first. Bills owed but unpaid are accounts payable and arrive with
+    double-entry, not before.
 
 ---
 
@@ -258,8 +309,13 @@ deliberate deployment step.
 | 2a | Catalog: brands, categories, products, variants, options, pricing, images | Done |
 | 2b | Procurement: suppliers, stock ledger, batches, Quick Purchase, landed cost | Done |
 | 3 | Inventory: stock on hand, ledger, near-expiry, balance rebuild, adjustments with approval, stock count | Done |
-| 4 | Sales: customers, orders, COD lifecycle, returns, expense capture | Next |
-| 5 | **E-commerce storefront** — the expected main order channel | |
+| 4a | CRM: customers, phone identity, delivery addresses, BD geography, blocking | Done |
+| 4b | Sales: orders, reservations, COD lifecycle, courier dispatch, returns | Done |
+| 4c | Money in: cash ledger, courier payout reconciliation, COD settlement | Done |
+| 4d | Money out: expenses with categories, supplier payments, partner capital, refunds, cash position | Done |
+| 5a | Storefront: catalog, categories, brands, product pages, search | Done |
+| 5b | Storefront: cart, delivery charge, guest checkout, order intake | Next |
+| 5c | Storefront: SEO, sitemap, order tracking, static pages | |
 | 6 | Physical POS, advanced promotions | Deferred until a store opens |
 | 7 | CRM, loyalty, targets, marketing, MAUI apps | |
 | 8 | Full reporting, budgets, hardening, deployment, UAT | |
@@ -288,5 +344,21 @@ deliberate deployment step.
   when import lead times start tying up money that needs tracking before it
   arrives — the receipt already supports a nullable `PurchaseOrderId` for that
   day, and the PO route must post through the same `WriteAsync`.
+- **The storefront ships in English only.** Bengali was considered and
+  deliberately deferred to the planned skincare/haircare **blog site**, which
+  comes after the ERP and the MAUI apps. The change is additive when it arrives
+  — nullable `NameBn` / `DescriptionBn` columns beside the existing ones, plus a
+  fallback helper, exactly as `District.NameBn` already works. What must not
+  happen in the meantime is a duplicate row per language, which splits stock,
+  price and order history and cannot be undone. Keep labels in views, never in
+  data, and never branch on the text of a category name.
 - **Transfers stay unbuilt while there is one warehouse.** The domain does not
   assume one location, but the screens are not worth writing until there are two.
+- **Moving money between pots (cash → bKash → bank) is not built.** It is two
+  entries, not one, and `CashKind.Transfer` exists for it. It waits for a bank
+  reconciliation to check it against, in Phase 6. Until then a transfer would be
+  recorded and never verified.
+- **Nothing calculates from `Partner.OwnershipPercent`.** Profit distribution is
+  a decision the partners make, not a formula. The capital screen answers "what
+  am I in for?" — money in minus money out — and deliberately says nothing about
+  what anyone is owed.

@@ -110,6 +110,16 @@ public static class Permissions
         public const string OrderView = "Sales.Order.View";
         public const string OrderCreate = "Sales.Order.Create";
         public const string OrderCancel = "Sales.Order.Cancel";
+
+        /// <summary>Confirming an order, which is what commits the stock.</summary>
+        public const string OrderConfirm = "Sales.Order.Confirm";
+
+        /// <summary>
+        /// Handing a parcel to a courier, and recording what came back. The
+        /// point where stock really leaves and money really arrives, so it is
+        /// separate from taking the order.
+        /// </summary>
+        public const string OrderDispatch = "Sales.Order.Dispatch";
         public const string DiscountApproveOverLimit = "Sales.Discount.ApproveOverLimit";
         public const string ReturnApprove = "Sales.Return.Approve";
     }
@@ -123,6 +133,34 @@ public static class Permissions
 
         /// <summary>Partner capital and drawings - Evan and Jaman only by default.</summary>
         public const string PartnerLedgerView = "Finance.PartnerLedger.View";
+
+        /// <summary>Seeing the money log and what couriers are holding.</summary>
+        public const string CashView = "Finance.Cash.View";
+
+        /// <summary>
+        /// Writing to the money log by hand: expenses, supplier payments,
+        /// refunds, opening balances. Separate from viewing, because this is the
+        /// permission that lets somebody record that the business spent money.
+        /// </summary>
+        public const string CashRecord = "Finance.Cash.Record";
+
+        /// <summary>
+        /// Cancelling an entry with a reversing one. The log is append-only, so
+        /// this is the only route back - and deliberately not the same
+        /// permission as writing, because "I mistyped it" and "I am unwinding
+        /// something" look identical from the outside.
+        /// </summary>
+        public const string CashReverse = "Finance.Cash.Reverse";
+
+        /// <summary>Adding and retiring expense categories.</summary>
+        public const string ExpenseCategoryEdit = "Finance.ExpenseCategory.Edit";
+
+        /// <summary>
+        /// Reconciling a courier payout: settling orders, recording their fee
+        /// and putting refused parcels back on the shelf. It moves money and
+        /// stock at once, so it is not something a salesperson holds.
+        /// </summary>
+        public const string RemittancePost = "Finance.Remittance.Post";
     }
 
     public static class Crm
@@ -130,8 +168,19 @@ public static class Permissions
         public const string CustomerView = "Crm.Customer.View";
         public const string CustomerEdit = "Crm.Customer.Edit";
 
-        /// <summary>Access to customer contact details; logged when exercised.</summary>
+        /// <summary>
+        /// Full contact details rather than a masked number. Without it a
+        /// salesperson sees 017*****678 - enough to confirm they have the right
+        /// customer, not enough to walk out with a contact list.
+        /// </summary>
         public const string CustomerViewPii = "Crm.Customer.ViewPii";
+
+        /// <summary>
+        /// Refusing further orders from a customer. Cash on delivery makes this
+        /// a real business decision - a blocked customer has usually cost the
+        /// business courier fees - so it is separate from ordinary editing.
+        /// </summary>
+        public const string CustomerBlock = "Crm.Customer.Block";
     }
 
     public static class Reporting

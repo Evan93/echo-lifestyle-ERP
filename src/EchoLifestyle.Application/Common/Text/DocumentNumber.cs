@@ -3,7 +3,7 @@ using System.Globalization;
 namespace EchoLifestyle.Application.Common.Text;
 
 /// <summary>
-/// Document numbers: GRN-2609-0001, ADJ-2609-0004, CNT-2609-0002.
+/// Document numbers: GRN-2609-0001, ADJ-2609-0004, SO-2609-0117.
 ///
 /// A month prefix with a sequence that restarts each month. The alternative -
 /// one number that only ever goes up - is tidier in the database and useless on
@@ -20,6 +20,14 @@ public static class DocumentNumber
     public const string GoodsReceipt = "GRN";
     public const string StockAdjustment = "ADJ";
     public const string StockCount = "CNT";
+    public const string SalesOrder = "SO";
+    public const string CourierRemittance = "REM";
+
+    /// <summary>
+    /// Five digits rather than four. Every collection writes one, so a busy
+    /// month runs past 9999 long before an order month does.
+    /// </summary>
+    public const string CashTransaction = "CT";
 
     /// <summary>"ADJ-2609-" - what every number for that code and month starts with.</summary>
     public static string Prefix(string code, DateOnly date) =>
@@ -34,7 +42,8 @@ public static class DocumentNumber
     /// integer counts as zero rather than throwing - a hand-edited row should
     /// not stop the business receiving stock.
     /// </param>
-    public static string Next(string prefix, IEnumerable<string> used)
+    /// <param name="width">Digits to pad to. Four for documents, five for cash.</param>
+    public static string Next(string prefix, IEnumerable<string> used, int width = 4)
     {
         ArgumentNullException.ThrowIfNull(used);
 
@@ -57,6 +66,7 @@ public static class DocumentNumber
             .DefaultIfEmpty(0)
             .Max();
 
-        return $"{prefix}{highest + 1:D4}";
+        return prefix + (highest + 1).ToString(
+            "D" + width.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
     }
 }

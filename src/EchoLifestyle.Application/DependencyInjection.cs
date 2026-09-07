@@ -5,11 +5,18 @@ using EchoLifestyle.Application.Administration.Warehouses;
 using EchoLifestyle.Application.Catalog.Brands;
 using EchoLifestyle.Application.Catalog.Categories;
 using EchoLifestyle.Application.Catalog.Products;
+using EchoLifestyle.Application.Crm.Customers;
+using EchoLifestyle.Application.Finance;
+using EchoLifestyle.Application.Finance.Cash;
+using EchoLifestyle.Application.Finance.Remittances;
 using EchoLifestyle.Application.Inventory;
 using EchoLifestyle.Application.Inventory.Adjustments;
 using EchoLifestyle.Application.Inventory.Counts;
 using EchoLifestyle.Application.Purchasing.Receiving;
 using EchoLifestyle.Application.Purchasing.Suppliers;
+using EchoLifestyle.Application.Sales.Orders;
+using EchoLifestyle.Application.Sales.Pricing;
+using EchoLifestyle.Application.Storefront;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EchoLifestyle.Application;
@@ -40,6 +47,23 @@ public static class DependencyInjection
         services.AddScoped<StockMovementWriter>();
         services.AddScoped<StockAdjustmentService>();
         services.AddScoped<StockCountService>();
+        services.AddScoped<CustomerAdminService>();
+        services.AddScoped<StockReservationService>();
+        services.AddScoped<PriceResolver>();
+        services.AddScoped<SalesOrderService>();
+
+        // The one writer every document records money through, so an order's
+        // collected figure stays a projection rather than a typed-over number.
+        services.AddScoped<CashTransactionWriter>();
+        services.AddScoped<CourierRemittanceService>();
+        services.AddScoped<CashService>();
+        services.AddScoped<ExpenseCategoryService>();
+        services.AddScoped<PartnerService>();
+
+        // The public site's only reader. Separate from the back-office query
+        // services because "what a customer may see" is a different rule, and
+        // it belongs somewhere it can be read in full.
+        services.AddScoped<StorefrontCatalogService>();
 
         return services;
     }
