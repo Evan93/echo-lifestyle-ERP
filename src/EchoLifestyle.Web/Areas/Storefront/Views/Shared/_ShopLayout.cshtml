@@ -1,4 +1,5 @@
 @inject StorefrontCatalogService Catalog
+@inject CartService Carts
 @{
     var title = ViewData["Title"] as string;
     var metaDescription = ViewData["MetaDescription"] as string;
@@ -6,6 +7,13 @@
     var menu = await Catalog.GetMenuAsync(Context.RequestAborted);
     var activeSlug = ViewContext.RouteData.Values["slug"] as string;
     var query = Context.Request.Query["q"].ToString();
+
+    var origin = $"{Context.Request.Scheme}://{Context.Request.Host}";
+    var absoluteUrl = origin + Context.Request.Path + Context.Request.QueryString;
+    var socialImage = origin + Url.Content("~/img/og-default.jpg");
+
+    var cartCount = await Carts.CountAsync(Context.Request.Cookies["echo.cart"],
+                                           Context.RequestAborted);
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -25,10 +33,25 @@
         <meta name="robots" content="noindex,follow" />
     }
 
-    @* The logo is still a JPEG with a white background. It will show a white
-       box on this dark header - replacing it with an SVG is tracked as a
-       blocker in the Phase 5 design record. *@
     <link rel="icon" href="~/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="~/img/icon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="~/img/icon-16.png" />
+    <link rel="apple-touch-icon" href="~/img/apple-touch-icon.png" />
+    <meta name="theme-color" content="#2a0713" />
+
+    @* Orders arrive through Facebook and Messenger, so how a link unfurls
+       there is not decoration - it is the shop front most people see first. *@
+    <meta property="og:site_name" content="Echo Lifestyle" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="@(string.IsNullOrWhiteSpace(title) ? "Echo Lifestyle" : title)" />
+    <meta property="og:url" content="@absoluteUrl" />
+    <meta property="og:image" content="@socialImage" />
+    <meta name="twitter:card" content="summary_large_image" />
+    @if (!string.IsNullOrWhiteSpace(metaDescription))
+    {
+        <meta property="og:description" content="@metaDescription" />
+    }
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/shop.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
@@ -42,7 +65,18 @@
 <header class="shop-header">
     <div class="container">
         <div class="shop-header__bar d-flex align-items-center gap-3">
-            <a class="shop-logo" asp-route="storefront-home">Echo Lifestyle</a>
+            @* The mark plus live type, not the full lockup image. Below roughly
+               190px wide the LIFESTYLE line in the artwork stops being legible
+               and turns into a smudge, and a header is never that tall. The
+               complete lockup is used where there is room for it: the sign-in
+               page and the social card. *@
+            <a class="shop-logo" asp-route="storefront-home" aria-label="Echo Lifestyle, home">
+                <img src="~/img/echo-mark.png" alt="" width="40" height="40" />
+                <span class="shop-logo__type">
+                    Echo
+                    <small>Lifestyle</small>
+                </span>
+            </a>
 
             <form class="shop-search d-none d-md-flex ms-auto" style="max-width: 360px; width: 100%;"
                   asp-route="storefront-search" method="get" role="search">
@@ -53,7 +87,16 @@
                 </div>
             </form>
 
-            <button class="btn btn-sm btn-outline-secondary d-md-none ms-auto" type="button"
+            <a class="shop-basket ms-auto ms-md-0" asp-route="storefront-cart"
+               aria-label="Your basket, @cartCount item(s)">
+                Basket
+                @if (cartCount > 0)
+                {
+                    <span class="shop-basket__count">@cartCount</span>
+                }
+            </a>
+
+            <button class="btn btn-sm btn-outline-secondary d-md-none" type="button"
                     data-bs-toggle="collapse" data-bs-target="#shopMenu"
                     aria-controls="shopMenu" aria-expanded="false" aria-label="Menu">
                 Menu
@@ -64,14 +107,90 @@
     <div class="shop-nav">
         <div class="container">
             <div class="collapse d-md-block" id="shopMenu">
-                <nav class="d-flex flex-column flex-md-row flex-wrap py-2 py-md-0"
-                     aria-label="Categories">
+                @* A top-level link that opens its children on hover or focus.
+                   The link itself still goes to the category, so the menu never
+                   traps somebody who just wants to click the heading - and on a
+                   phone, where there is no hover, that is the only behaviour. *@
+                <nav class="shop-nav__list" aria-label="Categories">
                     @foreach (var category in menu)
                     {
-                        <a class="shop-nav__link @(category.Slug == activeSlug ? "is-active" : null)"
-                           asp-route="storefront-category" asp-route-slug="@category.Slug">
-                            @category.Name
-                        </a>
+                        var isActive = category.Slug == activeSlug
+                            || category.Children.Any(c => c.Slug == activeSlug);
+
+                        <div class="shop-nav__item">
+                            <a class="shop-nav__link @(isActive ? "is-active" : null)"
+                               asp-route="storefront-category" asp-route-slug="@category.Slug">
+                                @category.Name
+                            </a>
+
+                            @* The panel opens for brands as well as children. A
+                               shallow category tree is normal early on, and a
+                               heading with eight brands under it is worth
+                               dropping down - waiting for sub-categories would
+                               mean no menu at all until the tree is deep. *@
+                            @if (category.Children.Count > 0 || category.Brands.Count > 0)
+                            {
+                                <div class="shop-mega">
+                                    <div class="container">
+                                        <div class="shop-mega__inner">
+                                            <div class="shop-mega__panels">
+                                                @if (category.Children.Count > 0)
+                                                {
+                                                    <div class="shop-mega__panel">
+                                                        <div class="shop-mega__title">Categories</div>
+                                                        <div class="shop-mega__cols">
+                                                            @foreach (var child in category.Children)
+                                                            {
+                                                                <a class="shop-mega__link"
+                                                                   asp-route="storefront-category"
+                                                                   asp-route-slug="@child.Slug">
+                                                                    @child.Name
+                                                                </a>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                                @if (category.Brands.Count > 0)
+                                                {
+                                                    <div class="shop-mega__panel">
+                                                        <div class="shop-mega__title">Brands</div>
+                                                        @* Into the category filtered by that brand,
+                                                           not onto the brand's own page: the count
+                                                           beside the name is what is here, so that
+                                                           is what the click should land on. *@
+                                                        <div class="shop-mega__cols">
+                                                            @foreach (var brand in category.Brands)
+                                                            {
+                                                                <a class="shop-mega__link"
+                                                                   href="@Url.RouteUrl("storefront-category",
+                                                                        new { slug = category.Slug, brand = brand.Id })">
+                                                                    @brand.Name
+                                                                    <span class="shop-mega__count">@brand.Count</span>
+                                                                </a>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+
+                                            <div class="shop-mega__aside">
+                                                <a class="shop-mega__all"
+                                                   asp-route="storefront-category"
+                                                   asp-route-slug="@category.Slug">
+                                                    All @category.Name.ToLowerInvariant() &rarr;
+                                                </a>
+                                                <a class="shop-mega__offer"
+                                                   href="@Url.RouteUrl("storefront-category",
+                                                        new { slug = category.Slug, offer = "1" })">
+                                                    On offer in @category.Name.ToLowerInvariant()
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
                     }
                 </nav>
 
@@ -96,7 +215,13 @@
     <div class="container">
         <div class="row g-4">
             <div class="col-12 col-md-5">
-                <div class="shop-logo text-white mb-2">Echo Lifestyle</div>
+                <div class="shop-logo shop-logo--dark mb-2">
+                    <img src="~/img/echo-mark.png" alt="" width="36" height="36" />
+                    <span class="shop-logo__type">
+                        Echo
+                        <small>Lifestyle</small>
+                    </span>
+                </div>
                 <p class="small mb-0" style="max-width: 32ch;">
                     Skincare, haircare and cosmetics, sourced genuine and delivered across
                     Bangladesh.

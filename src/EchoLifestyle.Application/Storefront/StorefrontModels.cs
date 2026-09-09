@@ -79,6 +79,70 @@ public class ShopProductPage
     public bool HasNext => Page < TotalPages;
 }
 
+/// <summary>
+/// What a shopper has narrowed a listing down to.
+///
+/// Everything here comes from the query string and goes back into it, so a
+/// filtered view is a real URL: shareable, bookmarkable, and the back button
+/// works. Filtering that lives only in the browser cannot do any of that.
+/// </summary>
+public class ShopFilters
+{
+    /// <summary>Brands ticked in the sidebar. Empty means all of them.</summary>
+    public IReadOnlyList<long> BrandIds { get; set; } = [];
+
+    public decimal? MinPrice { get; set; }
+
+    public decimal? MaxPrice { get; set; }
+
+    /// <summary>Hides what cannot be bought today.</summary>
+    public bool InStockOnly { get; set; }
+
+    /// <summary>Only things genuinely marked down.</summary>
+    public bool OnOfferOnly { get; set; }
+
+    public bool Any =>
+        BrandIds.Count > 0 || MinPrice is not null || MaxPrice is not null
+        || InStockOnly || OnOfferOnly;
+
+    public int Count =>
+        BrandIds.Count
+        + (MinPrice is not null || MaxPrice is not null ? 1 : 0)
+        + (InStockOnly ? 1 : 0)
+        + (OnOfferOnly ? 1 : 0);
+}
+
+/// <summary>
+/// What is worth offering to filter by on this particular listing.
+///
+/// Computed from the products in scope <em>before</em> the brand filter is
+/// applied, so ticking one brand does not make the others vanish from the
+/// sidebar - which would leave somebody unable to widen their own search
+/// without hitting back.
+/// </summary>
+public class ShopFacets
+{
+    public IReadOnlyList<BrandFacet> Brands { get; set; } = [];
+
+    public decimal? LowestPrice { get; set; }
+
+    public decimal? HighestPrice { get; set; }
+
+    public bool HasAnything => Brands.Count > 1 || LowestPrice != HighestPrice;
+}
+
+public class BrandFacet
+{
+    public long Id { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public string Slug { get; set; } = string.Empty;
+
+    /// <summary>How many products carry it here. A count of zero is not listed.</summary>
+    public int Count { get; set; }
+}
+
 /// <summary>How a listing is ordered. Bound from the query string, so unknown values fall back.</summary>
 public enum ShopSort
 {
@@ -108,6 +172,18 @@ public class ShopCategory
     public string Path { get; set; } = string.Empty;
 
     public IReadOnlyList<ShopCategory> Children { get; set; } = [];
+
+    /// <summary>
+    /// The brands that actually have something sellable in this category, most
+    /// stocked first. Populated for the menu only.
+    ///
+    /// Worth stating why this is on the category rather than fetched beside it:
+    /// a menu panel with one column of sub-categories is thin while the tree is
+    /// shallow, and brand is how people who know what they want actually shop
+    /// cosmetics. The count is the number of products this shopper would land
+    /// on, so the panel cannot promise a number the page then contradicts.
+    /// </summary>
+    public IReadOnlyList<BrandFacet> Brands { get; set; } = [];
 }
 
 public class ShopBrand

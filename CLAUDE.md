@@ -141,7 +141,29 @@ one is a defect, not a style preference.
     reversals exist — a reversal recorded as a generic "adjustment" would leave
     its category permanently overstated. One reversal per entry, and a reversal
     is never itself reversed.
-26. **There is no expense document.** An expense paid when it is incurred *is* a
+26. **A cart reserves nothing, and stores no prices.** It is an intention, not
+    a claim on stock: two shoppers may hold the last jar, and the first whose
+    order is confirmed gets it. Reserving at add-to-cart would let anyone empty
+    the shelf by filling a basket and walking away, and cash on delivery gives
+    them no reason not to. Every read re-prices from the price list and
+    re-checks availability, so a basket cannot hold a stale figure.
+27. **A website order lands as a draft.** It goes through the same Confirm gate
+    a Messenger order does, so a joke order or a customer who never answers
+    cannot tie up real stock. The storefront calls the same
+    `SalesOrderService.CreateAsync` the back office does - there is one way an
+    order comes into existence.
+28. **The checkout browser decides nothing that costs money.** Prices, delivery
+    charge, branch and warehouse are all resolved server-side; the form carries
+    a name, a number, an address and a district id. Never accept a price, a
+    total or a branch from a public form.
+29. **The checkout never says whether it recognised the number.** No "welcome
+    back", no "we don't know you". Either answer turns the form into a way of
+    testing whose phone number it is and learning her name. Same reasoning as
+    the single login error message (rule in §5).
+30. **A blocked customer's website order is accepted and flagged, never refused
+    at the checkout.** Telling somebody there that they are blocked only
+    teaches them to reorder from a new number. Staff see the flag and cancel.
+31. **There is no expense document.** An expense paid when it is incurred *is* a
     cash transaction, so it is one row in the log with a category on it. A
     second table holding the same facts is a second table to disagree with the
     first. Bills owed but unpaid are accounts payable and arrive with
@@ -314,8 +336,8 @@ deliberate deployment step.
 | 4c | Money in: cash ledger, courier payout reconciliation, COD settlement | Done |
 | 4d | Money out: expenses with categories, supplier payments, partner capital, refunds, cash position | Done |
 | 5a | Storefront: catalog, categories, brands, product pages, search | Done |
-| 5b | Storefront: cart, delivery charge, guest checkout, order intake | Next |
-| 5c | Storefront: SEO, sitemap, order tracking, static pages | |
+| 5b | Storefront: cart, delivery charge, guest checkout, order intake | Done |
+| 5c | Storefront: SEO, sitemap, order tracking, static pages | Next |
 | 6 | Physical POS, advanced promotions | Deferred until a store opens |
 | 7 | CRM, loyalty, targets, marketing, MAUI apps | |
 | 8 | Full reporting, budgets, hardening, deployment, UAT | |
@@ -344,6 +366,14 @@ deliberate deployment step.
   when import lead times start tying up money that needs tracking before it
   arrives — the receipt already supports a nullable `PurchaseOrderId` for that
   day, and the PO route must post through the same `WriteAsync`.
+- **Delivery rates are seeded as placeholders** (৳60 inside Dhaka, ৳120
+  outside) and are configuration on the company record, not code. They must be
+  replaced with what Steadfast actually charges and what the business intends to
+  charge before the site takes real orders. Free-delivery-over is off until
+  somebody decides the threshold is worth the margin.
+- **Cart cleanup is unbuilt.** Abandoned baskets accumulate; `LastTouchedAtUtc`
+  is indexed for the sweep, and Hangfire is already in the stack for it. Not
+  urgent at this volume, and not something to forget before launch.
 - **The storefront ships in English only.** Bengali was considered and
   deliberately deferred to the planned skincare/haircare **blog site**, which
   comes after the ERP and the MAUI apps. The change is additive when it arrives

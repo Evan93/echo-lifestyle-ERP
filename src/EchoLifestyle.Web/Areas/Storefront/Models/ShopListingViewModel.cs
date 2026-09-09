@@ -48,12 +48,63 @@ public class ShopListingViewModel
 
     public string? RouteSlug { get; set; }
 
-    /// <summary>Route values for a link that changes only sort or page.</summary>
+    public ShopFilters Filters { get; set; } = new();
+
+    public ShopFacets Facets { get; set; } = new();
+
+    /// <summary>
+    /// Route values for a link that changes only sort or page.
+    ///
+    /// Every filter is carried through, because a pager that quietly drops them
+    /// takes the shopper from "page 2 of CeraVe under 1500" to "page 2 of
+    /// everything" without saying so.
+    /// </summary>
     public object RouteValues(string? sort, int? page) => new
     {
         slug = RouteSlug,
         q = Query,
         sort,
         page,
+        brand = Filters.BrandIds.ToArray(),
+        min = Filters.MinPrice,
+        max = Filters.MaxPrice,
+        stock = Filters.InStockOnly ? "1" : null,
+        offer = Filters.OnOfferOnly ? "1" : null,
     };
+
+    /// <summary>The same listing with one brand toggled on or off.</summary>
+    public object RouteValuesToggleBrand(long brandId)
+    {
+        var brands = Filters.BrandIds.Contains(brandId)
+            ? Filters.BrandIds.Where(id => id != brandId).ToArray()
+            : Filters.BrandIds.Append(brandId).ToArray();
+
+        return new
+        {
+            slug = RouteSlug,
+            q = Query,
+            sort = SortKey,
+            brand = brands,
+            min = Filters.MinPrice,
+            max = Filters.MaxPrice,
+            stock = Filters.InStockOnly ? "1" : null,
+            offer = Filters.OnOfferOnly ? "1" : null,
+        };
+    }
+
+    /// <summary>The same listing with one toggle flipped and everything else kept.</summary>
+    public object RouteValuesToggle(string flag) => new
+    {
+        slug = RouteSlug,
+        q = Query,
+        sort = SortKey,
+        brand = Filters.BrandIds.ToArray(),
+        min = Filters.MinPrice,
+        max = Filters.MaxPrice,
+        stock = flag == "stock" ? (Filters.InStockOnly ? null : "1") : (Filters.InStockOnly ? "1" : null),
+        offer = flag == "offer" ? (Filters.OnOfferOnly ? null : "1") : (Filters.OnOfferOnly ? "1" : null),
+    };
+
+    /// <summary>Everything cleared, which is the way back out of a dead end.</summary>
+    public object RouteValuesCleared() => new { slug = RouteSlug, q = Query, sort = SortKey };
 }

@@ -7,11 +7,13 @@ using EchoLifestyle.Infrastructure.Identity;
 using EchoLifestyle.Infrastructure.Persistence;
 using EchoLifestyle.Infrastructure.Persistence.Seed;
 using EchoLifestyle.Web.Areas.BackOffice.Navigation;
+using EchoLifestyle.Web.Areas.Storefront.Controllers;
 using EchoLifestyle.Web.Middleware;
 using EchoLifestyle.Web.Security;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Serilog;
@@ -132,6 +134,35 @@ builder.Services
 // ---------------------------------------------------------------------------
 // Authorization - policies are generated per permission on demand
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Rate limits for the anonymous storefront
+//
+// These endpoints create real rows without anybody signing in: a basket, a
+// customer, an order. Partitioned by IP, which is imperfect behind a shared
+// mobile gateway - so checkout's ceiling is set where a family on one
+// connection is comfortable and a script is not.
+// ---------------------------------------------------------------------------
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddFixedWindowLimiter(RateLimits.Cart, limiter =>
+    {
+        limiter.PermitLimit = 60;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+    });
+
+    options.AddFixedWindowLimiter(RateLimits.Checkout, limiter =>
+    {
+        // Ten orders an hour from one address. A household ordering together
+        // never reaches it; anything filling the customer table does.
+        limiter.PermitLimit = 10;
+        limiter.Window = TimeSpan.FromHours(1);
+        limiter.QueueLimit = 0;
+    });
+});
+
 builder.Services.AddAuthorization();
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
@@ -197,6 +228,7 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.UseStatusCodePagesWithReExecute("/error/{0}");
 
@@ -235,6 +267,48 @@ app.MapAreaControllerRoute(
     areaName: "Storefront",
     pattern: "b/{slug}",
     defaults: new { controller = "Catalog", action = "Brand" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-cart",
+    areaName: "Storefront",
+    pattern: "cart",
+    defaults: new { controller = "Cart", action = "Index" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-cart-add",
+    areaName: "Storefront",
+    pattern: "cart/add",
+    defaults: new { controller = "Cart", action = "Add" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-cart-update",
+    areaName: "Storefront",
+    pattern: "cart/update",
+    defaults: new { controller = "Cart", action = "Update" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-cart-remove",
+    areaName: "Storefront",
+    pattern: "cart/remove",
+    defaults: new { controller = "Cart", action = "Remove" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-delivery-quote",
+    areaName: "Storefront",
+    pattern: "checkout/delivery",
+    defaults: new { controller = "Checkout", action = "Delivery" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-checkout",
+    areaName: "Storefront",
+    pattern: "checkout",
+    defaults: new { controller = "Checkout", action = "Index" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-order-placed",
+    areaName: "Storefront",
+    pattern: "order-received",
+    defaults: new { controller = "Checkout", action = "Done" });
 
 app.MapAreaControllerRoute(
     name: "storefront-search",

@@ -40,6 +40,9 @@ public class CompanyAdminService
                 Email = c.Email,
                 BaseCurrencyCode = c.BaseCurrencyCode,
                 BusinessTimeZoneId = c.BusinessTimeZoneId,
+                DeliveryChargeInsideCity = c.DeliveryChargeInsideCity,
+                DeliveryChargeOutsideCity = c.DeliveryChargeOutsideCity,
+                FreeDeliveryOverAmount = c.FreeDeliveryOverAmount,
             })
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -92,6 +95,14 @@ public class CompanyAdminService
         company.PostalCode = Trim(request.PostalCode);
         company.Phone = Trim(request.Phone);
         company.Email = Trim(request.Email);
+
+        // Negatives would quietly discount the order rather than charge for
+        // delivery, so they are floored rather than trusted.
+        company.DeliveryChargeInsideCity = Math.Max(0m, request.DeliveryChargeInsideCity);
+        company.DeliveryChargeOutsideCity = Math.Max(0m, request.DeliveryChargeOutsideCity);
+        company.FreeDeliveryOverAmount = request.FreeDeliveryOverAmount is > 0m
+            ? request.FreeDeliveryOverAmount
+            : null;
 
         await _audit.LogAsync(
             AuditActions.CompanyUpdated,

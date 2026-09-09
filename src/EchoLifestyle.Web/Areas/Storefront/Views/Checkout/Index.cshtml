@@ -1,0 +1,176 @@
+@model CheckoutFormModel
+
+<div class="container py-4 py-lg-5">
+    <h1 class="shop-display h2 mb-4">Checkout</h1>
+
+    <form asp-route="storefront-checkout" method="post" novalidate autocomplete="on">
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div asp-validation-summary="All" class="alert alert-danger py-2 small" role="alert"></div>
+        }
+
+        <div class="row g-4 g-lg-5">
+            <div class="col-12 col-lg-7">
+                <h2 class="h6 text-uppercase text-muted mb-3" style="letter-spacing:.08em;">
+                    Where is it going?
+                </h2>
+
+                <div class="row g-3">
+                    <div class="col-12 col-sm-6">
+                        <label asp-for="FullName" class="form-label"></label>
+                        <input asp-for="FullName" class="form-control" autocomplete="name" />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 col-sm-6">
+                        <label asp-for="Phone" class="form-label"></label>
+                        <input asp-for="Phone" class="form-control" inputmode="tel"
+                               autocomplete="tel" placeholder="01712-345678" />
+                        <span asp-validation-for="Phone" class="text-danger small"></span>
+                        <div class="form-text">We call this number to confirm before we ship.</div>
+                    </div>
+
+                    <div class="col-12 col-sm-6">
+                        <label asp-for="DistrictId" class="form-label"></label>
+                        <select asp-for="DistrictId" id="districtId" class="form-select">
+                            <option value="">Choose your district...</option>
+                            @foreach (var group in Model.Districts.GroupBy(d => d.DivisionName))
+                            {
+                                <optgroup label="@group.Key">
+                                    @foreach (var district in group)
+                                    {
+                                        <option value="@district.Id"
+                                                selected="@(Model.DistrictId == district.Id)">
+                                            @district.Display
+                                        </option>
+                                    }
+                                </optgroup>
+                            }
+                        </select>
+                        <span asp-validation-for="DistrictId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 col-sm-6">
+                        <label asp-for="AreaOrThana" class="form-label"></label>
+                        <input asp-for="AreaOrThana" class="form-control" placeholder="Uttara" />
+                        <span asp-validation-for="AreaOrThana" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="AddressLine" class="form-label"></label>
+                        <input asp-for="AddressLine" class="form-control"
+                               autocomplete="street-address"
+                               placeholder="House 9, Road 4, Sector 7" />
+                        <span asp-validation-for="AddressLine" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 col-sm-6">
+                        <label asp-for="Landmark" class="form-label"></label>
+                        <input asp-for="Landmark" class="form-control"
+                               placeholder="Beside the pharmacy" />
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="DeliveryNotes" class="form-label"></label>
+                        <textarea asp-for="DeliveryNotes" class="form-control" rows="2"
+                                  placeholder="Call before you arrive"></textarea>
+                    </div>
+                </div>
+
+                <div class="alert alert-light border mt-4 small mb-0">
+                    <strong>Cash on delivery.</strong> Pay the courier when the parcel arrives.
+                    Nothing is taken now, and we confirm every order by phone first.
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-5">
+                <div class="shop-summary">
+                    <h2 class="h6 text-uppercase text-muted mb-3" style="letter-spacing:.08em;">
+                        Your order
+                    </h2>
+
+                    @foreach (var line in Model.Cart.Lines)
+                    {
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2 small">
+                            <div>
+                                <div>@line.ProductName</div>
+                                <div class="text-muted">
+                                    @if (!string.IsNullOrWhiteSpace(line.VariantName))
+                                    {
+                                        <text>@line.VariantName &middot; </text>
+                                    }
+                                    &times;@line.Quantity.ToString("0.##")
+                                </div>
+                            </div>
+                            <div class="text-nowrap">&#2547; @line.LineTotal.ToString("N0")</div>
+                        </div>
+                    }
+
+                    <hr />
+
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Subtotal</span>
+                        <span id="sumSubtotal">&#2547; @Model.Cart.Subtotal.ToString("N0")</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">
+                            Delivery <span class="d-block small" id="sumDeliveryLabel">
+                                @Model.Delivery.Describe()
+                            </span>
+                        </span>
+                        <span id="sumDelivery">&#2547; @Model.Delivery.Charge.ToString("N0")</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between border-top pt-2 mb-3">
+                        <span class="fw-semibold">Total</span>
+                        <span class="fw-semibold" id="sumTotal">
+                            &#2547; @((Model.Cart.Subtotal + Model.Delivery.Charge).ToString("N0"))
+                        </span>
+                    </div>
+
+                    <button type="submit" class="btn btn-shop w-100" data-submit-once>
+                        Place order
+                    </button>
+
+                    <a class="btn btn-link btn-sm w-100 mt-2 text-muted"
+                       asp-route="storefront-cart">Back to basket</a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var district = document.getElementById("districtId");
+            var quoteUrl = "@Url.RouteUrl("storefront-delivery-quote")";
+
+            function money(v) {
+                return "৳ " + Number(v || 0).toLocaleString("en-BD", { maximumFractionDigits: 0 });
+            }
+
+            // The server prices delivery; this only shows the answer. The order
+            // is charged from what PlaceAsync works out, never from what is on
+            // screen here.
+            district.addEventListener("change", function () {
+                if (!district.value) { return; }
+
+                fetch(quoteUrl + "?districtId=" + encodeURIComponent(district.value), {
+                    headers: { "Accept": "application/json" }
+                })
+                    .then(function (r) { return r.ok ? r.json() : null; })
+                    .then(function (q) {
+                        if (!q) { return; }
+
+                        document.getElementById("sumDelivery").textContent = money(q.charge);
+                        document.getElementById("sumDeliveryLabel").textContent = q.label;
+                        document.getElementById("sumTotal").textContent = money(q.total);
+                    })
+                    .catch(function () { /* leave the server-rendered figures alone */ });
+            });
+        })();
+    </script>
+}

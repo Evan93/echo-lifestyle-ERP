@@ -50,4 +50,72 @@ public abstract class StorefrontControllerBase : Controller
     /// rows twice.
     /// </summary>
     protected static int ParsePage(int? page) => page is null or < 1 ? 1 : page.Value;
+
+    // -----------------------------------------------------------------------
+    // The basket cookie
+    // -----------------------------------------------------------------------
+
+    private const string CartCookie = "echo.cart";
+
+    /// <summary>
+    /// The visitor's basket token, or null.
+    ///
+    /// The token itself is 32 random bytes, so it needs no signing to be
+    /// unguessable - guessing one is guessing a 256-bit secret. The cookie is
+    /// HttpOnly so no script on the page can read it, and SameSite=Lax so
+    /// another site cannot drive a basket write with the visitor's cookie
+    /// attached.
+    /// </summary>
+    protected string? CartToken
+    {
+        get
+        {
+            var value = Request.Cookies[CartCookie];
+
+            // Length-checked because anything else came from somewhere other
+            // than this application, and a malformed token is just a miss.
+            return string.IsNullOrWhiteSpace(value) || value.Length is < 32 or > 64
+                ? null
+                : value;
+        }
+    }
+
+    protected void WriteCartToken(string token) =>
+        Response.Cookies.Append(CartCookie, token, new CookieOptions
+        {
+            HttpOnly = true,
+            IsEssential = true,
+            SameSite = SameSiteMode.Lax,
+
+            // Follows the request, so a local HTTP run still works and
+            // production over HTTPS still gets a Secure cookie.
+            Secure = Request.IsHttps,
+
+            // A basket that survives a fortnight is a basket somebody comes
+            // back to. Beyond that it is clutter with stale prices in it.
+            Expires = DateTimeOffset.UtcNow.AddDays(14),
+        });
+
+    protected void ClearCartToken() =>
+        Response.Cookies.Delete(CartCookie, new CookieOptions
+        {
+            HttpOnly = true,
+            SameSite = SameSiteMode.Lax,
+            Secure = Request.IsHttps,
+        });
+}
+
+/// <summary>
+/// Rate-limit policy names.
+///
+/// The storefront's write endpoints are anonymous and create real rows - a
+/// customer, an order, a basket. Without a ceiling, one script overnight
+/// becomes ten thousand of each, and the first anybody knows of it is a
+/// morning spent deleting them.
+/// </summary>
+public static class RateLimits
+{
+    public const string Cart = "storefront-cart";
+
+    public const string Checkout = "storefront-checkout";
 }

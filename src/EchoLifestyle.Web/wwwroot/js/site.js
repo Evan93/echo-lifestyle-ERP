@@ -201,14 +201,50 @@
                 return;
             }
 
+            // A form that will not pass validation is not submitting, so it
+            // must not be locked either.
             if (form.checkValidity && !form.checkValidity()) {
                 return;
             }
 
+            // Another listener may still cancel this submit; if it does, the
+            // form has to stay usable.
+            if (event.defaultPrevented) {
+                return;
+            }
+
             form.dataset.submitting = "true";
-            button.disabled = true;
-            button.innerHTML =
-                '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Working...';
+            var original = button.innerHTML;
+
+            // Deferred, and this matters. Disabling the submitter while the
+            // event is still travelling means the browser reaches its own
+            // submission step, finds the button disabled, and quietly does
+            // nothing - a spinner that spins forever with no request behind it.
+            // By the next tick the submission has already been started.
+            window.setTimeout(function () {
+                if (event.defaultPrevented) {
+                    form.dataset.submitting = "";
+                    return;
+                }
+
+                button.disabled = true;
+                button.innerHTML =
+                    '<span class="spinner-border spinner-border-sm me-2" role="status"' +
+                    ' aria-hidden="true"></span>Working...';
+            }, 0);
+
+            // A last resort. If the page is still here after fifteen seconds
+            // the navigation failed, and leaving somebody staring at a dead
+            // button with no way back is worse than letting them try again.
+            window.setTimeout(function () {
+                if (!document.body.contains(button)) {
+                    return;
+                }
+
+                form.dataset.submitting = "";
+                button.disabled = false;
+                button.innerHTML = original;
+            }, 15000);
         }, true);
     }
 

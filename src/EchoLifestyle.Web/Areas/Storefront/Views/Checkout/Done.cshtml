@@ -1,0 +1,38 @@
+@model PlacedOrder
+
+<div class="container py-5">
+    <div class="mx-auto text-center" style="max-width: 34rem;">
+
+        <div class="shop-done__mark" aria-hidden="true">&#10003;</div>
+
+        <h1 class="shop-display h2 mb-2">Thank you, @Model.RecipientName</h1>
+
+        <p class="text-muted">
+            Your order is with us. We will call to confirm it before anything ships.
+        </p>
+
+        <div class="shop-summary text-start mt-4">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Order number</span>
+                <code>@Model.Number</code>
+            </div>
+
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Delivering to</span>
+                <span>@Model.DistrictName</span>
+            </div>
+
+            <div class="d-flex justify-content-between border-top pt-2">
+                <span class="fw-semibold">To pay on delivery</span>
+                <span class="fw-semibold">&#2547; @Model.GrandTotal.ToString("N0")</span>
+            </div>
+        </div>
+
+        <p class="text-muted small mt-4">
+            Keep the order number &mdash; quote it if you message us about this parcel.
+            Payment is cash to the courier when it arrives.
+        </p>
+
+        <a class="btn btn-shop mt-2" asp-route="storefront-home">Keep shopping</a>
+    </div>
+</div>

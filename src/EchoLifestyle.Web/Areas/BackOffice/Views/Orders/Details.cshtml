@@ -46,6 +46,14 @@
         {
             <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
         }
+
+        @* New tab, so the order stays open behind it - somebody printing a
+           parcel is usually part-way through packing several. *@
+        <a class="btn btn-sm btn-outline-secondary" target="_blank"
+           asp-action="Invoice" asp-route-id="@Model.Id" asp-route-print="true">
+            Print invoice
+        </a>
+
         <a class="btn btn-sm btn-outline-secondary" asp-action="Index">All orders</a>
     </div>
 </div>

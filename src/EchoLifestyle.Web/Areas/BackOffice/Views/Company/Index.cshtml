@@ -113,6 +113,55 @@
             </div>
 
             <div class="card mb-3">
+                <div class="card-header fw-semibold">Website delivery charges</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label asp-for="DeliveryChargeInsideCity" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">&#2547;</span>
+                                <input asp-for="DeliveryChargeInsideCity" class="form-control"
+                                       type="number" step="1" min="0" disabled="@(!canEdit)" />
+                            </div>
+                            <span asp-validation-for="DeliveryChargeInsideCity"
+                                  class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-6">
+                            <label asp-for="DeliveryChargeOutsideCity" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">&#2547;</span>
+                                <input asp-for="DeliveryChargeOutsideCity" class="form-control"
+                                       type="number" step="1" min="0" disabled="@(!canEdit)" />
+                            </div>
+                            <span asp-validation-for="DeliveryChargeOutsideCity"
+                                  class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="FreeDeliveryOverAmount" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">&#2547;</span>
+                                <input asp-for="FreeDeliveryOverAmount" class="form-control"
+                                       type="number" step="1" min="0" disabled="@(!canEdit)"
+                                       placeholder="Leave blank for no free delivery" />
+                            </div>
+                            <div class="form-text">
+                                Blank switches the offer off. It is the strongest lever there is on
+                                basket size, and the most expensive one to guess at.
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-muted small mt-3 mb-0">
+                        Two rates, chosen by whether the customer's district is inside Dhaka city.
+                        The seeded figures are placeholders &mdash; put in what Steadfast actually
+                        charges you and what you intend to charge the customer.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card mb-3">
                 <div class="card-header fw-semibold">Locale</div>
                 <div class="card-body">
                     <dl class="row mb-0 small">

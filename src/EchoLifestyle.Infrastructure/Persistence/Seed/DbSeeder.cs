@@ -48,12 +48,45 @@ public class DbSeeder
         var branchId = await SeedOrganisationAsync(options, cancellationToken);
         await SeedCatalogBaselineAsync(cancellationToken);
         await SeedGeographyAsync(cancellationToken);
+        await SeedDeliveryChargesAsync(cancellationToken);
         await SeedExpenseCategoriesAsync(cancellationToken);
         await SeedOwnersAsync(options, branchId, isDevelopment);
 
         // After the owners, because a partner is seeded from the account that
         // already exists rather than from a name written twice.
         await SeedPartnersAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Starting delivery charges, for a company row that has none.
+    ///
+    /// The property initialisers on <see cref="Company"/> only apply to a row
+    /// this code creates. The migration that added these columns backfilled the
+    /// existing row with zero, which is not a sensible price and is not
+    /// distinguishable from "somebody deliberately set it to free" - except
+    /// that nobody had the chance to. So zero is read as unset and filled in
+    /// once; any real figure, including a deliberate zero entered later
+    /// alongside a non-zero one, is left alone.
+    /// </summary>
+    private async Task SeedDeliveryChargesAsync(CancellationToken cancellationToken)
+    {
+        var company = await _db.Companies.FirstOrDefaultAsync(cancellationToken);
+
+        if (company is null
+            || company.DeliveryChargeInsideCity != 0m
+            || company.DeliveryChargeOutsideCity != 0m)
+        {
+            return;
+        }
+
+        company.DeliveryChargeInsideCity = 60m;
+        company.DeliveryChargeOutsideCity = 120m;
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Set starting delivery charges (60 inside Dhaka, 120 elsewhere). "
+            + "Confirm them in Administration - Company.");
     }
 
     /// <summary>

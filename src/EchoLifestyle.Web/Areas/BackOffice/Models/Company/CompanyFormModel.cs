@@ -55,6 +55,18 @@ public class CompanyFormModel
 
     public string BusinessTimeZoneId { get; set; } = "Asia/Dhaka";
 
+    [Range(0, 99999, ErrorMessage = "Enter a delivery charge of zero or more.")]
+    [Display(Name = "Delivery inside Dhaka city")]
+    public decimal DeliveryChargeInsideCity { get; set; }
+
+    [Range(0, 99999, ErrorMessage = "Enter a delivery charge of zero or more.")]
+    [Display(Name = "Delivery elsewhere")]
+    public decimal DeliveryChargeOutsideCity { get; set; }
+
+    [Range(0, 9999999, ErrorMessage = "Enter an order value, or leave it blank.")]
+    [Display(Name = "Free delivery over")]
+    public decimal? FreeDeliveryOverAmount { get; set; }
+
     public bool IsVatRegistered => !string.IsNullOrWhiteSpace(VatRegistrationNumber);
 
     public SaveCompanyRequest ToRequest() => new()
@@ -69,6 +81,9 @@ public class CompanyFormModel
         PostalCode = PostalCode,
         Phone = Phone,
         Email = Email,
+        DeliveryChargeInsideCity = DeliveryChargeInsideCity,
+        DeliveryChargeOutsideCity = DeliveryChargeOutsideCity,
+        FreeDeliveryOverAmount = FreeDeliveryOverAmount,
     };
 
     public static CompanyFormModel FromDetail(CompanyDetail detail) => new()
@@ -85,5 +100,8 @@ public class CompanyFormModel
         Email = detail.Email,
         BaseCurrencyCode = detail.BaseCurrencyCode,
         BusinessTimeZoneId = detail.BusinessTimeZoneId,
+        DeliveryChargeInsideCity = detail.DeliveryChargeInsideCity,
+        DeliveryChargeOutsideCity = detail.DeliveryChargeOutsideCity,
+        FreeDeliveryOverAmount = detail.FreeDeliveryOverAmount,
     };
 }

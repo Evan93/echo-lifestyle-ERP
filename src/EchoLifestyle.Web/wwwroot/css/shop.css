@@ -17,7 +17,7 @@
 
     --shop-rose-400: #e6aa96;
     --shop-rose-500: #c98b6e;
-    --shop-rose-600: #a9705a;
+    --shop-rose-600: #a9705a;   /* dark enough to read on white */
 
     --shop-ink: #1c1418;
     --shop-ink-soft: #6b6169;
@@ -74,13 +74,16 @@ a:hover {
     min-height: var(--shop-header-height);
 }
 
+/* The mark and the wordmark are separate on purpose: the emblem ships as
+   artwork, the words are live type. Setting the whole lockup as an image would
+   mean shipping the LIFESTYLE line at a size where it cannot be read, and it
+   would blur on every screen the artwork was not sized for. */
 .shop-logo {
-    font-family: var(--shop-display);
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--shop-wine-700);
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
     text-decoration: none;
-    letter-spacing: 0.02em;
+    color: var(--shop-wine-700);
     white-space: nowrap;
 }
 
@@ -89,12 +92,90 @@ a:hover {
 }
 
 .shop-logo img {
-    height: 34px;
-    width: auto;
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    flex: 0 0 auto;
+}
+
+.shop-logo__type {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+    font-family: var(--shop-display);
+    font-size: 1.42rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+}
+
+/* Tracked out to sit under ECHO at the same optical width, the way it does in
+   the artwork. */
+.shop-logo__type small {
+    font-family: var(--shop-display);
+    font-size: .5rem;
+    font-weight: 400;
+    letter-spacing: .38em;
+    text-transform: uppercase;
+    color: var(--shop-rose-600, #a9705a);
+    margin-top: .22rem;
+    margin-left: .1em;
+}
+
+.shop-logo--dark {
+    color: #fff;
+}
+
+.shop-logo--dark .shop-logo__type small {
+    color: var(--shop-rose-400);
+}
+
+.shop-logo--dark img {
+    width: 36px;
+    height: 36px;
+}
+
+.shop-basket {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    text-decoration: none;
+    color: var(--shop-ink);
+    font-size: .85rem;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.shop-basket:hover {
+    color: var(--shop-wine-600);
+}
+
+.shop-basket__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 .35rem;
+    border-radius: 999px;
+    background: var(--shop-wine-600);
+    color: #fff;
+    font-size: .72rem;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
 }
 
 .shop-nav {
     border-top: 1px solid var(--shop-line);
+}
+
+.shop-nav__list {
+    display: flex;
+    flex-direction: column;
+}
+
+.shop-nav__item {
+    position: static;
 }
 
 .shop-nav__link {
@@ -113,6 +194,133 @@ a:hover {
 .shop-nav__link.is-active {
     color: var(--shop-wine-600);
     border-bottom-color: var(--shop-wine-600);
+}
+
+/* --- mega menu ------------------------------------------------------------
+   Desktop only. On a phone there is no hover, the panel would cover the page,
+   and the top-level link already goes somewhere useful - so below the md
+   breakpoint the children simply do not render as a panel. */
+
+.shop-mega { display: none; }
+
+@media (min-width: 768px) {
+    .shop-nav__list {
+        flex-direction: row;
+        flex-wrap: wrap;
+        position: relative;
+    }
+
+    .shop-mega {
+        display: block;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        z-index: 1040;
+        background: var(--shop-surface);
+        border-top: 1px solid var(--shop-line);
+        border-bottom: 1px solid var(--shop-line);
+        box-shadow: 0 12px 24px -18px rgba(42, 7, 19, .5);
+
+        /* Hidden by clipping rather than display:none, so the panel can fade
+           and so a keyboard tab still reaches the links inside it. */
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-4px);
+        transition: opacity .14s ease, transform .14s ease, visibility .14s;
+    }
+
+    .shop-nav__item:hover .shop-mega,
+    .shop-nav__item:focus-within .shop-mega {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+    }
+
+    .shop-mega__inner {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 220px;
+        gap: 2rem;
+        padding: 1.5rem 0 1.75rem;
+    }
+
+    /* Sub-categories and brands side by side, each falling away when it has
+       nothing in it - so a category with brands but no children still gets a
+       full-width panel rather than a column of dead space. */
+    .shop-mega__panels {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem 2.5rem;
+        align-items: start;
+    }
+
+    .shop-mega__panel {
+        flex: 1 1 240px;
+        min-width: 0;
+    }
+
+    .shop-mega__title {
+        font-size: .7rem;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--shop-ink-soft);
+        margin-bottom: .45rem;
+    }
+
+    .shop-mega__cols {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: .1rem 1.5rem;
+        align-content: start;
+    }
+
+    .shop-mega__link {
+        display: block;
+        padding: .3rem 0;
+        color: var(--shop-ink);
+        text-decoration: none;
+        font-size: .9rem;
+    }
+
+    .shop-mega__link:hover {
+        color: var(--shop-wine-600);
+    }
+
+    /* Quiet on purpose. The number is there to be checked, not read. */
+    .shop-mega__count {
+        font-size: .72rem;
+        color: var(--shop-ink-soft);
+        font-variant-numeric: tabular-nums;
+        margin-left: .25rem;
+    }
+
+    .shop-mega__aside {
+        border-left: 1px solid var(--shop-line);
+        padding-left: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: .6rem;
+        align-content: start;
+    }
+
+    .shop-mega__all,
+    .shop-mega__offer {
+        font-size: .85rem;
+        text-decoration: none;
+    }
+
+    .shop-mega__all {
+        font-weight: 600;
+        color: var(--shop-wine-600);
+    }
+
+    .shop-mega__offer {
+        color: var(--shop-rose-600);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .shop-mega { transition: none; }
 }
 
 .shop-search .form-control {
@@ -366,6 +574,197 @@ a:hover {
     border-color: var(--shop-line);
 }
 
+/* --- browsing: filter rail beside the grid --------------------------------- */
+
+.shop-browse {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 992px) {
+    .shop-browse {
+        grid-template-columns: 232px minmax(0, 1fr);
+        gap: 2.5rem;
+        align-items: start;
+    }
+
+    .shop-browse__rail {
+        position: sticky;
+        top: calc(var(--shop-header-height) + 1rem);
+    }
+}
+
+.shop-filters__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: .6rem;
+    border-bottom: 1px solid var(--shop-line);
+    margin-bottom: .9rem;
+}
+
+.shop-filters__group {
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--shop-line);
+}
+
+.shop-filters__group:last-child {
+    border-bottom: none;
+}
+
+.shop-filters__title {
+    font-size: .74rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--shop-ink-soft);
+    margin: 0 0 .5rem;
+}
+
+/* Links, not checkboxes. Every filter state is a real URL, so the thing that
+   changes it should be something a browser can bookmark and go back from. */
+.shop-filters__toggle {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .3rem 0;
+    color: var(--shop-ink);
+    text-decoration: none;
+    font-size: .88rem;
+}
+
+.shop-filters__toggle:hover {
+    color: var(--shop-wine-600);
+}
+
+.shop-filters__box {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    border: 1px solid var(--shop-line);
+    background: var(--shop-surface);
+}
+
+.shop-filters__toggle.is-on {
+    color: var(--shop-wine-600);
+    font-weight: 600;
+}
+
+.shop-filters__toggle.is-on .shop-filters__box {
+    background: var(--shop-wine-600);
+    border-color: var(--shop-wine-600);
+    box-shadow: inset 0 0 0 2px var(--shop-surface);
+}
+
+.shop-filters__label {
+    flex: 1;
+    min-width: 0;
+}
+
+.shop-filters__count {
+    font-size: .78rem;
+    color: var(--shop-ink-soft);
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- basket and checkout -------------------------------------------------- */
+
+.shop-lines {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--shop-line);
+}
+
+.shop-line {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr) auto auto;
+    gap: 1rem;
+    align-items: start;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--shop-line);
+}
+
+/* A line that cannot be ordered is flagged, not hidden. A basket that quietly
+   drops an item is how somebody receives half an order and blames the courier. */
+.shop-line.is-problem {
+    background: #fdf6f3;
+    box-shadow: inset 3px 0 0 var(--shop-rose-500);
+    padding-left: .75rem;
+}
+
+.shop-line__thumb {
+    display: block;
+    width: 84px;
+    height: 84px;
+    background: var(--shop-canvas);
+    border: 1px solid var(--shop-line);
+    overflow: hidden;
+}
+
+.shop-line__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.shop-line__initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-family: var(--shop-display);
+    font-size: 1.6rem;
+    color: var(--shop-rose-500);
+    background: var(--shop-wine-100);
+}
+
+.shop-line__name {
+    display: block;
+    color: var(--shop-ink);
+    text-decoration: none;
+    font-size: .98rem;
+    line-height: 1.35;
+}
+
+.shop-line__name:hover {
+    color: var(--shop-wine-600);
+}
+
+.shop-line__money {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.shop-qty {
+    width: 4.5rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.shop-summary {
+    border: 1px solid var(--shop-line);
+    background: var(--shop-surface);
+    padding: 1.25rem;
+    position: sticky;
+    top: calc(var(--shop-header-height) + 1rem);
+}
+
+.shop-summary code {
+    font-size: .9rem;
+}
+
+.shop-done__mark {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 1.25rem;
+    border-radius: 50%;
+    background: var(--shop-wine-100);
+    color: var(--shop-wine-600);
+    font-size: 1.6rem;
+    line-height: 56px;
+}
+
 /* --- footer --------------------------------------------------------------- */
 
 .shop-footer {
@@ -373,6 +772,10 @@ a:hover {
     color: #c9b6bd;
     margin-top: 4rem;
     padding: 3rem 0 2rem;
+}
+
+.shop-footer .shop-logo {
+    display: inline-flex;
 }
 
 .shop-footer a {
@@ -392,7 +795,35 @@ a:hover {
     margin-bottom: .75rem;
 }
 
+@media (max-width: 767.98px) {
+    .shop-line {
+        grid-template-columns: 64px minmax(0, 1fr);
+        row-gap: .5rem;
+    }
+
+    .shop-line__thumb { width: 64px; height: 64px; }
+
+    .shop-line__qty,
+    .shop-line__money {
+        grid-column: 2;
+        text-align: left;
+    }
+
+    .shop-summary {
+        position: static;
+    }
+}
+
 @media (max-width: 575.98px) {
+    .shop-logo__type {
+        font-size: 1.2rem;
+    }
+
+    .shop-logo img {
+        width: 34px;
+        height: 34px;
+    }
+
     .shop-price--lead {
         font-size: 1.5rem;
     }

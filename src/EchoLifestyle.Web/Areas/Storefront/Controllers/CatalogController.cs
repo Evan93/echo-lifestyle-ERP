@@ -25,12 +25,18 @@ public class CatalogController : StorefrontControllerBase
         string slug,
         string? sort,
         int? page,
+        [FromQuery(Name = "brand")] long[]? brands,
+        [FromQuery(Name = "min")] decimal? minPrice,
+        [FromQuery(Name = "max")] decimal? maxPrice,
+        [FromQuery(Name = "stock")] string? inStock,
+        [FromQuery(Name = "offer")] string? onOffer,
         CancellationToken cancellationToken)
     {
         var order = ParseSort(sort);
+        var filters = ParseFilters(brands, minPrice, maxPrice, inStock, onOffer);
 
-        var (category, products) = await _catalog.GetCategoryAsync(
-            slug, order, ParsePage(page), cancellationToken);
+        var (category, products, facets) = await _catalog.GetCategoryAsync(
+            slug, order, ParsePage(page), filters, cancellationToken);
 
         if (category is null)
         {
@@ -48,6 +54,8 @@ public class CatalogController : StorefrontControllerBase
             Children = category.Children,
             Products = products,
             Sort = order,
+            Filters = filters,
+            Facets = facets,
             RouteName = "storefront-category",
             RouteSlug = category.Slug,
         });
@@ -58,12 +66,19 @@ public class CatalogController : StorefrontControllerBase
         string slug,
         string? sort,
         int? page,
+        [FromQuery(Name = "min")] decimal? minPrice,
+        [FromQuery(Name = "max")] decimal? maxPrice,
+        [FromQuery(Name = "stock")] string? inStock,
+        [FromQuery(Name = "offer")] string? onOffer,
         CancellationToken cancellationToken)
     {
         var order = ParseSort(sort);
 
-        var (brand, products) = await _catalog.GetBrandAsync(
-            slug, order, ParsePage(page), cancellationToken);
+        // No brand facet on a brand page - everything here is that brand.
+        var filters = ParseFilters(null, minPrice, maxPrice, inStock, onOffer);
+
+        var (brand, products, facets) = await _catalog.GetBrandAsync(
+            slug, order, ParsePage(page), filters, cancellationToken);
 
         if (brand is null)
         {
@@ -81,6 +96,12 @@ public class CatalogController : StorefrontControllerBase
             ImagePath = brand.BannerPath ?? brand.LogoPath,
             Products = products,
             Sort = order,
+            Filters = filters,
+            Facets = new ShopFacets
+            {
+                LowestPrice = facets.LowestPrice,
+                HighestPrice = facets.HighestPrice,
+            },
             RouteName = "storefront-brand",
             RouteSlug = brand.Slug,
         });
@@ -91,10 +112,18 @@ public class CatalogController : StorefrontControllerBase
         string? q,
         string? sort,
         int? page,
+        [FromQuery(Name = "brand")] long[]? brands,
+        [FromQuery(Name = "min")] decimal? minPrice,
+        [FromQuery(Name = "max")] decimal? maxPrice,
+        [FromQuery(Name = "stock")] string? inStock,
+        [FromQuery(Name = "offer")] string? onOffer,
         CancellationToken cancellationToken)
     {
         var order = ParseSort(sort);
-        var products = await _catalog.SearchAsync(q, order, ParsePage(page), cancellationToken);
+        var filters = ParseFilters(brands, minPrice, maxPrice, inStock, onOffer);
+
+        var (products, facets) = await _catalog.SearchAsync(
+            q, order, ParsePage(page), filters, cancellationToken);
 
         ViewData["Title"] = string.IsNullOrWhiteSpace(q) ? "Search" : $"Search: {q}";
 
@@ -108,8 +137,42 @@ public class CatalogController : StorefrontControllerBase
             Products = products,
             Sort = order,
             Query = q,
+            Filters = filters,
+            Facets = facets,
             RouteName = "storefront-search",
         });
+    }
+
+    /// <summary>
+    /// Filters out of the query string, forgiving rather than strict.
+    ///
+    /// A public URL gets mistyped, truncated and pasted half-formed. Nothing
+    /// here throws: a nonsense value is simply not a filter.
+    /// </summary>
+    private static ShopFilters ParseFilters(
+        long[]? brands,
+        decimal? minPrice,
+        decimal? maxPrice,
+        string? inStock,
+        string? onOffer)
+    {
+        // A reversed range is what somebody typing 2000 into "from" and 500
+        // into "to" means, not an empty result.
+        if (minPrice is not null && maxPrice is not null && minPrice > maxPrice)
+        {
+            (minPrice, maxPrice) = (maxPrice, minPrice);
+        }
+
+        return new ShopFilters
+        {
+            // Capped, because a crafted URL should not be able to ask for a
+            // thousand-item IN clause.
+            BrandIds = brands?.Where(id => id > 0).Distinct().Take(20).ToList() ?? [],
+            MinPrice = minPrice is > 0m ? minPrice : null,
+            MaxPrice = maxPrice is > 0m ? maxPrice : null,
+            InStockOnly = inStock == "1",
+            OnOfferOnly = onOffer == "1",
+        };
     }
 
     [HttpGet]

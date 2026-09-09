@@ -15,6 +15,20 @@
     }
     else
     {
-        <partial name="_ProductGrid" model="Model" />
+        <div class="shop-browse">
+            <button class="btn btn-sm btn-outline-secondary d-lg-none mb-3" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#shopFilters"
+                    aria-controls="shopFilters">
+                Filter@(Model.Filters.Any ? $" ({Model.Filters.Count})" : "")
+            </button>
+
+            <div class="collapse d-lg-block shop-browse__rail" id="shopFilters">
+                <partial name="_Filters" model="Model" />
+            </div>
+
+            <div class="shop-browse__main">
+                <partial name="_ProductGrid" model="Model" />
+            </div>
+        </div>
     }
 </div>

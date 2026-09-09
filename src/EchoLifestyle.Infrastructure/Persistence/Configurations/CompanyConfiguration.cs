@@ -22,6 +22,10 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
         builder.Property(c => c.PostalCode).HasMaxLength(20);
         builder.Property(c => c.CountryCode).HasMaxLength(2).IsRequired();
         builder.Property(c => c.Phone).HasMaxLength(50);
+
+        builder.Property(c => c.DeliveryChargeInsideCity).HasColumnType("decimal(19,4)");
+        builder.Property(c => c.DeliveryChargeOutsideCity).HasColumnType("decimal(19,4)");
+        builder.Property(c => c.FreeDeliveryOverAmount).HasColumnType("decimal(19,4)");
         builder.Property(c => c.Email).HasMaxLength(250);
         builder.Property(c => c.BaseCurrencyCode).HasMaxLength(3).IsRequired();
         builder.Property(c => c.BusinessTimeZoneId).HasMaxLength(100).IsRequired();

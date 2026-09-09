@@ -219,10 +219,20 @@ public partial class SalesOrderService
                 nameof(SaveOrderRequest.CustomerId));
         }
 
-        // Blocked customers are refused here rather than warned about. The whole
-        // point of a block is that the next order does not get taken - a warning
-        // somebody can click past is not a block.
-        if (customer.IsBlocked)
+        // A block refusal is feedback, and feedback needs somebody to receive it.
+        //
+        // Staff are stopped here, with the reason, because they can act on it -
+        // a warning they can click past is not a block. A website visitor is
+        // not, and deliberately so: telling somebody at a public checkout that
+        // they are blocked only teaches them to reorder from a new number, and
+        // there is no staff member present to be told anything.
+        //
+        // Nothing is lost by letting that draft exist. It reserves no stock and
+        // moves nothing, ConfirmAsync refuses it with the reason, and the order
+        // carries CustomerIsBlocked so the list shows it for what it is. The
+        // block stops the commitment, which is the point of it; it does not
+        // have to stop the enquiry being recorded.
+        if (customer.IsBlocked && _currentUser.IsStaff)
         {
             return Fail(
                 $"{customer.FullName} is blocked: {customer.BlockReason} "
@@ -243,7 +253,13 @@ public partial class SalesOrderService
             return Fail("Choose an active branch.", nameof(SaveOrderRequest.BranchId));
         }
 
-        if (!_currentUser.IsOwner && !_currentUser.CanAccessBranch(request.BranchId))
+        // Constrains staff, not the absence of them. This check exists to stop a
+        // salesperson writing orders against a branch they do not work in; a
+        // website order has no acting staff member to constrain, and its branch
+        // is chosen by the server rather than asserted by the caller. Testing
+        // IsOwner alone would refuse every order the storefront ever places.
+        if (_currentUser.IsStaff && !_currentUser.IsOwner
+            && !_currentUser.CanAccessBranch(request.BranchId))
         {
             return Fail("You cannot take orders for that branch.", nameof(SaveOrderRequest.BranchId));
         }

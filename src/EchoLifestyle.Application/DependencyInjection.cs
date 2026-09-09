@@ -64,6 +64,8 @@ public static class DependencyInjection
         // services because "what a customer may see" is a different rule, and
         // it belongs somewhere it can be read in full.
         services.AddScoped<StorefrontCatalogService>();
+        services.AddScoped<CartService>();
+        services.AddScoped<CheckoutService>();
 
         return services;
     }

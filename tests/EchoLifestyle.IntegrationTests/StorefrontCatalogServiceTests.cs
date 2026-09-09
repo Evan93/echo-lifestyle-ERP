@@ -87,7 +87,7 @@ public class StorefrontCatalogServiceTests : IAsyncLifetime
         long productId,
         string search)
     {
-        var page = await catalog.SearchAsync(search, ShopSort.Newest, 1);
+        var (page, _) = await catalog.SearchAsync(search, ShopSort.Newest, 1);
 
         return page.Products.Any(p => p.ProductId == productId);
     }
@@ -119,7 +119,7 @@ public class StorefrontCatalogServiceTests : IAsyncLifetime
         Assert.Null(await catalog.GetProductAsync(detail.Slug));
         Assert.False(await AppearsAsync(catalog, handle.ProductId, detail.Name));
 
-        var (_, brandPage) = await catalog.GetBrandAsync(
+        var (_, brandPage, _) = await catalog.GetBrandAsync(
             await BrandSlugAsync(scope.ServiceProvider, handle.BrandId), ShopSort.Newest, 1);
 
         Assert.DoesNotContain(brandPage.Products, p => p.ProductId == handle.ProductId);
@@ -307,7 +307,7 @@ public class StorefrontCatalogServiceTests : IAsyncLifetime
         await using var scope = _fixture.CreateScope();
         var catalog = scope.ServiceProvider.GetRequiredService<StorefrontCatalogService>();
 
-        var page = await catalog.SearchAsync("   ", ShopSort.Newest, 1);
+        var (page, _) = await catalog.SearchAsync("   ", ShopSort.Newest, 1);
 
         Assert.Empty(page.Products);
         Assert.Equal(0, page.TotalCount);
@@ -327,7 +327,7 @@ public class StorefrontCatalogServiceTests : IAsyncLifetime
             .Select(c => c.Slug)
             .FirstAsync();
 
-        var (category, page) = await catalog.GetCategoryAsync(slug, ShopSort.Newest, 1);
+        var (category, page, _) = await catalog.GetCategoryAsync(slug, ShopSort.Newest, 1);
 
         Assert.NotNull(category);
         Assert.Contains(page.Products, p => p.ProductId == handle.ProductId);
@@ -352,7 +352,7 @@ public class StorefrontCatalogServiceTests : IAsyncLifetime
         await using var scope = _fixture.CreateScope();
         var catalog = scope.ServiceProvider.GetRequiredService<StorefrontCatalogService>();
 
-        var page = await catalog.SearchAsync("a", ShopSort.Newest, 9_999);
+        var (page, _) = await catalog.SearchAsync("a", ShopSort.Newest, 9_999);
 
         Assert.Empty(page.Products);
     }

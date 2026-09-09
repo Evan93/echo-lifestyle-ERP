@@ -121,6 +121,15 @@ public interface IApplicationDbContext
     DbSet<SalesOrderStatusChange> SalesOrderStatusChanges { get; }
 
     /// <summary>
+    /// Website baskets. An intention, not a claim: a cart reserves nothing and
+    /// stores no prices, so it can never hold a figure the price list has since
+    /// moved on from.
+    /// </summary>
+    DbSet<Cart> Carts { get; }
+
+    DbSet<CartLine> CartLines { get; }
+
+    /// <summary>
     /// Every movement of money. Append-only, like the stock ledger and for the
     /// same reason - an order's collected figure is a projection of these rows,
     /// never a number somebody typed over the top.

@@ -141,11 +141,13 @@ body {
     width: 38px;
     height: 38px;
     flex: 0 0 38px;
-    border-radius: 9px;
-    background: #fff;          /* the emblem is drawn for a light ground */
-    padding: 3px;
     object-fit: contain;
 }
+
+/* The emblem used to sit on a white chip because the only asset available was
+   a JPEG with a baked-in white background. The PNG has real transparency, and
+   its rose-gold leaves and lit edges carry the shape on the wine sidebar on
+   their own - so the chip is gone and the mark sits on the ground directly. */
 
 .echo-brand-text {
     display: flex;
@@ -540,7 +542,10 @@ a:hover {
 .echo-signin-logo {
     display: block;
     margin: 0 auto 1.25rem;
-    max-width: 168px;
+    /* Room for the full lockup. Below about 190px the LIFESTYLE line - thin,
+       widely tracked, and dark on a light ground - stops being readable and
+       becomes a smudge under the wordmark. */
+    max-width: 210px;
     height: auto;
 }
 

@@ -1,0 +1,208 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Sales
+@model InvoiceViewModel
+@{
+    Layout = "_PrintLayout";
+    ViewData["Title"] = $"Invoice {Model.Number}";
+}
+
+<div class="print-bar">
+    <button type="button" onclick="window.print()">Print</button>
+    <a asp-action="Details" asp-route-id="@Model.Id">Back to order</a>
+</div>
+
+<div class="sheet">
+
+    <div class="doc-head">
+        <div class="doc-head__brand">
+            @* The full lockup, not the mark: this is the one place with room
+               for it, and a printed sheet is where the brand should be whole. *@
+            <img class="doc-head__logo" src="~/img/echo-logo.png" alt="@Model.CompanyName" />
+
+            <div class="doc-head__company">
+                <strong>@Model.CompanyName</strong>
+                @foreach (var line in Model.CompanyAddressLines)
+                {
+                    <div>@line</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.CompanyPhone))
+                {
+                    <div>@Model.CompanyPhone</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.CompanyEmail))
+                {
+                    <div>@Model.CompanyEmail</div>
+                }
+                @* Appears the day a registration number is entered, and not
+                   before. Until NBR registration the document says nothing
+                   about VAT, which is the truthful thing for it to do. *@
+                @if (!string.IsNullOrWhiteSpace(Model.VatRegistrationNumber))
+                {
+                    <div>BIN @Model.VatRegistrationNumber</div>
+                }
+            </div>
+        </div>
+
+        <div class="doc-head__meta">
+            <div class="doc-title">Invoice</div>
+            <div class="doc-number">@Model.Number</div>
+            <div class="doc-date">@Model.OrderDate.ToString("d MMMM yyyy")</div>
+            @if (Model.CourierReference is not null)
+            {
+                <div class="doc-date">@Model.CourierReference</div>
+            }
+        </div>
+    </div>
+
+    @if (Model.IsDraft)
+    {
+        <div class="doc-draft">
+            Draft &mdash; not confirmed. No stock is reserved against this order.
+        </div>
+    }
+
+    <div class="doc-parties">
+        <div class="doc-party">
+            <div class="doc-party__label">Deliver to</div>
+            <div class="doc-party__name">@Model.RecipientName</div>
+            <div class="doc-party__phone">@Model.RecipientPhone</div>
+            <div>@Model.DeliveryAddress</div>
+            @if (!string.IsNullOrWhiteSpace(Model.DeliveryNotes))
+            {
+                <div class="doc-party__note">@Model.DeliveryNotes</div>
+            }
+        </div>
+    </div>
+
+    <table class="doc-lines">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th class="num">Qty</th>
+                <th class="num">Price</th>
+                <th class="num">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var line in Model.Lines)
+            {
+                <tr>
+                    <td>
+                        @line.ProductName
+                        @if (line.ShowVariantName)
+                        {
+                            <text> &mdash; @line.VariantName</text>
+                        }
+                        <span class="doc-lines__sku">@line.Sku</span>
+                    </td>
+                    <td class="num">@line.Quantity.ToString("N0")</td>
+                    <td class="num">
+                        @line.UnitPrice.ToString("N2")
+                        @if (line.DiscountAmount > 0m)
+                        {
+                            <span class="doc-lines__sku">
+                                less @line.DiscountAmount.ToString("N2")
+                            </span>
+                        }
+                    </td>
+                    <td class="num">@line.LineTotal.ToString("N2")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="doc-foot">
+        @* The collect box comes first in the source so that it is what a
+           screen reader and a skim-read both meet first. *@
+        @* The figure in this box is always AmountToCollect - never the order
+           total, never what has already been paid. On a settled order that
+           means a large, deliberate zero. *@
+        <div class="doc-collect @(Model.IsSettled ? "doc-collect--paid" : null)">
+            <div class="doc-collect__label">@Model.CollectLabel</div>
+            <div class="doc-collect__amount">&#2547;&nbsp;@Model.AmountToCollect.ToString("N0")</div>
+            @if (Model.IsSettled)
+            {
+                <div class="doc-collect__note">
+                    Paid in full &middot; &#2547; @Model.AmountCollected.ToString("N2")
+                </div>
+            }
+        </div>
+
+        <div class="doc-totals">
+            <div class="doc-totals__row">
+                <span>Subtotal</span>
+                <span>&#2547; @Model.SubTotal.ToString("N2")</span>
+            </div>
+
+            @if (Model.DiscountAmount > 0m)
+            {
+                <div class="doc-totals__row">
+                    <span>Discount</span>
+                    <span>&minus; @Model.DiscountAmount.ToString("N2")</span>
+                </div>
+            }
+
+            <div class="doc-totals__row">
+                <span>Delivery</span>
+                <span>
+                    @if (Model.DeliveryCharge <= 0m)
+                    {
+                        <text>Free</text>
+                    }
+                    else
+                    {
+                        <text>&#2547; @Model.DeliveryCharge.ToString("N2")</text>
+                    }
+                </span>
+            </div>
+
+            @* When something has been paid, the order total stops being the
+               bottom line: what is owed is. So payments come between the two,
+               and the bold figure at the foot is always the amount due - which
+               on a settled order reads zero. *@
+            <div class="doc-totals__row @(Model.AmountCollected > 0m
+                                          ? "doc-totals__row--sum"
+                                          : "doc-totals__row--grand")">
+                <span>Total</span>
+                <span>&#2547; @Model.GrandTotal.ToString("N2")</span>
+            </div>
+
+            @if (Model.AmountCollected > 0m)
+            {
+                <div class="doc-totals__row">
+                    <span>Already paid</span>
+                    <span>&minus; @Model.AmountCollected.ToString("N2")</span>
+                </div>
+
+                <div class="doc-totals__row doc-totals__row--grand">
+                    <span>Amount due</span>
+                    <span>&#2547; @Model.AmountToCollect.ToString("N2")</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* The returns wording agreed on 2026-09-08. It belongs in the parcel, not
+       only on the website: the moment it matters is at the door, and nobody
+       reads a policy page while a courier is waiting. *@
+    <div class="doc-terms">
+        <strong>Please check your order at the door.</strong>
+        You may refuse the parcel at delivery if anything is wrong &mdash; that is the
+        simplest way to return something. Once a parcel has been accepted and paid for,
+        we take it back only if the fault is ours: damaged in transit, the wrong shade,
+        or the wrong product. Message us on Facebook or Instagram, or call
+        @(string.IsNullOrWhiteSpace(Model.CompanyPhone) ? "us" : Model.CompanyPhone),
+        within three days and we will replace or refund it.
+    </div>
+</div>
+
+@section Scripts {
+    @if (Model.AutoPrint)
+    {
+        <script>
+            // Deferred to load so the logo is on the page before the dialog
+            // opens - printing mid-fetch is how a sheet comes out with a
+            // broken-image box where the brand should be.
+            window.addEventListener('load', function () { window.print(); });
+        </script>
+    }
+}

@@ -131,6 +131,10 @@ public class EchoDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
 
     public DbSet<SalesOrderStatusChange> SalesOrderStatusChanges => Set<SalesOrderStatusChange>();
 
+    public DbSet<Cart> Carts => Set<Cart>();
+
+    public DbSet<CartLine> CartLines => Set<CartLine>();
+
     public DbSet<CashTransaction> CashTransactions => Set<CashTransaction>();
 
     public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();

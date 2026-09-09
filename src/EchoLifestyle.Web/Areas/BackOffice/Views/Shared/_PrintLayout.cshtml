@@ -1,0 +1,31 @@
+@*
+    A page that exists to come out of a printer.
+
+    Not the back-office layout with things hidden: no sidebar, no navigation, no
+    Bootstrap. A print stylesheet bolted onto the admin shell would still load
+    the shell, and every future change to the sidebar would be one more thing
+    that could push the invoice onto a second page. This document has no chrome
+    to hide because none was ever added.
+
+    Its only screen affordance is the toolbar at the top, which is itself hidden
+    when printing.
+*@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"]</title>
+
+    <link rel="icon" href="~/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="~/css/print.css" asp-append-version="true" />
+
+    @* A printed document is not a page anyone should find in a search engine,
+       and these URLs carry a customer's address. *@
+    <meta name="robots" content="noindex,nofollow" />
+</head>
+<body>
+@RenderBody()
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

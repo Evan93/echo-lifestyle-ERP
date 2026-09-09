@@ -1,0 +1,143 @@
+@model ShopCart
+
+<div class="container py-4 py-lg-5">
+    <h1 class="shop-display h2 mb-4">Your basket</h1>
+
+    @if (TempData["CartMessage"] is string message)
+    {
+        <div class="alert alert-light border small">@message</div>
+    }
+
+    @if (Model.IsEmpty)
+    {
+        <div class="border text-center text-muted py-5 px-3">
+            <p class="mb-1">Nothing in here yet.</p>
+            <p class="small mb-3">Have a look at what is new, or search for something.</p>
+            <a class="btn btn-shop" asp-route="storefront-home">Start shopping</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4 g-lg-5">
+            <div class="col-12 col-lg-8">
+                @if (Model.Problems.Count > 0)
+                {
+                    <div class="alert alert-warning small">
+                        Something below is no longer available. Adjust or remove it and you can
+                        carry on &mdash; we would rather tell you now than short your parcel.
+                    </div>
+                }
+
+                <div class="shop-lines">
+                    @foreach (var line in Model.Lines)
+                    {
+                        <div class="shop-line @(line.CanBeOrdered ? null : "is-problem")">
+                            <a class="shop-line__thumb" asp-route="storefront-product"
+                               asp-route-slug="@line.ProductSlug">
+                                @if (!string.IsNullOrWhiteSpace(line.ImagePath))
+                                {
+                                    <img src="@Url.Content("~/" + line.ImagePath.TrimStart('/'))"
+                                         alt="@line.ProductName" loading="lazy" />
+                                }
+                                else
+                                {
+                                    <span class="shop-line__initial">
+                                        @(string.IsNullOrWhiteSpace(line.ProductName)
+                                            ? "E" : line.ProductName.Trim()[..1].ToUpperInvariant())
+                                    </span>
+                                }
+                            </a>
+
+                            <div class="shop-line__body">
+                                <div class="shop-card__brand">@line.BrandName</div>
+                                <a class="shop-line__name" asp-route="storefront-product"
+                                   asp-route-slug="@line.ProductSlug">@line.ProductName</a>
+
+                                @if (!string.IsNullOrWhiteSpace(line.VariantName))
+                                {
+                                    <div class="text-muted small">@line.VariantName</div>
+                                }
+
+                                @if (line.Problem is not null)
+                                {
+                                    <div class="text-danger small fw-semibold mt-1">@line.Problem</div>
+                                }
+                            </div>
+
+                            <div class="shop-line__qty">
+                                <form asp-route="storefront-cart-update" method="post"
+                                      class="d-flex align-items-center gap-1">
+                                    <input type="hidden" name="cartLineId" value="@line.Id" />
+                                    <input type="number" name="quantity" value="@line.Quantity.ToString("0.##")"
+                                           min="1" max="20" step="1"
+                                           class="form-control form-control-sm shop-qty"
+                                           aria-label="Quantity" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                        Update
+                                    </button>
+                                </form>
+
+                                <form asp-route="storefront-cart-remove" method="post" class="mt-1">
+                                    <input type="hidden" name="cartLineId" value="@line.Id" />
+                                    <button type="submit" class="btn btn-link btn-sm p-0 text-muted">
+                                        Remove
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div class="shop-line__money">
+                                @if (line.UnitPrice is not null)
+                                {
+                                    <div class="fw-semibold">&#2547; @line.LineTotal.ToString("N0")</div>
+                                    @if (line.Quantity > 1)
+                                    {
+                                        <div class="text-muted small">
+                                            &#2547; @line.UnitPrice.Value.ToString("N0") each
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">&mdash;</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-4">
+                <div class="shop-summary">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Subtotal</span>
+                        <span class="fw-semibold">&#2547; @Model.Subtotal.ToString("N0")</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-3 small text-muted">
+                        <span>Delivery</span>
+                        <span>Worked out at checkout</span>
+                    </div>
+
+                    @if (Model.CanCheckOut)
+                    {
+                        <a class="btn btn-shop w-100" asp-route="storefront-checkout">
+                            Checkout
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-shop w-100" disabled>Checkout</button>
+                        <p class="text-danger small mt-2 mb-0">
+                            Fix the item above to carry on.
+                        </p>
+                    }
+
+                    <p class="text-muted small mt-3 mb-0">
+                        Cash on delivery. We confirm every order by phone before it ships, so
+                        nothing is charged until you have spoken to us.
+                    </p>
+                </div>
+            </div>
+        </div>
+    }
+</div>

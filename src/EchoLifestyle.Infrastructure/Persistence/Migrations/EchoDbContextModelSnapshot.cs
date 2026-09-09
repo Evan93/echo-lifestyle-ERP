@@ -198,9 +198,18 @@ namespace EchoLifestyle.Infrastructure.Persistence.Migrations
                     b.Property<long?>("DeletedByUserId")
                         .HasColumnType("bigint");
 
+                    b.Property<decimal>("DeliveryChargeInsideCity")
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<decimal>("DeliveryChargeOutsideCity")
+                        .HasColumnType("decimal(19,4)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
+
+                    b.Property<decimal?>("FreeDeliveryOverAmount")
+                        .HasColumnType("decimal(19,4)");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -2565,6 +2574,90 @@ namespace EchoLifestyle.Infrastructure.Persistence.Migrations
                     b.ToTable("Suppliers", "purchasing");
                 });
 
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.Cart", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("ConvertedToSalesOrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CustomerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("LastTouchedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConvertedToSalesOrderId")
+                        .IsUnique()
+                        .HasFilter("[ConvertedToSalesOrderId] IS NOT NULL");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("LastTouchedAtUtc");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("Carts", "sales");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.CartLine", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("AddedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("CartId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ProductVariantId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductVariantId");
+
+                    b.HasIndex("CartId", "ProductVariantId")
+                        .IsUnique();
+
+                    b.ToTable("CartLines", "sales", t =>
+                        {
+                            t.HasCheckConstraint("CK_CartLines_QuantityPositive", "[Quantity] > 0");
+                        });
+                });
+
             modelBuilder.Entity("EchoLifestyle.Domain.Sales.SalesOrder", b =>
                 {
                     b.Property<long>("Id")
@@ -3750,6 +3843,42 @@ namespace EchoLifestyle.Infrastructure.Persistence.Migrations
                     b.Navigation("GoodsReceipt");
                 });
 
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.Cart", b =>
+                {
+                    b.HasOne("EchoLifestyle.Domain.Sales.SalesOrder", "ConvertedToSalesOrder")
+                        .WithMany()
+                        .HasForeignKey("ConvertedToSalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EchoLifestyle.Domain.Crm.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ConvertedToSalesOrder");
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.CartLine", b =>
+                {
+                    b.HasOne("EchoLifestyle.Domain.Sales.Cart", "Cart")
+                        .WithMany("Lines")
+                        .HasForeignKey("CartId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EchoLifestyle.Domain.Catalog.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Cart");
+
+                    b.Navigation("ProductVariant");
+                });
+
             modelBuilder.Entity("EchoLifestyle.Domain.Sales.SalesOrder", b =>
                 {
                     b.HasOne("EchoLifestyle.Domain.Administration.Branch", "Branch")
@@ -3992,6 +4121,11 @@ namespace EchoLifestyle.Infrastructure.Persistence.Migrations
                 {
                     b.Navigation("Charges");
 
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("EchoLifestyle.Domain.Sales.Cart", b =>
+                {
                     b.Navigation("Lines");
                 });
 

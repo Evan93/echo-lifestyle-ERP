@@ -1,0 +1,123 @@
+@model ShopListingViewModel
+@{
+    var facets = Model.Facets;
+    var filters = Model.Filters;
+
+    // A brand list of one is not a choice, and a price range of one value is
+    // not a range. Offering either is clutter dressed as control.
+    var showBrands = facets.Brands.Count > 1;
+    var showPrice = facets.LowestPrice is not null
+                    && facets.HighestPrice is not null
+                    && facets.LowestPrice != facets.HighestPrice;
+}
+
+<aside class="shop-filters" aria-label="Filter products">
+    <div class="shop-filters__head">
+        <span class="fw-semibold">Filter</span>
+        @if (filters.Any)
+        {
+            <a class="small" href="@Url.RouteUrl(Model.RouteName, Model.RouteValuesCleared())">
+                Clear @filters.Count
+            </a>
+        }
+    </div>
+
+    <div class="shop-filters__group">
+        <a class="shop-filters__toggle @(filters.InStockOnly ? "is-on" : null)"
+           href="@Url.RouteUrl(Model.RouteName, Model.RouteValuesToggle("stock"))">
+            <span class="shop-filters__box" aria-hidden="true"></span>
+            In stock only
+        </a>
+
+        <a class="shop-filters__toggle @(filters.OnOfferOnly ? "is-on" : null)"
+           href="@Url.RouteUrl(Model.RouteName, Model.RouteValuesToggle("offer"))">
+            <span class="shop-filters__box" aria-hidden="true"></span>
+            On offer
+        </a>
+    </div>
+
+    @if (showBrands)
+    {
+        <div class="shop-filters__group">
+            <h3 class="shop-filters__title">Brand</h3>
+
+            @foreach (var brand in facets.Brands)
+            {
+                var on = filters.BrandIds.Contains(brand.Id);
+
+                <a class="shop-filters__toggle @(on ? "is-on" : null)"
+                   href="@Url.RouteUrl(Model.RouteName, Model.RouteValuesToggleBrand(brand.Id))">
+                    <span class="shop-filters__box" aria-hidden="true"></span>
+                    <span class="shop-filters__label">@brand.Name</span>
+                    <span class="shop-filters__count">@brand.Count</span>
+                </a>
+            }
+        </div>
+    }
+
+    @if (showPrice)
+    {
+        <div class="shop-filters__group">
+            <h3 class="shop-filters__title">Price</h3>
+
+            <form method="get" action="@Url.RouteUrl(Model.RouteName, Model.RouteValuesCleared())"
+                  class="d-flex align-items-center gap-2">
+
+                @* The rest of the state travels as hidden fields, because a GET
+                   form replaces the whole query string with whatever it holds. *@
+                @if (!string.IsNullOrWhiteSpace(Model.RouteSlug))
+                {
+                    <input type="hidden" name="slug" value="@Model.RouteSlug" />
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Query))
+                {
+                    <input type="hidden" name="q" value="@Model.Query" />
+                }
+                <input type="hidden" name="sort" value="@Model.SortKey" />
+                @foreach (var id in filters.BrandIds)
+                {
+                    <input type="hidden" name="brand" value="@id" />
+                }
+                @if (filters.InStockOnly)
+                {
+                    <input type="hidden" name="stock" value="1" />
+                }
+                @if (filters.OnOfferOnly)
+                {
+                    <input type="hidden" name="offer" value="1" />
+                }
+
+                <input type="number" name="min" class="form-control form-control-sm"
+                       inputmode="numeric" min="0" step="50"
+                       value="@filters.MinPrice?.ToString("0")"
+                       placeholder="@facets.LowestPrice?.ToString("0")"
+                       aria-label="Lowest price" />
+
+                <span class="text-muted small">to</span>
+
+                <input type="number" name="max" class="form-control form-control-sm"
+                       inputmode="numeric" min="0" step="50"
+                       value="@filters.MaxPrice?.ToString("0")"
+                       placeholder="@facets.HighestPrice?.ToString("0")"
+                       aria-label="Highest price" />
+
+                <button type="submit" class="btn btn-sm btn-outline-secondary">Go</button>
+            </form>
+        </div>
+    }
+
+    @if (Model.Children.Count > 0)
+    {
+        <div class="shop-filters__group">
+            <h3 class="shop-filters__title">In this category</h3>
+
+            @foreach (var child in Model.Children)
+            {
+                <a class="shop-filters__toggle"
+                   asp-route="storefront-category" asp-route-slug="@child.Slug">
+                    <span class="shop-filters__label">@child.Name</span>
+                </a>
+            }
+        </div>
+    }
+</aside>

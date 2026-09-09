@@ -38,7 +38,15 @@ public class StorefrontCatalogService
     // -----------------------------------------------------------------------
 
     /// <summary>
-    /// The category tree for the header menu: top level, with their children.
+    /// How many brands a single menu panel will list. Past this it stops being
+    /// a shortcut and becomes a second catalogue to read; the category page's
+    /// own sidebar has the complete list.
+    /// </summary>
+    private const int MenuBrandLimit = 8;
+
+    /// <summary>
+    /// The category tree for the header menu: top level, with their children
+    /// and the brands stocked beneath them.
     ///
     /// Depth is capped at two by <see cref="Category.MaxDepth"/>, so this is a
     /// menu, not a recursion.
@@ -70,12 +78,93 @@ public class StorefrontCatalogService
 
         var top = rows.Where(c => c.ParentId is null).ToList();
 
+        var brands = await MenuBrandsAsync(cancellationToken);
+
         foreach (var category in top)
         {
             category.Children = byParent.GetValueOrDefault(category.Id, []);
+            category.Brands = brands.GetValueOrDefault(category.Id, []);
         }
 
         return top;
+    }
+
+    /// <summary>
+    /// Which brands sit under each top-level category, and how many products of
+    /// theirs a shopper would find there.
+    ///
+    /// One query for the whole menu rather than one per category. Every row a
+    /// product sits in already carries its category's materialised path, and
+    /// the first segment of that path is the top-level ancestor - so the
+    /// grouping is arithmetic on strings already fetched, not a recursive walk
+    /// nor a query per heading.
+    ///
+    /// The grouping itself is done in memory on purpose. It is over the
+    /// category rows of sellable products only, which for a catalogue of this
+    /// size is a few hundred rows at most, and doing it here keeps the whole
+    /// rule readable in one place. If the catalogue ever grows past that, this
+    /// is the method to push down into SQL - the shape of what it returns need
+    /// not change.
+    /// </summary>
+    private async Task<Dictionary<long, IReadOnlyList<BrandFacet>>> MenuBrandsAsync(
+        CancellationToken cancellationToken)
+    {
+        var sellable = SellableProducts();
+
+        var rows = await _db.ProductCategories
+            .AsNoTracking()
+            .Where(pc => pc.Category!.IsActive && sellable.Any(p => p.Id == pc.ProductId))
+            .Select(pc => new
+            {
+                pc.ProductId,
+                pc.Category!.Path,
+                pc.Product!.BrandId,
+                BrandName = pc.Product.Brand!.Name,
+                BrandSlug = pc.Product.Brand.Slug,
+            })
+            .ToListAsync(cancellationToken);
+
+        var result = new Dictionary<long, IReadOnlyList<BrandFacet>>();
+
+        foreach (var group in rows.GroupBy(r => RootCategoryId(r.Path)))
+        {
+            if (group.Key is not { } rootId)
+            {
+                continue;
+            }
+
+            result[rootId] = group
+                .GroupBy(r => new { r.BrandId, r.BrandName, r.BrandSlug })
+                .Select(g => new BrandFacet
+                {
+                    Id = g.Key.BrandId,
+                    Name = g.Key.BrandName,
+                    Slug = g.Key.BrandSlug,
+
+                    // Distinct, because a product filed under both a parent and
+                    // its child appears twice in the rows above and is still
+                    // one product on the page the shopper lands on.
+                    Count = g.Select(x => x.ProductId).Distinct().Count(),
+                })
+                .OrderByDescending(b => b.Count)
+                .ThenBy(b => b.Name)
+                .Take(MenuBrandLimit)
+                .ToList();
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// The top-level ancestor out of a materialised path such as "/1/7/22/".
+    /// Null when the path is malformed, which is a row to skip rather than a
+    /// menu to fail on.
+    /// </summary>
+    private static long? RootCategoryId(string path)
+    {
+        var first = path.Split('/', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+
+        return long.TryParse(first, out var id) && id > 0 ? id : null;
     }
 
     public async Task<ShopHome> GetHomeAsync(CancellationToken cancellationToken = default)
@@ -119,11 +208,13 @@ public class StorefrontCatalogService
     // Listings
     // -----------------------------------------------------------------------
 
-    public async Task<(ShopCategory? Category, ShopProductPage Page)> GetCategoryAsync(
-        string slug,
-        ShopSort sort,
-        int page,
-        CancellationToken cancellationToken = default)
+    public async Task<(ShopCategory? Category, ShopProductPage Page, ShopFacets Facets)>
+        GetCategoryAsync(
+            string slug,
+            ShopSort sort,
+            int page,
+            ShopFilters? filters = null,
+            CancellationToken cancellationToken = default)
     {
         var category = await _db.Categories
             .AsNoTracking()
@@ -143,7 +234,7 @@ public class StorefrontCatalogService
 
         if (category is null)
         {
-            return (null, new ShopProductPage());
+            return (null, new ShopProductPage(), new ShopFacets());
         }
 
         category.Children = await _db.Categories
@@ -170,13 +261,17 @@ public class StorefrontCatalogService
                        && (pc.CategoryId == category.Id
                            || pc.Category!.Path.StartsWith(prefix))));
 
-        return (category, await ListAsync(query, sort, page, PageSize, cancellationToken));
+        var facets = await FacetsAsync(query, cancellationToken);
+        var products = await ListAsync(query, sort, page, PageSize, cancellationToken, filters);
+
+        return (category, products, facets);
     }
 
-    public async Task<(ShopBrand? Brand, ShopProductPage Page)> GetBrandAsync(
+    public async Task<(ShopBrand? Brand, ShopProductPage Page, ShopFacets Facets)> GetBrandAsync(
         string slug,
         ShopSort sort,
         int page,
+        ShopFilters? filters = null,
         CancellationToken cancellationToken = default)
     {
         var brand = await _db.Brands
@@ -196,12 +291,15 @@ public class StorefrontCatalogService
 
         if (brand is null)
         {
-            return (null, new ShopProductPage());
+            return (null, new ShopProductPage(), new ShopFacets());
         }
 
         var query = SellableProducts().Where(p => p.BrandId == brand.Id);
 
-        return (brand, await ListAsync(query, sort, page, PageSize, cancellationToken));
+        var facets = await FacetsAsync(query, cancellationToken);
+        var products = await ListAsync(query, sort, page, PageSize, cancellationToken, filters);
+
+        return (brand, products, facets);
     }
 
     /// <summary>
@@ -211,15 +309,16 @@ public class StorefrontCatalogService
     /// server, and the interface here is narrow enough that one can be dropped
     /// in behind it when the catalogue is large enough to justify running one.
     /// </summary>
-    public async Task<ShopProductPage> SearchAsync(
+    public async Task<(ShopProductPage Page, ShopFacets Facets)> SearchAsync(
         string? term,
         ShopSort sort,
         int page,
+        ShopFilters? filters = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(term))
         {
-            return new ShopProductPage { Page = 1, PageSize = PageSize };
+            return (new ShopProductPage { Page = 1, PageSize = PageSize }, new ShopFacets());
         }
 
         var text = term.Trim();
@@ -230,7 +329,9 @@ public class StorefrontCatalogService
             || (p.ShortDescription != null && EF.Functions.Like(p.ShortDescription, $"%{text}%"))
             || p.Variants.Any(v => v.IsActive && EF.Functions.Like(v.Sku, $"%{text}%")));
 
-        return await ListAsync(query, sort, page, PageSize, cancellationToken);
+        var facets = await FacetsAsync(query, cancellationToken);
+
+        return (await ListAsync(query, sort, page, PageSize, cancellationToken, filters), facets);
     }
 
     // -----------------------------------------------------------------------
@@ -361,14 +462,89 @@ public class StorefrontCatalogService
                         && p.Brand!.IsActive
                         && p.Variants.Any(v => v.IsActive));
 
+    /// <summary>
+    /// What is worth offering to filter by, over the products in scope.
+    ///
+    /// Deliberately computed before any filter is applied. Recomputing the
+    /// brand list from the already-filtered set would make every brand but the
+    /// chosen one disappear, and leave somebody unable to widen their own
+    /// search without pressing back.
+    /// </summary>
+    private async Task<ShopFacets> FacetsAsync(
+        IQueryable<Product> query,
+        CancellationToken cancellationToken)
+    {
+        var priceListId = await DefaultPriceListIdAsync(cancellationToken);
+
+        var brands = await query
+            .GroupBy(p => new { p.BrandId, p.Brand!.Name, p.Brand.Slug })
+            .Select(g => new BrandFacet
+            {
+                Id = g.Key.BrandId,
+                Name = g.Key.Name,
+                Slug = g.Key.Slug,
+                Count = g.Count(),
+            })
+            .OrderByDescending(b => b.Count)
+            .ThenBy(b => b.Name)
+            .ToListAsync(cancellationToken);
+
+        var prices = await query
+            .Select(p => _db.PriceListItems
+                .Where(i => i.PriceListId == priceListId
+                            && i.EffectiveToUtc == null
+                            && i.ProductVariant!.ProductId == p.Id
+                            && i.ProductVariant.IsActive)
+                .Min(i => (decimal?)i.UnitPrice))
+            .Where(price => price != null)
+            .ToListAsync(cancellationToken);
+
+        return new ShopFacets
+        {
+            Brands = brands,
+            LowestPrice = prices.Count == 0 ? null : prices.Min(),
+            HighestPrice = prices.Count == 0 ? null : prices.Max(),
+        };
+    }
+
     private async Task<ShopProductPage> ListAsync(
         IQueryable<Product> query,
         ShopSort sort,
         int page,
         int pageSize,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        ShopFilters? filters = null)
     {
         var priceListId = await DefaultPriceListIdAsync(cancellationToken);
+
+        if (filters?.BrandIds.Count > 0)
+        {
+            var brandIds = filters.BrandIds;
+            query = query.Where(p => brandIds.Contains(p.BrandId));
+        }
+
+        if (filters?.InStockOnly == true)
+        {
+            // Availability, not on-hand (rule 18). Stock already promised to
+            // somebody else is not what this shopper can buy.
+            query = query.Where(p => _db.StockBalances
+                .Where(b => b.ProductVariant!.ProductId == p.Id && b.ProductVariant.IsActive)
+                .Sum(b => (decimal?)(b.QuantityOnHand - b.QuantityReserved)) > 0m);
+        }
+
+        if (filters?.OnOfferOnly == true)
+        {
+            // A compare-at price only counts as an offer while it is genuinely
+            // above what the thing costs today. A stale one is not a discount.
+            query = query.Where(p => p.Variants
+                .Where(v => v.IsActive)
+                .Max(v => v.CompareAtPrice) > _db.PriceListItems
+                    .Where(i => i.PriceListId == priceListId
+                                && i.EffectiveToUtc == null
+                                && i.ProductVariant!.ProductId == p.Id
+                                && i.ProductVariant.IsActive)
+                    .Min(i => (decimal?)i.UnitPrice));
+        }
 
         // Priced separately from the projection so that sorting by price sorts
         // in the database rather than within whichever page happened to load.
@@ -386,6 +562,19 @@ public class StorefrontCatalogService
         // An unpriced product is a merchandising mistake, not a state to show:
         // a tile with no price invites a message asking for one.
         priced = priced.Where(x => x.Price != null);
+
+        // Applied here rather than above, because "the price" of a product with
+        // several variants is the cheapest of them - which only exists once the
+        // projection has worked it out.
+        if (filters?.MinPrice is { } min)
+        {
+            priced = priced.Where(x => x.Price >= min);
+        }
+
+        if (filters?.MaxPrice is { } max)
+        {
+            priced = priced.Where(x => x.Price <= max);
+        }
 
         var totalCount = await priced.CountAsync(cancellationToken);
 

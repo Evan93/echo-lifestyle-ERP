@@ -1,0 +1,369 @@
+/* ==========================================================================
+   Echo Lifestyle - printed documents
+
+   Written for paper first and screen second, which is the opposite of the rest
+   of the application. Sizes are in millimetres because that is what A4 is in,
+   and because a document laid out in rem changes length when somebody's browser
+   font size does - which is how a one-page invoice quietly becomes two.
+
+   Loaded on its own. Nothing here shares a stylesheet with the back office, so
+   a change to the admin shell cannot move anything on a printed page.
+   ========================================================================== */
+
+@page {
+    size: A4;
+    margin: 12mm 12mm 10mm;
+}
+
+:root {
+    --print-ink: #1c1418;
+    --print-soft: #6b6169;
+    --print-line: #d9d3d6;
+    --print-wine: #70203e;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    line-height: 1.45;
+    color: var(--print-ink);
+    background: #f4f2f3;
+}
+
+/* --- the toolbar, screen only -------------------------------------------- */
+
+.print-bar {
+    display: flex;
+    justify-content: center;
+    gap: .5rem;
+    padding: 10px;
+    background: #fff;
+    border-bottom: 1px solid var(--print-line);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.print-bar button,
+.print-bar a {
+    font: inherit;
+    font-size: 9pt;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--print-line);
+    background: #fff;
+    color: var(--print-ink);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.print-bar button {
+    background: var(--print-wine);
+    border-color: var(--print-wine);
+    color: #fff;
+}
+
+/* --- the sheet ------------------------------------------------------------
+   On screen this is drawn as a piece of A4 on a grey desk, so what somebody
+   sees before pressing Print is the shape of what comes out. */
+
+.sheet {
+    width: 186mm;
+    min-height: 275mm;
+    margin: 12px auto;
+    padding: 14mm 13mm;
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(28, 20, 24, .16);
+}
+
+/* --- letterhead ----------------------------------------------------------- */
+
+.doc-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10mm;
+    padding-bottom: 5mm;
+    border-bottom: 1.5pt solid var(--print-wine);
+}
+
+.doc-head__brand {
+    display: flex;
+    gap: 5mm;
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.doc-head__logo {
+    width: 26mm;
+    height: auto;
+}
+
+.doc-head__company {
+    font-size: 9pt;
+    color: var(--print-soft);
+    line-height: 1.4;
+}
+
+.doc-head__company strong {
+    display: block;
+    font-size: 12pt;
+    color: var(--print-ink);
+    margin-bottom: 1mm;
+}
+
+.doc-head__meta {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.doc-title {
+    font-size: 16pt;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--print-wine);
+    margin: 0 0 1mm;
+}
+
+.doc-number {
+    font-size: 12pt;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.doc-date {
+    font-size: 9pt;
+    color: var(--print-soft);
+}
+
+/* --- the draft stamp ------------------------------------------------------
+   Loud on purpose. A draft has reserved no stock, so a parcel packed from one
+   is picking against inventory the system still believes is on the shelf. */
+
+.doc-draft {
+    margin: 4mm 0 0;
+    padding: 2.5mm 4mm;
+    border: 1.5pt dashed #a1121f;
+    color: #a1121f;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    text-align: center;
+    font-size: 10pt;
+}
+
+/* --- addresses ------------------------------------------------------------ */
+
+.doc-parties {
+    display: flex;
+    gap: 8mm;
+    margin: 6mm 0;
+}
+
+.doc-party {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.doc-party__label {
+    font-size: 7.5pt;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--print-soft);
+    margin-bottom: 1.5mm;
+}
+
+.doc-party__name {
+    font-weight: 600;
+    font-size: 11pt;
+}
+
+.doc-party__phone {
+    font-variant-numeric: tabular-nums;
+}
+
+.doc-party__note {
+    margin-top: 1.5mm;
+    font-size: 8.5pt;
+    color: var(--print-soft);
+}
+
+/* --- lines ---------------------------------------------------------------- */
+
+.doc-lines {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2mm;
+}
+
+.doc-lines th {
+    text-align: left;
+    font-size: 7.5pt;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--print-soft);
+    font-weight: 600;
+    padding: 0 2mm 1.5mm;
+    border-bottom: .75pt solid var(--print-line);
+}
+
+.doc-lines td {
+    padding: 2mm;
+    border-bottom: .5pt solid var(--print-line);
+    vertical-align: top;
+}
+
+/* A long order breaks across pages; the header should come with it. */
+.doc-lines thead {
+    display: table-header-group;
+}
+
+.doc-lines tr {
+    break-inside: avoid;
+}
+
+.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.doc-lines__sku {
+    display: block;
+    font-size: 8pt;
+    color: var(--print-soft);
+}
+
+/* --- totals --------------------------------------------------------------- */
+
+.doc-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8mm;
+    margin-top: 6mm;
+    break-inside: avoid;
+}
+
+.doc-totals {
+    width: 72mm;
+    margin-left: auto;
+}
+
+.doc-totals__row {
+    display: flex;
+    justify-content: space-between;
+    padding: 1mm 0;
+}
+
+/* A rule above the order total, and another above whatever is genuinely the
+   bottom line. On a part-paid order those are two different rows. */
+.doc-totals__row--sum,
+.doc-totals__row--grand {
+    border-top: .75pt solid var(--print-line);
+    margin-top: 1mm;
+    padding-top: 2mm;
+}
+
+.doc-totals__row--grand {
+    font-weight: 700;
+    font-size: 11pt;
+}
+
+/* --- the number that matters ----------------------------------------------
+   In a cash-on-delivery business the one thing that must not be misread is how
+   much the courier collects. It is set large and boxed rather than left as the
+   last row of a totals table, because that is the line somebody reads at a
+   doorstep in a hurry. */
+
+.doc-collect {
+    flex: 0 0 auto;
+    border: 1.5pt solid var(--print-wine);
+    border-radius: 2mm;
+    padding: 3mm 5mm;
+    text-align: center;
+    min-width: 58mm;
+}
+
+.doc-collect__label {
+    font-size: 7.5pt;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--print-wine);
+}
+
+.doc-collect__amount {
+    font-size: 20pt;
+    font-weight: 700;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+.doc-collect__note {
+    font-size: 8pt;
+    color: var(--print-soft);
+    margin-top: .5mm;
+}
+
+.doc-collect--paid {
+    border-color: #1e6b45;
+}
+
+.doc-collect--paid .doc-collect__label,
+.doc-collect--paid .doc-collect__amount,
+.doc-collect--paid .doc-collect__note {
+    color: #1e6b45;
+}
+
+/* --- terms ---------------------------------------------------------------- */
+
+.doc-terms {
+    margin-top: 8mm;
+    padding-top: 3mm;
+    border-top: .5pt solid var(--print-line);
+    font-size: 8pt;
+    color: var(--print-soft);
+    line-height: 1.5;
+    break-inside: avoid;
+}
+
+.doc-terms strong {
+    color: var(--print-ink);
+}
+
+/* --- print ---------------------------------------------------------------- */
+
+@media print {
+    body {
+        background: #fff;
+    }
+
+    .print-bar {
+        display: none;
+    }
+
+    .sheet {
+        width: auto;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+    }
+
+    /* Backgrounds and rules are structure here, not decoration - without them
+       the collect box stops being a box. */
+    * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}

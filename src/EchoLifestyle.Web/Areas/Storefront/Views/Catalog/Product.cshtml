@@ -165,18 +165,30 @@
                 }
             </div>
 
-            @* Phase 5b turns this into a real cart. Until then it is honest
-               about what actually happens: you message them. A dead "Add to
-               cart" button that does nothing is worse than no button. *@
-            <div class="d-grid gap-2 d-sm-flex mb-4">
-                <button type="button" class="btn btn-shop" disabled>
-                    Ordering opens soon
-                </button>
-            </div>
+            <form asp-route="storefront-cart-add" method="post" class="mb-4">
+                @* The chosen variant, kept in step by the same script that
+                   swaps the price and the gallery. The server re-checks that it
+                   is sellable, so a hand-edited value buys nothing. *@
+                <input type="hidden" name="productVariantId" id="chosenVariantId"
+                       value="@(opening?.Id.ToString() ?? string.Empty)" />
+                <input type="hidden" name="returnSlug" value="@Model.Slug" />
+
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <label class="visually-hidden" for="addQuantity">Quantity</label>
+                    <input type="number" name="quantity" id="addQuantity" value="1"
+                           min="1" max="20" step="1" class="form-control shop-qty" />
+
+                    <button type="submit" class="btn btn-shop" id="addToCart"
+                            data-submit-once @(Model.InStock ? null : "disabled")>
+                        @(Model.InStock ? "Add to basket" : "Out of stock")
+                    </button>
+                </div>
+            </form>
 
             <p class="text-muted small">
-                To order now, message us on Facebook or Instagram with the product name and
-                shade. Cash on delivery, anywhere in Bangladesh.
+                Cash on delivery anywhere in Bangladesh. We confirm every order by phone before
+                it ships &mdash; or message us on Facebook or Instagram if you would rather
+                order that way.
             </p>
 
             <div class="accordion shop-accordion mt-4" id="productDetail">
@@ -337,6 +349,16 @@
                 stockLine.innerHTML = variant.inStock
                     ? '<span class="text-success">In stock</span>'
                     : '<span class="text-danger">Out of stock</span>';
+
+                var chosen = document.getElementById("chosenVariantId");
+                var addButton = document.getElementById("addToCart");
+
+                if (chosen) { chosen.value = variant.id; }
+
+                if (addButton) {
+                    addButton.disabled = !variant.inStock;
+                    addButton.textContent = variant.inStock ? "Add to basket" : "Out of stock";
+                }
 
                 showImageFor(variant.id);
             }

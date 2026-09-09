@@ -1,3 +1,4 @@
+using EchoLifestyle.Application.Administration.CompanyProfile;
 using EchoLifestyle.Application.Common.Authorization;
 using EchoLifestyle.Application.Common.Interfaces;
 using EchoLifestyle.Application.Crm.Customers;
@@ -27,6 +28,7 @@ public class OrdersController : BackOfficeControllerBase
     private readonly SalesOrderService _orders;
     private readonly CustomerAdminService _customers;
     private readonly GoodsReceiptService _receipts;
+    private readonly CompanyAdminService _company;
     private readonly ICurrentUser _currentUser;
     private readonly EchoDbContext _db;
 
@@ -34,12 +36,14 @@ public class OrdersController : BackOfficeControllerBase
         SalesOrderService orders,
         CustomerAdminService customers,
         GoodsReceiptService receipts,
+        CompanyAdminService company,
         ICurrentUser currentUser,
         EchoDbContext db)
     {
         _orders = orders;
         _customers = customers;
         _receipts = receipts;
+        _company = company;
         _currentUser = currentUser;
         _db = db;
     }
@@ -91,6 +95,43 @@ public class OrdersController : BackOfficeControllerBase
         SetActionPermissions();
 
         return View(detail);
+    }
+
+    /// <summary>
+    /// The sheet that goes in the parcel.
+    ///
+    /// Gated by OrderView rather than by a permission of its own. The document
+    /// shows a customer strictly less than the order screen already does - no
+    /// cost, no margin - so anyone allowed to open the order is allowed to
+    /// print it. A separate permission here would be a lock on the inside of
+    /// an open door.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Invoice(
+        long id,
+        bool print,
+        CancellationToken cancellationToken)
+    {
+        var detail = await _orders.GetAsync(id, cancellationToken);
+
+        if (detail is null)
+        {
+            return NotFound();
+        }
+
+        var company = await _company.GetAsync(cancellationToken);
+
+        if (company is null)
+        {
+            // Nothing has been set up yet, so there is no letterhead to print
+            // on. Better to say so than to hand somebody a sheet with a blank
+            // company name at the top of it.
+            Notify("Set the company name and address in Administration first.", "warning");
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        return View(InvoiceViewModel.From(detail, company, print));
     }
 
     // -----------------------------------------------------------------------

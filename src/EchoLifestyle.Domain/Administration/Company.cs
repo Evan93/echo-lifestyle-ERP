@@ -40,6 +40,25 @@ public class Company : AuditableEntity, ISoftDeletable
     /// <summary>IANA time zone used to derive the business date from UTC.</summary>
     public string BusinessTimeZoneId { get; set; } = "Asia/Dhaka";
 
+    /// <summary>
+    /// What the website charges to deliver inside Dhaka city, and everywhere
+    /// else. Two rates rather than sixty-four, because that is what couriers
+    /// here actually price on and what every Bangladeshi shop quotes.
+    ///
+    /// Configuration, not code: the courier changes these and so will you. The
+    /// seeded figures are placeholders until somebody enters the real ones.
+    /// </summary>
+    public decimal DeliveryChargeInsideCity { get; set; } = 60m;
+
+    public decimal DeliveryChargeOutsideCity { get; set; } = 120m;
+
+    /// <summary>
+    /// Order value above which delivery is free. Null switches the offer off,
+    /// which is the state to leave it in until somebody has decided the
+    /// threshold is worth the margin it costs.
+    /// </summary>
+    public decimal? FreeDeliveryOverAmount { get; set; }
+
     public bool IsDeleted { get; set; }
 
     public DateTime? DeletedAtUtc { get; set; }
