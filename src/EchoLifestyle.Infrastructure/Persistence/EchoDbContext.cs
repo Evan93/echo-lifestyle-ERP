@@ -37,6 +37,9 @@ public class EchoDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
     public const string SalesSchema = "sales";
     public const string FinanceSchema = "finance";
 
+    /// <summary>Home-page banners today; the promotion engine joins them in Phase 6.</summary>
+    public const string MarketingSchema = "marketing";
+
     public EchoDbContext(DbContextOptions<EchoDbContext> options)
         : base(options)
     {
@@ -132,6 +135,9 @@ public class EchoDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
     public DbSet<SalesOrderStatusChange> SalesOrderStatusChanges => Set<SalesOrderStatusChange>();
 
     public DbSet<Cart> Carts => Set<Cart>();
+
+    public DbSet<EchoLifestyle.Domain.Marketing.Banner> Banners =>
+        Set<EchoLifestyle.Domain.Marketing.Banner>();
 
     public DbSet<CartLine> CartLines => Set<CartLine>();
 

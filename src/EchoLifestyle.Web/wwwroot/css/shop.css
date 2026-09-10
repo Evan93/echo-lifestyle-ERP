@@ -832,3 +832,368 @@ a:hover {
         font-size: 1.25rem;
     }
 }
+
+/* --- text pages -----------------------------------------------------------
+   Delivery, returns, privacy, contact. Measured in characters rather than
+   pixels: a line of prose stops being readable past about seventy-five of them,
+   and that is true on every screen width. */
+
+.shop-prose {
+    max-width: 68ch;
+}
+
+.shop-prose h2 {
+    font-family: var(--shop-display);
+    font-size: 1.25rem;
+    margin-top: 2rem;
+    margin-bottom: .6rem;
+}
+
+.shop-prose p,
+.shop-prose ul {
+    margin-bottom: 1rem;
+}
+
+.shop-prose .lead {
+    font-size: 1.05rem;
+}
+
+.shop-table {
+    max-width: 32rem;
+}
+
+.shop-contact dt {
+    font-size: .78rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--shop-ink-soft);
+    margin-top: 1rem;
+}
+
+.shop-contact dd {
+    margin-bottom: 0;
+}
+
+/* --- order tracking -------------------------------------------------------- */
+
+.shop-track {
+    border: 1px solid var(--shop-line);
+    border-radius: .5rem;
+    padding: 1.25rem;
+    background: var(--shop-surface);
+}
+
+.shop-track__status {
+    font-family: var(--shop-display);
+    font-size: 1.5rem;
+    color: var(--shop-wine-600);
+    line-height: 1.2;
+}
+
+.shop-track__courier {
+    background: var(--shop-canvas);
+    border-radius: .375rem;
+    padding: .75rem 1rem;
+}
+
+/* Five plain steps rather than a percentage bar. Nobody wants to be told their
+   parcel is sixty per cent delivered; they want to know which of these has
+   actually happened. */
+
+.shop-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 0;
+}
+
+.shop-steps__item {
+    flex: 1 1 0;
+    min-width: 5.5rem;
+    position: relative;
+    padding-top: 1.5rem;
+    text-align: center;
+}
+
+/* The connecting rule, drawn behind the dots rather than between them, so it
+   does not need a separate element per gap. */
+.shop-steps__item::before {
+    content: "";
+    position: absolute;
+    top: .43rem;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--shop-line);
+}
+
+.shop-steps__item:first-child::before { left: 50%; }
+.shop-steps__item:last-child::before { right: 50%; }
+
+.shop-steps__item.is-done::before {
+    background: var(--shop-wine-600);
+}
+
+.shop-steps__dot {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1rem;
+    height: 1rem;
+    border-radius: 999px;
+    background: var(--shop-surface);
+    border: 2px solid var(--shop-line);
+}
+
+.shop-steps__item.is-done .shop-steps__dot {
+    background: var(--shop-wine-600);
+    border-color: var(--shop-wine-600);
+}
+
+.shop-steps__label {
+    font-size: .75rem;
+    color: var(--shop-ink-soft);
+    display: block;
+    padding: 0 .25rem;
+}
+
+.shop-steps__item.is-done .shop-steps__label {
+    color: var(--shop-ink);
+}
+
+.shop-track__form {
+    background: var(--shop-canvas);
+    border: 1px solid var(--shop-line);
+    border-radius: .5rem;
+    padding: 1.25rem;
+}
+
+/* Offers gets the rose colour so it reads as the one promotional entry in a row
+   of neutral ones. One highlighted item is a signpost; three would be noise. */
+.shop-nav__link--offer {
+    color: var(--shop-rose-600);
+}
+
+.shop-nav__link--offer:hover,
+.shop-nav__link--offer.is-active {
+    color: var(--shop-rose-600);
+    border-bottom-color: var(--shop-rose-600);
+}
+
+/* --- brand index ----------------------------------------------------------
+   Columns that fill downwards, so A to Z reads down one column and continues
+   in the next rather than snaking across the page. */
+
+.shop-brandindex {
+    columns: 4 200px;
+    column-gap: 2rem;
+}
+
+.shop-brandindex__group {
+    break-inside: avoid;
+    margin-bottom: 1.5rem;
+}
+
+.shop-brandindex__letter {
+    font-family: var(--shop-display);
+    font-size: 1rem;
+    color: var(--shop-wine-600);
+    border-bottom: 1px solid var(--shop-line);
+    padding-bottom: .25rem;
+    margin-bottom: .5rem;
+}
+
+.shop-brandindex__count {
+    font-size: .72rem;
+    color: var(--shop-ink-soft);
+    font-variant-numeric: tabular-nums;
+    margin-left: .25rem;
+}
+
+/* --- home page banner ------------------------------------------------------
+   One image, no rotation. The aspect ratio is declared rather than left to the
+   file, so the browser reserves the right amount of space before the image
+   arrives - without it the whole page jumps downwards when the banner loads,
+   which is both unpleasant and a Core Web Vitals penalty. */
+
+.shop-banner {
+    position: relative;
+    background: var(--shop-wine-100);
+}
+
+.shop-banner__link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+.shop-banner__image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 1;
+    object-fit: cover;
+}
+
+@media (max-width: 767px) {
+    .shop-banner__image {
+        aspect-ratio: 4 / 3;
+    }
+}
+
+/* The scrim exists only where there is text to make readable. A banner whose
+   artwork already carries its own words gets no overlay at all, because
+   darkening a picture to make room for text that is not there just makes the
+   picture worse. */
+.shop-banner__overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(
+        90deg,
+        rgba(42, 7, 19, .72) 0%,
+        rgba(42, 7, 19, .45) 45%,
+        rgba(42, 7, 19, 0) 78%);
+}
+
+@media (max-width: 767px) {
+    /* Bottom-up on a phone, where a left-to-right gradient would cover the
+       middle of the picture rather than one edge of it. */
+    .shop-banner__overlay {
+        align-items: flex-end;
+        padding-bottom: 1.25rem;
+        background: linear-gradient(
+            0deg,
+            rgba(42, 7, 19, .78) 0%,
+            rgba(42, 7, 19, .35) 45%,
+            rgba(42, 7, 19, 0) 80%);
+    }
+}
+
+.shop-banner__text {
+    max-width: 34ch;
+    color: #fff;
+}
+
+.shop-banner__headline {
+    color: #fff;
+    font-size: clamp(1.5rem, 4vw, 2.75rem);
+    line-height: 1.15;
+    margin-bottom: .5rem;
+}
+
+.shop-banner__sub {
+    color: rgba(255, 255, 255, .88);
+    font-size: clamp(.85rem, 1.6vw, 1.05rem);
+    margin-bottom: .9rem;
+}
+
+.shop-banner__button {
+    display: inline-block;
+    padding: .5rem 1.4rem;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--shop-wine-700);
+    font-size: .85rem;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.shop-banner__link:hover .shop-banner__button {
+    background: var(--shop-rose-400);
+    color: var(--shop-wine-900);
+}
+
+/* --- banner carousel ------------------------------------------------------
+   Only present when there is more than one slide. A single banner renders as a
+   plain image with none of this. */
+
+.shop-banner .carousel-item {
+    position: relative;
+}
+
+/* Bootstrap's default control icons are white chevrons on nothing, which
+   disappear over a pale photograph. A soft disc behind them survives any
+   artwork without covering it. */
+.shop-banner .carousel-control-prev,
+.shop-banner .carousel-control-next {
+    width: 12%;
+    opacity: 1;
+}
+
+.shop-banner .carousel-control-prev-icon,
+.shop-banner .carousel-control-next-icon {
+    width: 2.4rem;
+    height: 2.4rem;
+    padding: .7rem;
+    border-radius: 999px;
+    background-color: rgba(42, 7, 19, .45);
+    background-size: 1rem 1rem;
+}
+
+.shop-banner .carousel-control-prev:hover .carousel-control-prev-icon,
+.shop-banner .carousel-control-next:hover .carousel-control-next-icon {
+    background-color: rgba(42, 7, 19, .75);
+}
+
+.shop-banner .carousel-indicators {
+    margin-bottom: .6rem;
+}
+
+.shop-banner .carousel-indicators [data-bs-target] {
+    width: .6rem;
+    height: .6rem;
+    border-radius: 999px;
+    border: 0;
+    background-color: rgba(255, 255, 255, .55);
+    opacity: 1;
+}
+
+.shop-banner .carousel-indicators .active {
+    background-color: #fff;
+}
+
+/* The pause control. Small and unobtrusive, but present: hover-to-pause does
+   not exist on a phone, and moving content needs a way to be stopped. */
+.shop-banner__pause {
+    position: absolute;
+    right: .6rem;
+    bottom: .6rem;
+    z-index: 3;
+    width: 1.9rem;
+    height: 1.9rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(42, 7, 19, .45);
+    color: #fff;
+    font-size: .6rem;
+    line-height: 1;
+}
+
+.shop-banner__pause:hover,
+.shop-banner__pause:focus-visible {
+    background: rgba(42, 7, 19, .8);
+}
+
+/* The glyph itself is swapped in script - the control should say what pressing
+   it will do, not what state the thing is in. */
+.shop-banner__pause.is-paused span {
+    font-size: .7rem;
+}
+
+@media (max-width: 575px) {
+    /* Arrows eat a fifth of a narrow screen and overlap the headline. Swipe
+       and the dots do the same job there. */
+    .shop-banner .carousel-control-prev,
+    .shop-banner .carousel-control-next {
+        display: none;
+    }
+}

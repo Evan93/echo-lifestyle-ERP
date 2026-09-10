@@ -1,0 +1,194 @@
+@model TrackOrderViewModel
+
+<div class="container py-4 py-lg-5">
+    <div class="mx-auto" style="max-width: 42rem;">
+
+        <h1 class="shop-display h2 mb-2">Track your order</h1>
+        <p class="text-muted">
+            Enter your order number and the phone number you gave us. No account needed.
+        </p>
+
+        <form method="get" class="shop-track__form mt-4" role="search">
+            <div class="row g-2">
+                <div class="col-12 col-sm-6">
+                    <label class="form-label small text-muted" for="order">Order number</label>
+                    <input class="form-control" id="order" name="order" value="@Model.OrderNumber"
+                           placeholder="SO-2609-0002" autocomplete="off" required />
+                </div>
+                <div class="col-12 col-sm-6">
+                    <label class="form-label small text-muted" for="phone">Phone number</label>
+                    <input class="form-control" id="phone" name="phone" value="@Model.Phone"
+                           placeholder="01712345678" inputmode="tel" autocomplete="tel" required />
+                </div>
+            </div>
+
+            <button class="btn btn-shop mt-3" type="submit">Find my order</button>
+        </form>
+
+        @if (Model.NotFound)
+        {
+            @* One message for every kind of failure. Saying "no such order" for
+               one input and "wrong phone" for another would turn this page into
+               a way of discovering which order numbers exist. *@
+            <div class="alert alert-light border mt-4">
+                <strong>We could not find that order.</strong>
+                Check the order number and that the phone is the one you gave us
+                &mdash; both have to match. If you are still stuck, message us on
+                Facebook or Instagram with your order number and we will look it up.
+            </div>
+        }
+
+        @if (Model.Order is { } order)
+        {
+            <div class="shop-track mt-4">
+
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <div>
+                        <div class="shop-track__status">@order.StatusLabel</div>
+                        <div class="text-muted small">
+                            <code>@order.Number</code> &middot;
+                            placed @order.OrderDate.ToString("d MMM yyyy")
+                        </div>
+                    </div>
+
+                    @if (order.AmountDue > 0m)
+                    {
+                        <div class="text-end">
+                            <div class="text-muted small">To pay on delivery</div>
+                            <div class="fs-4 fw-semibold">&#2547; @order.AmountDue.ToString("N0")</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-end">
+                            <div class="text-muted small">Payment</div>
+                            <div class="fs-5 fw-semibold text-success">Paid</div>
+                        </div>
+                    }
+                </div>
+
+                <p class="mt-3 mb-0">@order.StatusExplanation</p>
+
+                @if (order.StepsCompleted is { } done)
+                {
+                    @* Five plain steps rather than a progress bar with a
+                       percentage. Nobody wants to know their parcel is 60%
+                       delivered; they want to know which of these has happened. *@
+                    <ol class="shop-steps mt-4">
+                        @{
+                            var steps = new[]
+                            {
+                                "Order received",
+                                "Confirmed",
+                                "Packed",
+                                "On the way",
+                                "Delivered",
+                            };
+                        }
+                        @for (var i = 0; i < steps.Length; i++)
+                        {
+                            <li class="shop-steps__item @(i < done ? "is-done" : null)">
+                                <span class="shop-steps__dot" aria-hidden="true"></span>
+                                <span class="shop-steps__label">@steps[i]</span>
+                            </li>
+                        }
+                    </ol>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(order.ConsignmentNumber))
+                {
+                    <div class="shop-track__courier mt-4">
+                        <div class="text-muted small">Courier</div>
+                        <div>
+                            @order.CourierName &middot;
+                            tracking <code>@order.ConsignmentNumber</code>
+                        </div>
+                        @if (order.DispatchedAtUtc is { } dispatched)
+                        {
+                            <div class="text-muted small">
+                                Handed over @dispatched.ToString("d MMM yyyy")
+                            </div>
+                        }
+                    </div>
+                }
+
+                <hr class="my-4" />
+
+                <div class="text-muted small mb-2">Delivering to</div>
+                <div class="mb-4">
+                    <div class="fw-semibold">@order.RecipientName</div>
+                    <div>@order.DeliveryAddress</div>
+                </div>
+
+                <div class="text-muted small mb-2">Items</div>
+                <ul class="list-unstyled mb-0">
+                    @foreach (var line in order.Lines)
+                    {
+                        <li class="d-flex justify-content-between gap-3 py-2 border-bottom">
+                            <span>
+                                @if (line.ProductSlug is { } slug)
+                                {
+                                    <a asp-route="storefront-product" asp-route-slug="@slug">
+                                        @line.ProductName
+                                    </a>
+                                }
+                                else
+                                {
+                                    @line.ProductName
+                                }
+
+                                @if (line.ShowVariantName)
+                                {
+                                    <span class="text-muted">&mdash; @line.VariantName</span>
+                                }
+
+                                <span class="text-muted">&times;@line.Quantity.ToString("N0")</span>
+                            </span>
+                            <span class="text-nowrap">&#2547; @line.LineTotal.ToString("N2")</span>
+                        </li>
+                    }
+                </ul>
+
+                <div class="d-flex justify-content-between pt-3">
+                    <span class="text-muted">Subtotal</span>
+                    <span>&#2547; @order.SubTotal.ToString("N2")</span>
+                </div>
+
+                @if (order.DiscountAmount > 0m)
+                {
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Discount</span>
+                        <span>&minus; @order.DiscountAmount.ToString("N2")</span>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Delivery</span>
+                    <span>
+                        @if (order.DeliveryCharge <= 0m)
+                        {
+                            <text>Free</text>
+                        }
+                        else
+                        {
+                            <text>&#2547; @order.DeliveryCharge.ToString("N2")</text>
+                        }
+                    </span>
+                </div>
+
+                <div class="d-flex justify-content-between border-top mt-2 pt-2 fw-semibold">
+                    <span>Total</span>
+                    <span>&#2547; @order.GrandTotal.ToString("N2")</span>
+                </div>
+            </div>
+
+            @if (!order.IsFinished)
+            {
+                <p class="text-muted small mt-3">
+                    Something wrong with this order? Message us on Facebook or Instagram
+                    with the order number and we will sort it out before it ships.
+                </p>
+            }
+        }
+    </div>
+</div>

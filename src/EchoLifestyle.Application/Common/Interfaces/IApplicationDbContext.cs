@@ -127,6 +127,8 @@ public interface IApplicationDbContext
     /// </summary>
     DbSet<Cart> Carts { get; }
 
+    DbSet<EchoLifestyle.Domain.Marketing.Banner> Banners { get; }
+
     DbSet<CartLine> CartLines { get; }
 
     /// <summary>

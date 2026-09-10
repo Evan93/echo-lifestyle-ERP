@@ -29,11 +29,16 @@
             In stock only
         </a>
 
-        <a class="shop-filters__toggle @(filters.OnOfferOnly ? "is-on" : null)"
-           href="@Url.RouteUrl(Model.RouteName, Model.RouteValuesToggle("offer"))">
-            <span class="shop-filters__box" aria-hidden="true"></span>
-            On offer
-        </a>
+        @* Hidden on the offers page itself, where the listing already is the
+           offers and this tickbox could only lie about what it does. *@
+        @if (Model.ShowOfferFilter)
+        {
+            <a class="shop-filters__toggle @(filters.OnOfferOnly ? "is-on" : null)"
+               href="@Url.RouteUrl(Model.RouteName, Model.RouteValuesToggle("offer"))">
+                <span class="shop-filters__box" aria-hidden="true"></span>
+                On offer
+            </a>
+        }
     </div>
 
     @if (showBrands)

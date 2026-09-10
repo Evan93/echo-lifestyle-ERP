@@ -34,6 +34,32 @@ public class Company : AuditableEntity, ISoftDeletable
 
     public string? Email { get; set; }
 
+    /// <summary>
+    /// Where customers already talk to the business. Most orders still arrive
+    /// through these, so the website links out to them rather than pretending
+    /// it is the only way in.
+    ///
+    /// Configuration rather than markup for the same reason as the phone
+    /// number: a page changes when a page needs changing, and a link changes
+    /// when somebody opens a new account.
+    /// </summary>
+    public string? FacebookUrl { get; set; }
+
+    public string? InstagramUrl { get; set; }
+
+    /// <summary>
+    /// Meta (Facebook) pixel id, and the GA4 measurement id. Null switches each
+    /// off, which is the state a development machine should be in - nobody
+    /// wants localhost traffic in the conversion figures the ad budget is set
+    /// from.
+    ///
+    /// Stored, and strictly validated on the way in, because these are rendered
+    /// inside a script tag on every public page.
+    /// </summary>
+    public string? MetaPixelId { get; set; }
+
+    public string? GoogleAnalyticsId { get; set; }
+
     /// <summary>ISO 4217 code of the base/reporting currency.</summary>
     public string BaseCurrencyCode { get; set; } = "BDT";
 

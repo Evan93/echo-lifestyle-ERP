@@ -1,0 +1,122 @@
+@using EchoLifestyle.Application.Marketing
+@model IReadOnlyList<BannerListItem>
+@{
+    var canEdit = ViewData["CanEdit"] as bool? ?? false;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <p class="text-muted mb-0" style="max-width: 60ch;">
+        One banner shows on the home page at a time &mdash; the first switched on whose
+        dates are open. Keep old ones here rather than deleting them; a campaign that
+        worked is worth putting back.
+    </p>
+
+    @if (canEdit)
+    {
+        <a class="btn btn-sm btn-primary" asp-action="Create">New banner</a>
+    }
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-light border">
+        <strong>No banner yet.</strong>
+        The home page currently opens with its text heading, which is a perfectly good
+        way to run a shop. Add one when you have a campaign worth the space.
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var banner in Model)
+        {
+            <div class="col-12 col-xl-6">
+                <div class="card h-100 @(banner.IsLiveNow ? "border-success" : null)">
+                    <img src="@Url.Content("~/" + banner.ImagePath.TrimStart('/'))"
+                         alt="" class="card-img-top"
+                         style="height: 130px; object-fit: cover;" />
+
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                                <div class="fw-semibold">@banner.Name</div>
+                                @if (!string.IsNullOrWhiteSpace(banner.Headline))
+                                {
+                                    <div class="text-muted small">@banner.Headline</div>
+                                }
+                            </div>
+
+                            @* "Active" and "live" are different things once dates
+                               are involved, and a list that showed only the tick
+                               box would send somebody hunting for a bug that is
+                               not there. *@
+                            @if (banner.IsLiveNow)
+                            {
+                                <span class="badge text-bg-success">Live now</span>
+                            }
+                            else if (!banner.IsActive)
+                            {
+                                <span class="badge text-bg-light border">Off</span>
+                            }
+                            else if (banner.StartsAtUtc > DateTime.UtcNow)
+                            {
+                                <span class="badge text-bg-info">Scheduled</span>
+                            }
+                            else if (banner.EndsAtUtc <= DateTime.UtcNow)
+                            {
+                                <span class="badge text-bg-secondary">Finished</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-light border">Waiting</span>
+                            }
+                        </div>
+
+                        @if (banner.StartsAtUtc is not null || banner.EndsAtUtc is not null)
+                        {
+                            <div class="text-muted small mt-2">
+                                @(banner.StartsAtUtc?.ToLocalTime().ToString("d MMM yyyy HH:mm")
+                                  ?? "any time")
+                                &rarr;
+                                @(banner.EndsAtUtc?.ToLocalTime().ToString("d MMM yyyy HH:mm")
+                                  ?? "no end")
+                            </div>
+                        }
+
+                        @if (!banner.IsLiveNow && banner.IsActive
+                             && banner.StartsAtUtc is null && banner.EndsAtUtc is null)
+                        {
+                            <div class="text-muted small mt-2">
+                                Switched on, but another banner is ahead of it in the order.
+                            </div>
+                        }
+                    </div>
+
+                    @if (canEdit)
+                    {
+                        <div class="card-footer d-flex gap-2 flex-wrap">
+                            <a class="btn btn-sm btn-outline-secondary"
+                               asp-action="Edit" asp-route-id="@banner.Id">Edit</a>
+
+                            <form asp-action="Toggle" asp-route-id="@banner.Id" method="post">
+                                <input type="hidden" name="active"
+                                       value="@((!banner.IsActive).ToString().ToLowerInvariant())" />
+                                <button class="btn btn-sm btn-outline-secondary" type="submit">
+                                    @(banner.IsActive ? "Switch off" : "Switch on")
+                                </button>
+                            </form>
+
+                            <form asp-action="Delete" asp-route-id="@banner.Id" method="post"
+                                  class="ms-auto"
+                                  onsubmit="return confirm('Delete this banner? The image is removed too.');">
+                                <button class="btn btn-sm btn-outline-danger" type="submit">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}

@@ -10,7 +10,6 @@ using EchoLifestyle.Web.Areas.BackOffice.Navigation;
 using EchoLifestyle.Web.Areas.Storefront.Controllers;
 using EchoLifestyle.Web.Middleware;
 using EchoLifestyle.Web.Security;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
@@ -161,6 +160,28 @@ builder.Services.AddRateLimiter(options =>
         limiter.Window = TimeSpan.FromHours(1);
         limiter.QueueLimit = 0;
     });
+
+    options.AddFixedWindowLimiter(RateLimitPolicies.Login, limiter =>
+    {
+        // Identity already locks an account after repeated failures, which
+        // stops one account being hammered. It does nothing about the opposite
+        // shape of attack - one password tried against many usernames - because
+        // no single account ever fails twice. This is the ceiling for that.
+        limiter.PermitLimit = 10;
+        limiter.Window = TimeSpan.FromMinutes(5);
+        limiter.QueueLimit = 0;
+    });
+
+    options.AddFixedWindowLimiter(RateLimits.Tracking, limiter =>
+    {
+        // Twenty lookups in ten minutes. A customer checking on two parcels and
+        // mistyping a phone number never reaches it. A script working through
+        // order numbers hits it in seconds, which is the only thing keeping
+        // "order number plus phone" from being brute-forceable.
+        limiter.PermitLimit = 20;
+        limiter.Window = TimeSpan.FromMinutes(10);
+        limiter.QueueLimit = 0;
+    });
 });
 
 builder.Services.AddAuthorization();
@@ -212,15 +233,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.Use(async (context, next) =>
-{
-    var headers = context.Response.Headers;
-    headers["X-Content-Type-Options"] = "nosniff";
-    headers["X-Frame-Options"] = "DENY";
-    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-    headers["X-Permitted-Cross-Domain-Policies"] = "none";
-    await next();
-});
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 app.UseStaticFiles();
 app.UseSerilogRequestLogging();
@@ -316,6 +329,73 @@ app.MapAreaControllerRoute(
     pattern: "search",
     defaults: new { controller = "Catalog", action = "Search" });
 
+// The fixed menu entries. These work on day one with no category tree behind
+// them, which is precisely when a shop most needs somewhere to send people.
+app.MapAreaControllerRoute(
+    name: "storefront-new",
+    areaName: "Storefront",
+    pattern: "new",
+    defaults: new { controller = "Catalog", action = "New" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-offers",
+    areaName: "Storefront",
+    pattern: "offers",
+    defaults: new { controller = "Catalog", action = "Offers" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-brands",
+    areaName: "Storefront",
+    pattern: "brands",
+    defaults: new { controller = "Catalog", action = "Brands" });
+
+// The pages a shop has to have. Named routes rather than the default
+// {controller}/{action} pattern for the same reason as the catalogue: these
+// URLs get printed, linked to from Facebook, and never want to change.
+app.MapAreaControllerRoute(
+    name: "storefront-track",
+    areaName: "Storefront",
+    pattern: "track",
+    defaults: new { controller = "Track", action = "Index" });
+
+// Both live at the site root because that is the only place a crawler looks
+// for them. A sitemap at /Storefront/Seo/Sitemap is a sitemap nobody reads.
+app.MapAreaControllerRoute(
+    name: "storefront-sitemap",
+    areaName: "Storefront",
+    pattern: "sitemap.xml",
+    defaults: new { controller = "Seo", action = "Sitemap" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-robots",
+    areaName: "Storefront",
+    pattern: "robots.txt",
+    defaults: new { controller = "Seo", action = "Robots" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-delivery-page",
+    areaName: "Storefront",
+    pattern: "delivery",
+    defaults: new { controller = "Pages", action = "Delivery" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-returns",
+    areaName: "Storefront",
+    pattern: "returns",
+    defaults: new { controller = "Pages", action = "Returns" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-privacy",
+    areaName: "Storefront",
+    pattern: "privacy",
+    defaults: new { controller = "Pages", action = "Privacy" });
+
+app.MapAreaControllerRoute(
+    name: "storefront-contact",
+    areaName: "Storefront",
+    pattern: "contact",
+    defaults: new { controller = "Pages", action = "Contact" });
+
 app.MapAreaControllerRoute(
     name: "storefront-home",
     areaName: "Storefront",
@@ -325,6 +405,31 @@ app.MapAreaControllerRoute(
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// ---------------------------------------------------------------------------
+// Health
+//
+// Two endpoints, because they answer different questions and a monitor that
+// cannot tell them apart will restart a healthy site.
+//
+//   /health       is the process alive? Cheap, no dependencies, safe to poll
+//                 every few seconds.
+//   /health/ready can it actually serve? Touches the database.
+//
+// A host that restarts the application because SQL Server is briefly
+// unreachable has turned a database blip into an outage - so the liveness
+// check deliberately knows nothing about the database.
+//
+// Neither reveals anything: a bare word and a status code. A health endpoint
+// that returns exception detail is a reconnaissance tool.
+// ---------------------------------------------------------------------------
+app.MapGet("/health", () => Results.Text("ok")).AllowAnonymous();
+
+app.MapGet("/health/ready", async (EchoDbContext db, CancellationToken cancellationToken) =>
+    await db.Database.CanConnectAsync(cancellationToken)
+        ? Results.Text("ready")
+        : Results.Text("not ready", statusCode: StatusCodes.Status503ServiceUnavailable))
+    .AllowAnonymous();
 
 // ---------------------------------------------------------------------------
 // Startup: migrate (development only) and seed

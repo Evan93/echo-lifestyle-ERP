@@ -105,6 +105,18 @@ public static class Permissions
         public const string GoodsReceiptCreate = "Procurement.GoodsReceipt.Create";
     }
 
+    /// <summary>
+    /// The shop window. Separate from Catalog because deciding what a product
+    /// is and deciding what the home page advertises are different jobs, and
+    /// the second is one you might hand to somebody who should not be editing
+    /// prices.
+    /// </summary>
+    public static class Marketing
+    {
+        public const string BannerView = "Marketing.Banner.View";
+        public const string BannerEdit = "Marketing.Banner.Edit";
+    }
+
     public static class Sales
     {
         public const string OrderView = "Sales.Order.View";

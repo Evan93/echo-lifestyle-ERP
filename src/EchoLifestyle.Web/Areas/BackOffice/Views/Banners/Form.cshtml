@@ -1,0 +1,195 @@
+@using EchoLifestyle.Web.Areas.BackOffice.Models.Marketing
+@model BannerFormModel
+@{
+    var isNew = Model.Id == 0;
+
+    // The uploads are not properties on the model - they arrive as separate
+    // IFormFile arguments - so asp-validation-for cannot reach their errors.
+    // Read them out by hand instead. Getting this wrong is what made the first
+    // version of this form appear to do nothing at all when no file was chosen:
+    // the error existed, and nothing on the page rendered it.
+    var imageErrors = ViewData.ModelState["image"]?.Errors;
+    var mobileErrors = ViewData.ModelState["mobileImage"]?.Errors;
+}
+
+<form method="post" enctype="multipart/form-data"
+      asp-action="@(isNew ? "Create" : "Edit")"
+      asp-route-id="@(isNew ? null : (long?)Model.Id)">
+
+    @* "All", not "ModelOnly". A summary that shows only model-level errors is a
+       summary that stays empty while the form refuses to save. *@
+    <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">The picture</div>
+                <div class="card-body">
+
+                    @if (!string.IsNullOrWhiteSpace(Model.ExistingImagePath))
+                    {
+                        <img src="@Url.Content("~/" + Model.ExistingImagePath.TrimStart('/'))"
+                             alt="" class="img-fluid rounded mb-3"
+                             style="max-height: 170px; object-fit: cover; width: 100%;" />
+                    }
+
+                    <label class="form-label" for="image">
+                        Wide image @(isNew ? "" : "(leave empty to keep the current one)")
+                    </label>
+
+                    @* Required only on a new banner - on an edit, an empty box
+                       means "keep the one that is already there". The browser
+                       stops an empty submit before it becomes a round trip; the
+                       server checks again regardless. *@
+                    <input class="form-control @(imageErrors?.Count > 0 ? "is-invalid" : null)"
+                           type="file" id="image" name="image"
+                           accept="image/jpeg,image/png,image/webp"
+                           required="@(isNew ? "required" : null)" />
+
+                    @if (imageErrors is not null)
+                    {
+                        foreach (var error in imageErrors)
+                        {
+                            <div class="text-danger small">@error.ErrorMessage</div>
+                        }
+                    }
+
+                    <div class="form-text">
+                        Roughly 3:1 &mdash; about 1800&times;600 is plenty. JPEG, PNG or WebP,
+                        under 8 MB. Keep the important part away from the edges: a wide image
+                        gets cropped on narrow screens.
+                    </div>
+
+                    <hr />
+
+                    @if (!string.IsNullOrWhiteSpace(Model.ExistingMobileImagePath))
+                    {
+                        <img src="@Url.Content("~/" + Model.ExistingMobileImagePath.TrimStart('/'))"
+                             alt="" class="img-fluid rounded mb-3"
+                             style="max-height: 170px;" />
+                    }
+
+                    <label class="form-label" for="mobileImage">Phone image (optional)</label>
+                    <input class="form-control @(mobileErrors?.Count > 0 ? "is-invalid" : null)"
+                           type="file" id="mobileImage" name="mobileImage"
+                           accept="image/jpeg,image/png,image/webp" />
+
+                    @if (mobileErrors is not null)
+                    {
+                        foreach (var error in mobileErrors)
+                        {
+                            <div class="text-danger small">@error.ErrorMessage</div>
+                        }
+                    }
+
+                    <div class="form-text">
+                        A taller crop, around 4:3. Worth doing: most of your visitors are on a
+                        phone, and a wide banner shown there is either a strip too small to read
+                        or a centre crop that cuts the product out of its own advertisement.
+                        Without one, the wide image is used everywhere.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Words over the picture</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Headline" class="form-label"></label>
+                            <input asp-for="Headline" class="form-control" />
+                            <div class="form-text">
+                                Leave both of these empty if the artwork already has words on it.
+                                Nothing is laid over the image then, and it is shown as it is.
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Subheading" class="form-label"></label>
+                            <input asp-for="Subheading" class="form-control" />
+                        </div>
+
+                        <div class="col-12 col-md-8">
+                            <label asp-for="LinkUrl" class="form-label"></label>
+                            <input asp-for="LinkUrl" class="form-control"
+                                   placeholder="/c/skincare or https://..." />
+                            <span asp-validation-for="LinkUrl" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="ButtonText" class="form-label"></label>
+                            <input asp-for="ButtonText" class="form-control" placeholder="Shop now" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Settings</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" placeholder="Eid campaign" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                        <div class="form-text">Only you see this. It is how you find it later.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="AltText" class="form-label"></label>
+                        <input asp-for="AltText" class="form-control"
+                               placeholder="Eid gift sets, up to 30% off" />
+                        <span asp-validation-for="AltText" class="text-danger small"></span>
+                        <div class="form-text">
+                            What the picture shows, in a few words. Read aloud to anybody using a
+                            screen reader, and read by Google.
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label asp-for="DisplayOrder" class="form-label"></label>
+                            <input asp-for="DisplayOrder" class="form-control" type="number" />
+                            <div class="form-text">Lowest wins.</div>
+                        </div>
+
+                        <div class="col-6 d-flex align-items-center">
+                            <div class="form-check mt-4">
+                                <input asp-for="IsActive" class="form-check-input" />
+                                <label asp-for="IsActive" class="form-check-label"></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">When it shows</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="StartsAt" class="form-label"></label>
+                        <input asp-for="StartsAt" class="form-control" type="datetime-local" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="EndsAt" class="form-label"></label>
+                        <input asp-for="EndsAt" class="form-control" type="datetime-local" />
+                        <span asp-validation-for="EndsAt" class="text-danger small"></span>
+                    </div>
+
+                    <div class="form-text">
+                        Leave both empty to show it whenever it is switched on. Setting an end
+                        date is worth the trouble for a sale: a banner still advertising last
+                        week's prices is worse than no banner at all.
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" type="submit">Save</button>
+                <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>

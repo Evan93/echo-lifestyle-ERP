@@ -24,6 +24,16 @@ public class CompanyDetail
 
     public string? Email { get; init; }
 
+    /// <summary>Where customers already talk to the business. Null hides the link.</summary>
+    public string? FacebookUrl { get; init; }
+
+    public string? InstagramUrl { get; init; }
+
+    /// <summary>Null switches tracking off entirely. See CompanyAdminService.</summary>
+    public string? MetaPixelId { get; init; }
+
+    public string? GoogleAnalyticsId { get; init; }
+
     public string BaseCurrencyCode { get; init; } = "BDT";
 
     public string BusinessTimeZoneId { get; init; } = "Asia/Dhaka";
@@ -63,6 +73,14 @@ public class SaveCompanyRequest
     public string? Phone { get; set; }
 
     public string? Email { get; set; }
+
+    public string? FacebookUrl { get; set; }
+
+    public string? InstagramUrl { get; set; }
+
+    public string? MetaPixelId { get; set; }
+
+    public string? GoogleAnalyticsId { get; set; }
 
     /// <summary>
     /// What the website charges to deliver. Two rates because that is what

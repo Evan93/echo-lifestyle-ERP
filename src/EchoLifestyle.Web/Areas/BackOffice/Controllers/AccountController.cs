@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace EchoLifestyle.Web.Areas.BackOffice.Controllers;
 
@@ -50,8 +51,14 @@ public class AccountController : Controller
         return View(new LoginViewModel { ReturnUrl = returnUrl });
     }
 
+    /// <summary>
+    /// Rate limited per address as well as per account. Identity's lockout
+    /// stops one account being hammered; it never fires against one password
+    /// tried across a list of usernames, because no single account fails twice.
+    /// </summary>
     [HttpPost]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
     public async Task<IActionResult> Login(LoginViewModel model, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)

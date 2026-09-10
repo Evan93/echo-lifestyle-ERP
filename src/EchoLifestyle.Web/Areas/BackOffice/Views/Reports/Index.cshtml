@@ -1,0 +1,59 @@
+@{
+    ViewData["Subtitle"] = "Where the money is";
+}
+
+<div class="row g-3">
+    <div class="col-12 col-md-4">
+        <a class="card h-100 text-decoration-none" asp-action="Sales">
+            <div class="card-body">
+                <div class="fw-semibold mb-1">Sales</div>
+                <p class="text-muted small mb-0">
+                    By day, with margin and the return rate. Counts orders that reached
+                    the courier &mdash; anything earlier is a promise, not a sale.
+                </p>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <a class="card h-100 text-decoration-none" asp-action="Outstanding">
+            <div class="card-body">
+                <div class="fw-semibold mb-1">Money owed</div>
+                <p class="text-muted small mb-0">
+                    Parcels delivered but not paid for, aged by how long they have been
+                    out. The report to read first in a cash-on-delivery business.
+                </p>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <a class="card h-100 text-decoration-none" asp-action="Spending">
+            <div class="card-body">
+                <div class="fw-semibold mb-1">Money out</div>
+                <p class="text-muted small mb-0">
+                    Courier charges, Facebook advertising, supplier payments and
+                    everything else that leaves &mdash; plus what stock was bought,
+                    kept separate because the two are not the same thing.
+                </p>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <a class="card h-100 text-decoration-none" asp-action="Stock">
+            <div class="card-body">
+                <div class="fw-semibold mb-1">Stock</div>
+                <p class="text-muted small mb-0">
+                    What is on the shelves and what it cost, what is running out, and
+                    what is about to expire.
+                </p>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-light border mt-4 small mb-0">
+    <strong>The running cash record</strong> lives under Finance &rarr; Cash. That is
+    where money out is entered; this is where it is totalled.
+</div>

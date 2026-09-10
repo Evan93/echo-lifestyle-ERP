@@ -1,0 +1,180 @@
+@using EchoLifestyle.Application.Reporting
+@model SalesSummary
+@{
+    ViewData["Subtitle"] = $"{Model.From:d MMM yyyy} to {Model.To:d MMM yyyy}";
+
+    var top = ViewData["TopProducts"] as IReadOnlyList<TopProductRow> ?? [];
+}
+
+<form method="get" class="row g-2 align-items-end mb-4">
+    <div class="col-auto">
+        <label class="form-label small text-muted" for="from">From</label>
+        <input class="form-control form-control-sm" type="date" id="from" name="from"
+               value="@Model.From.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="col-auto">
+        <label class="form-label small text-muted" for="to">To</label>
+        <input class="form-control form-control-sm" type="date" id="to" name="to"
+               value="@Model.To.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-sm btn-primary" type="submit">Show</button>
+    </div>
+</form>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small">Sales</div>
+                <div class="fs-4 fw-semibold">&#2547; @Model.Sales.ToString("N0")</div>
+                <div class="text-muted small">@Model.Orders order(s), goods only</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small">Margin</div>
+                <div class="fs-4 fw-semibold">&#2547; @Model.Margin.ToString("N0")</div>
+                <div class="text-muted small">@Model.MarginPercent.ToString("N1")% of sales</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small">Average order</div>
+                <div class="fs-4 fw-semibold">&#2547; @Model.AverageOrderValue.ToString("N0")</div>
+                <div class="text-muted small">including delivery</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        @* Given a card of its own rather than a column in the table. In a
+           cash-on-delivery business the return rate is not a detail - it is the
+           number that decides whether the margin above it survives. *@
+        <div class="card h-100 @(Model.ReturnRatePercent >= 15m ? "border-danger" : null)">
+            <div class="card-body">
+                <div class="text-muted small">Returns</div>
+                <div class="fs-4 fw-semibold">@Model.ReturnRatePercent.ToString("N1")%</div>
+                <div class="text-muted small">
+                    @Model.ReturnedOrders order(s), &#2547; @Model.ReturnedValue.ToString("N0")
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.PipelineOrders > 0)
+{
+    <div class="alert alert-light border small">
+        <strong>@Model.PipelineOrders order(s) worth &#2547; @Model.PipelineValue.ToString("N0")</strong>
+        are confirmed or packed but have not shipped. They are not counted above
+        &mdash; nothing is a sale until it reaches the courier.
+    </div>
+}
+
+<div class="card">
+    <div class="card-header fw-semibold">By day</div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th class="text-end">Orders</th>
+                    <th class="text-end">Units</th>
+                    <th class="text-end">Sales</th>
+                    <th class="text-end">Delivery</th>
+                    <th class="text-end">Cost</th>
+                    <th class="text-end">Margin</th>
+                    <th class="text-end">%</th>
+                    <th class="text-end">Returned</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var day in Model.Days)
+                {
+                    @* Quiet days are shown as zeroes rather than skipped. A gap
+                       in a sales table reads as missing data; a zero reads as a
+                       quiet day, which is what it was. *@
+                    <tr class="@(day.Orders == 0 ? "text-muted" : null)">
+                        <td class="text-nowrap">@day.Date.ToString("ddd d MMM")</td>
+                        <td class="text-end">@day.Orders</td>
+                        <td class="text-end">@day.Units.ToString("N0")</td>
+                        <td class="text-end">@day.Sales.ToString("N0")</td>
+                        <td class="text-end">@day.DeliveryCharged.ToString("N0")</td>
+                        <td class="text-end">@day.Cost.ToString("N0")</td>
+                        <td class="text-end">@day.Margin.ToString("N0")</td>
+                        <td class="text-end">
+                            @(day.Sales == 0m ? "" : day.MarginPercent.ToString("N1"))
+                        </td>
+                        <td class="text-end">
+                            @if (day.ReturnedOrders > 0)
+                            {
+                                <span class="text-danger">
+                                    @day.ReturnedOrders &middot; @day.ReturnedValue.ToString("N0")
+                                </span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot class="table-light fw-semibold">
+                <tr>
+                    <td>Total</td>
+                    <td class="text-end">@Model.Orders</td>
+                    <td class="text-end">@Model.Units.ToString("N0")</td>
+                    <td class="text-end">@Model.Sales.ToString("N0")</td>
+                    <td class="text-end">@Model.DeliveryCharged.ToString("N0")</td>
+                    <td class="text-end">@Model.Cost.ToString("N0")</td>
+                    <td class="text-end">@Model.Margin.ToString("N0")</td>
+                    <td class="text-end">@Model.MarginPercent.ToString("N1")</td>
+                    <td class="text-end">@Model.ReturnedOrders</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+@if (top.Count > 0)
+{
+    <div class="card mt-4">
+        <div class="card-header fw-semibold">Best sellers over this period</div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th class="text-end">Orders</th>
+                        <th class="text-end">Units</th>
+                        <th class="text-end">Sales</th>
+                        <th class="text-end">Margin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in top)
+                    {
+                        <tr>
+                            <td>
+                                @row.ProductName
+                                <span class="text-muted small d-block">@row.Sku</span>
+                            </td>
+                            <td class="text-end">@row.Orders</td>
+                            <td class="text-end">@row.Units.ToString("N0")</td>
+                            <td class="text-end">@row.Sales.ToString("N0")</td>
+                            <td class="text-end">@row.Margin.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer small text-muted">
+            Named as they were sold, not as they are named today &mdash; so this
+            reconciles with the invoices.
+        </div>
+    </div>
+}

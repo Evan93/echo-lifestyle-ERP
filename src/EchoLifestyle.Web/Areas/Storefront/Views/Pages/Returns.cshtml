@@ -1,0 +1,77 @@
+@using EchoLifestyle.Application.Administration.CompanyProfile
+@model CompanyDetail
+@{
+    ViewData["Title"] = "Returns";
+    ViewData["MetaDescription"] =
+        "Check your order at the door. Refuse anything that is wrong, and we take back "
+        + "anything that is our fault.";
+}
+
+<div class="container py-4 py-lg-5">
+    <div class="shop-prose mx-auto">
+
+        <h1 class="shop-display h2">Returns</h1>
+
+        <p class="lead text-muted">
+            The simplest return is the one that never leaves the courier's hands.
+        </p>
+
+        <h2>Check it at the door</h2>
+
+        <p>
+            Because you pay on delivery, you get to look before you pay. Open the parcel
+            while the courier is there. If it is the wrong product, the wrong shade, or
+            damaged, <strong>refuse it</strong> &mdash; hand it straight back, pay nothing,
+            and tell us. That is the cleanest way to return something and it costs you
+            nothing at all.
+        </p>
+
+        <h2>After you have accepted it</h2>
+
+        <p>
+            Once a parcel has been accepted and paid for, we take it back only if the fault
+            is ours:
+        </p>
+
+        <ul>
+            <li>It arrived damaged.</li>
+            <li>We sent the wrong product, or the wrong shade or size.</li>
+            <li>It was past its expiry date, or too close to it to use.</li>
+        </ul>
+
+        <p>
+            In any of those cases we will replace it or refund you. Message us within three
+            days of delivery with your order number and a photograph of what arrived, and
+            we will arrange it.
+        </p>
+
+        <h2>What we cannot take back</h2>
+
+        <p>
+            Anything else is final once accepted. Skincare, haircare and cosmetics are used
+            on the body, so an opened product that turned out not to suit you cannot go back
+            on the shelf for somebody else &mdash; a change of mind after acceptance is not
+            something we can accept.
+        </p>
+
+        <p>
+            If you are unsure whether a product suits you, message us before ordering. We
+            would rather spend five minutes on that than have you keep something you will
+            not use.
+        </p>
+
+        <h2>Genuine products</h2>
+
+        <p>
+            Everything we sell is sourced genuine. If you ever have reason to doubt
+            something you received from us, tell us and we will take it seriously
+            &mdash; that is a fault of ours by definition.
+        </p>
+
+        <p class="text-muted">
+            To start a return, <a asp-route="storefront-contact">message us</a> with your
+            order number. You can find it by
+            <a asp-route="storefront-track">tracking your order</a>.
+        </p>
+    </div>
+</div>

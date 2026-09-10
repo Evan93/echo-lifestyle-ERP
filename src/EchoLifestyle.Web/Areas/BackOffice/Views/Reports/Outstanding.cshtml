@@ -1,0 +1,138 @@
+@using EchoLifestyle.Application.Reporting
+@model OutstandingSummary
+@{
+    ViewData["Subtitle"] = "Parcels delivered but not paid for";
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-12 col-lg-4">
+        <div class="card h-100 border-primary">
+            <div class="card-body">
+                <div class="text-muted small">Total outstanding</div>
+                <div class="fs-3 fw-semibold">&#2547; @Model.Total.ToString("N0")</div>
+                <div class="text-muted small">across @Model.Count parcel(s)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-8">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small mb-2">How long it has been out</div>
+
+                @* Aged in the buckets a courier's own cycle suggests. Steadfast
+                   remits roughly weekly, so anything past a fortnight has missed
+                   a cycle and anything past a month wants a phone call rather
+                   than more patience. *@
+                <div class="row g-2 text-center">
+                    <div class="col-3">
+                        <div class="small text-muted">Under a week</div>
+                        <div class="fw-semibold">&#2547; @Model.WithinWeek.ToString("N0")</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="small text-muted">1&ndash;2 weeks</div>
+                        <div class="fw-semibold">&#2547; @Model.OneToTwoWeeks.ToString("N0")</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="small text-muted">2&ndash;4 weeks</div>
+                        <div class="fw-semibold text-warning-emphasis">
+                            &#2547; @Model.TwoToFourWeeks.ToString("N0")
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="small text-muted">Over a month</div>
+                        <div class="fw-semibold @(Model.OverAMonth > 0m ? "text-danger" : null)">
+                            &#2547; @Model.OverAMonth.ToString("N0")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-success">
+        <strong>Nothing outstanding.</strong>
+        Every parcel that has left has been paid for.
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-header fw-semibold">Oldest first</div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="text-end">Days out</th>
+                        <th>Order</th>
+                        <th>Going to</th>
+                        <th>Courier</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-end">Collected</th>
+                        <th class="text-end">Outstanding</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr>
+                            <td class="text-end">
+                                <span class="badge @(row.DaysOut > 30
+                                                     ? "text-bg-danger"
+                                                     : row.DaysOut > 14
+                                                        ? "text-bg-warning"
+                                                        : "text-bg-light border")">
+                                    @row.DaysOut
+                                </span>
+                            </td>
+                            <td>
+                                <a asp-controller="Orders" asp-action="Details"
+                                   asp-route-id="@row.OrderId">@row.Number</a>
+                                <span class="text-muted small d-block">
+                                    @row.OrderDate.ToString("d MMM")
+                                </span>
+                            </td>
+                            <td>
+                                @row.CustomerName
+                                <span class="text-muted small d-block">@row.DistrictName</span>
+                            </td>
+                            <td class="small">
+                                @row.CourierName
+                                @if (!string.IsNullOrWhiteSpace(row.ConsignmentNumber))
+                                {
+                                    <code class="d-block">@row.ConsignmentNumber</code>
+                                }
+                            </td>
+                            <td class="text-end">@row.GrandTotal.ToString("N0")</td>
+                            <td class="text-end">
+                                @if (row.IsPartlyPaid)
+                                {
+                                    @* Usually a courier remitting net of its own
+                                       fee - a reconciliation to do rather than a
+                                       debt to chase, and worth telling apart at
+                                       a glance. *@
+                                    <span class="text-warning-emphasis">
+                                        @row.AmountCollected.ToString("N0")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">&mdash;</span>
+                                }
+                            </td>
+                            <td class="text-end fw-semibold">@row.Outstanding.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <p class="text-muted small mt-3">
+        Recording a courier payout under Finance &rarr; Remittances is what takes
+        rows off this list.
+    </p>
+}

@@ -48,6 +48,36 @@ public class CompanyFormModel
     public string? Email { get; set; }
 
     /// <summary>
+    /// Shown in the storefront footer and on the contact page. Anything that is
+    /// not an absolute http(s) URL is dropped when it is saved rather than
+    /// stored - these end up in an href on every public page.
+    /// </summary>
+    [Url(ErrorMessage = "Enter the full address, starting with https://")]
+    [StringLength(300)]
+    [Display(Name = "Facebook page URL")]
+    public string? FacebookUrl { get; set; }
+
+    [Url(ErrorMessage = "Enter the full address, starting with https://")]
+    [StringLength(300)]
+    [Display(Name = "Instagram profile URL")]
+    public string? InstagramUrl { get; set; }
+
+    /// <summary>
+    /// Leave both blank on a development machine. Nobody wants localhost
+    /// traffic in the conversion figures the ad budget is set from.
+    /// </summary>
+    [RegularExpression(@"^\d{8,20}$", ErrorMessage = "A pixel id is digits only.")]
+    [StringLength(30)]
+    [Display(Name = "Meta pixel ID")]
+    public string? MetaPixelId { get; set; }
+
+    [RegularExpression(@"^G-[A-Za-z0-9]{4,20}$",
+        ErrorMessage = "A GA4 measurement id looks like G-XXXXXXXXXX.")]
+    [StringLength(30)]
+    [Display(Name = "Google Analytics ID")]
+    public string? GoogleAnalyticsId { get; set; }
+
+    /// <summary>
     /// Read-only. Changing the base currency once transactions exist is a data
     /// migration, not a setting - every stored amount would have to be restated.
     /// </summary>
@@ -81,6 +111,10 @@ public class CompanyFormModel
         PostalCode = PostalCode,
         Phone = Phone,
         Email = Email,
+        FacebookUrl = FacebookUrl,
+        InstagramUrl = InstagramUrl,
+        MetaPixelId = MetaPixelId,
+        GoogleAnalyticsId = GoogleAnalyticsId,
         DeliveryChargeInsideCity = DeliveryChargeInsideCity,
         DeliveryChargeOutsideCity = DeliveryChargeOutsideCity,
         FreeDeliveryOverAmount = FreeDeliveryOverAmount,
@@ -98,6 +132,10 @@ public class CompanyFormModel
         PostalCode = detail.PostalCode,
         Phone = detail.Phone,
         Email = detail.Email,
+        FacebookUrl = detail.FacebookUrl,
+        InstagramUrl = detail.InstagramUrl,
+        MetaPixelId = detail.MetaPixelId,
+        GoogleAnalyticsId = detail.GoogleAnalyticsId,
         BaseCurrencyCode = detail.BaseCurrencyCode,
         BusinessTimeZoneId = detail.BusinessTimeZoneId,
         DeliveryChargeInsideCity = detail.DeliveryChargeInsideCity,

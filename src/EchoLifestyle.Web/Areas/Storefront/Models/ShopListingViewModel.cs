@@ -53,6 +53,13 @@ public class ShopListingViewModel
     public ShopFacets Facets { get; set; } = new();
 
     /// <summary>
+    /// False on the offers page, where the whole listing already is the offers.
+    /// A tickbox that can turn "On offer" into "everything" while the heading
+    /// still says On offer is a control that lies about what it does.
+    /// </summary>
+    public bool ShowOfferFilter { get; set; } = true;
+
+    /// <summary>
     /// Route values for a link that changes only sort or page.
     ///
     /// Every filter is carried through, because a pager that quietly drops them

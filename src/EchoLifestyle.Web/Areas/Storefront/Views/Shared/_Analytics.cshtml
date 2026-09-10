@@ -1,0 +1,80 @@
+@model CompanyDetail
+@{
+    // Both ids are validated on save against the shape their vendor issues -
+    // digits for Meta, "G-" plus alphanumerics for GA4 - so nothing that
+    // reaches here can contain a quote, a semicolon or a bracket. That is what
+    // makes it safe to put them inside a script tag, where HTML encoding would
+    // have done nothing useful.
+    var pixelId = Model?.MetaPixelId;
+    var gaId = Model?.GoogleAnalyticsId;
+
+    var hasPixel = !string.IsNullOrWhiteSpace(pixelId);
+    var hasGa = !string.IsNullOrWhiteSpace(gaId);
+}
+
+@* The shim is rendered whether or not anything is configured, so the pages
+   that report events never have to check. On a development machine, where the
+   ids are empty, every call is a no-op and nothing is sent anywhere - which is
+   the point: localhost traffic in the conversion figures would corrupt the
+   numbers the ad budget is set from. *@
+<script>
+    window.echo = window.echo || {};
+
+    // One call, both destinations. Meta and GA4 name the same events
+    // differently, so the mapping lives here rather than being remembered
+    // correctly at four separate call sites.
+    window.echo.track = function (name, data) {
+        data = data || {};
+
+        try {
+            if (window.fbq) {
+                window.fbq('track', name, data);
+            }
+        } catch (e) { /* never let a blocked tracker break the page */ }
+
+        try {
+            if (window.gtag) {
+                var map = {
+                    ViewContent: 'view_item',
+                    AddToCart: 'add_to_cart',
+                    InitiateCheckout: 'begin_checkout',
+                    Purchase: 'purchase'
+                };
+
+                window.gtag('event', map[name] || name, data);
+            }
+        } catch (e) { /* as above */ }
+    };
+</script>
+
+@if (hasPixel)
+{
+    <script>
+        !function (f, b, e, v, n, t, s) {
+            if (f.fbq) return; n = f.fbq = function () {
+                n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+            };
+            if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
+            n.queue = []; t = b.createElement(e); t.async = !0; t.src = v;
+            s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s)
+        }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+
+        fbq('init', '@pixelId');
+        fbq('track', 'PageView');
+    </script>
+    <noscript>
+        <img height="1" width="1" style="display:none" alt=""
+             src="https://www.facebook.com/tr?id=@pixelId&ev=PageView&noscript=1" />
+    </noscript>
+}
+
+@if (hasGa)
+{
+    <script async src="https://www.googletagmanager.com/gtag/js?id=@gaId"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', '@gaId');
+    </script>
+}

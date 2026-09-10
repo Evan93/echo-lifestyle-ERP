@@ -1,0 +1,50 @@
+@model IReadOnlyList<BrandFacet>
+@{
+    // Grouped by first letter. Somebody arriving here knows the brand name and
+    // wants to find it - alphabetical is the only ordering that helps with
+    // that, and the letter headings are what turn a long column into something
+    // you can scan rather than read.
+    var groups = Model
+        .GroupBy(b => char.IsLetter(b.Name[0]) ? char.ToUpperInvariant(b.Name[0]) : '#')
+        .OrderBy(g => g.Key == '#' ? 1 : 0)
+        .ThenBy(g => g.Key)
+        .ToList();
+}
+
+<div class="container py-4 py-lg-5">
+
+    <h1 class="shop-display h2 mb-2">Brands</h1>
+    <p class="text-muted" style="max-width: 60ch;">
+        Everything we stock, sourced genuine. Counts are what is on the site today.
+    </p>
+
+    @if (Model.Count == 0)
+    {
+        <div class="alert alert-light border mt-4">
+            Nothing is published yet. Once products go live their brands appear here.
+        </div>
+    }
+    else
+    {
+        <div class="shop-brandindex mt-4">
+            @foreach (var group in groups)
+            {
+                <section class="shop-brandindex__group">
+                    <h2 class="shop-brandindex__letter">@group.Key</h2>
+
+                    <ul class="list-unstyled mb-0">
+                        @foreach (var brand in group.OrderBy(b => b.Name))
+                        {
+                            <li class="mb-1">
+                                <a asp-route="storefront-brand" asp-route-slug="@brand.Slug">
+                                    @brand.Name
+                                </a>
+                                <span class="shop-brandindex__count">@brand.Count</span>
+                            </li>
+                        }
+                    </ul>
+                </section>
+            }
+        </div>
+    }
+</div>

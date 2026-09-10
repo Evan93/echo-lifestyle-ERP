@@ -9,7 +9,7 @@ namespace EchoLifestyle.Application.Administration.CompanyProfile;
 /// The company profile: the details that print on documents, and the NBR
 /// registration that switches VAT on.
 /// </summary>
-public class CompanyAdminService
+public partial class CompanyAdminService
 {
     private readonly IApplicationDbContext _db;
     private readonly IAuditLogger _audit;
@@ -38,6 +38,10 @@ public class CompanyAdminService
                 PostalCode = c.PostalCode,
                 Phone = c.Phone,
                 Email = c.Email,
+                FacebookUrl = c.FacebookUrl,
+                InstagramUrl = c.InstagramUrl,
+                MetaPixelId = c.MetaPixelId,
+                GoogleAnalyticsId = c.GoogleAnalyticsId,
                 BaseCurrencyCode = c.BaseCurrencyCode,
                 BusinessTimeZoneId = c.BusinessTimeZoneId,
                 DeliveryChargeInsideCity = c.DeliveryChargeInsideCity,
@@ -96,6 +100,17 @@ public class CompanyAdminService
         company.Phone = Trim(request.Phone);
         company.Email = Trim(request.Email);
 
+        // Anything that is not an http(s) URL is dropped rather than stored.
+        // These end up in an href on a public page, and "javascript:" in a
+        // link the whole site renders is not a setting anybody needs.
+        company.FacebookUrl = WebLink(request.FacebookUrl);
+        company.InstagramUrl = WebLink(request.InstagramUrl);
+
+        // Strict, and silent about it: an id that does not match the shape the
+        // vendor issues is not stored at all. See the note on TrackingId.
+        company.MetaPixelId = TrackingId(request.MetaPixelId, MetaPixelPattern());
+        company.GoogleAnalyticsId = TrackingId(request.GoogleAnalyticsId, GoogleAnalyticsPattern());
+
         // Negatives would quietly discount the order rather than charge for
         // delivery, so they are floored rather than trusted.
         company.DeliveryChargeInsideCity = Math.Max(0m, request.DeliveryChargeInsideCity);
@@ -139,4 +154,59 @@ public class CompanyAdminService
 
     private static string? Trim(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    /// <summary>
+    /// An absolute http or https URL, or null.
+    ///
+    /// Validated here rather than in the view because the view is not the only
+    /// caller and because this value is rendered into an <c>href</c> on every
+    /// public page. Razor escapes the text, which stops the tag being broken
+    /// out of, but it will happily emit a "javascript:" href intact - that is
+    /// a scheme check's job, not an encoder's.
+    /// </summary>
+    private static string? WebLink(string? value)
+    {
+        var trimmed = Trim(value);
+
+        if (trimmed is null)
+        {
+            return null;
+        }
+
+        return Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
+               && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            ? trimmed
+            : null;
+    }
+
+    /// <summary>
+    /// A tracking id that matches the shape its vendor issues, or null.
+    ///
+    /// This is the strictest validation in the file, and it is the one that
+    /// most needs to be. Both ids are rendered <em>inside a script tag</em> on
+    /// every public page, where HTML encoding does nothing useful: a value
+    /// containing a quote and a semicolon would not break out of the tag, it
+    /// would simply become the next statement in it. Allowing only the
+    /// characters the real ids are made of removes the question entirely.
+    ///
+    /// Silently dropping a malformed id rather than refusing the save is
+    /// deliberate. The rest of the company profile - the address that prints on
+    /// invoices, the delivery charges - must not be held hostage by a mistyped
+    /// analytics id, and the field showing empty afterwards is a clear enough
+    /// signal that it did not take.
+    /// </summary>
+    private static string? TrackingId(string? value, System.Text.RegularExpressions.Regex pattern)
+    {
+        var trimmed = Trim(value);
+
+        return trimmed is not null && pattern.IsMatch(trimmed) ? trimmed : null;
+    }
+
+    /// <summary>Meta issues numeric pixel ids, currently fifteen or sixteen digits.</summary>
+    [System.Text.RegularExpressions.GeneratedRegex(@"^\d{8,20}$")]
+    private static partial System.Text.RegularExpressions.Regex MetaPixelPattern();
+
+    /// <summary>GA4 measurement ids are "G-" followed by an alphanumeric stream.</summary>
+    [System.Text.RegularExpressions.GeneratedRegex(@"^G-[A-Za-z0-9]{4,20}$")]
+    private static partial System.Text.RegularExpressions.Regex GoogleAnalyticsPattern();
 }

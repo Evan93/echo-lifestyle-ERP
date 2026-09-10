@@ -1,0 +1,90 @@
+@model IReadOnlyList<ShopBanner>
+@{
+    if (Model.Count == 0)
+    {
+        return;
+    }
+
+    var many = Model.Count > 1;
+}
+
+@* One slide is not a carousel. With a single banner this draws a plain image
+   with no arrows, no dots, no rotation and no carousel JavaScript at all -
+   exactly what was there before slides existed. The machinery appears only
+   when there is something to rotate. *@
+@if (!many)
+{
+    <section class="shop-banner">
+        <partial name="_BannerSlide" model="Model[0]" />
+    </section>
+
+    return;
+}
+
+@* Bootstrap's own carousel, not a hand-rolled one. It already handles swipe,
+   keyboard arrows, pause on hover and pause on focus correctly, and Bootstrap
+   is on every page regardless - so the alternative is not "less JavaScript",
+   it is "the same amount, written worse". *@
+
+@*
+    Rotation, done carefully. The difference between a carousel that works and
+    one that annoys is almost entirely in these details:
+
+    - Six seconds a slide. Three, which is the common default, is less than it
+      takes to read a headline and decide whether to care.
+    - Pauses on hover and on keyboard focus, so it never moves out from under
+      somebody who is reading it or tabbing through it.
+    - Stops rotating for good the moment a visitor works the arrows or dots.
+      Someone steering has said what they want to look at; continuing to move
+      is arguing with them.
+    - Does not auto-rotate at all for anybody whose system asks for reduced
+      motion. That is a real accessibility setting, not a preference to ignore.
+    - An explicit pause control, because hover is not available on a phone and
+      WCAG asks for a way to stop moving content that is more than decoration.
+    - Only the first image loads eagerly. The rest are lazy, so a three-slide
+      banner costs one image on first paint rather than three - which on a
+      Bangladeshi mobile connection is the whole argument against carousels,
+      and it is avoidable.
+*@
+<section id="shopBanner" class="carousel slide shop-banner" data-bs-touch="true">
+    <div class="carousel-inner">
+        @for (var i = 0; i < Model.Count; i++)
+        {
+            <div class="carousel-item @(i == 0 ? "active" : null)">
+                <partial name="_BannerSlide" model="Model[i]"
+                         view-data='new ViewDataDictionary(ViewData) { ["First"] = i == 0 }' />
+            </div>
+        }
+    </div>
+
+    <button class="carousel-control-prev" type="button"
+            data-bs-target="#shopBanner" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+    </button>
+
+    <button class="carousel-control-next" type="button"
+            data-bs-target="#shopBanner" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+    </button>
+
+    <div class="carousel-indicators">
+        @for (var i = 0; i < Model.Count; i++)
+        {
+            <button type="button" data-bs-target="#shopBanner" data-bs-slide-to="@i"
+                    class="@(i == 0 ? "active" : null)"
+                    aria-current="@(i == 0 ? "true" : null)"
+                    aria-label="Banner @(i + 1)"></button>
+        }
+    </div>
+
+    <button class="shop-banner__pause" type="button" id="shopBannerPause"
+            aria-label="Pause the banner">
+        <span aria-hidden="true">&#10073;&#10073;</span>
+    </button>
+</section>
+
+@* The script that drives this lives in the Scripts section of the page, not
+   here: a partial cannot declare a section, and an inline script in the body
+   would run before Bootstrap has loaded at the foot of it. *@

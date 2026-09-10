@@ -1,0 +1,127 @@
+@using EchoLifestyle.Application.Administration.CompanyProfile
+@model CompanyDetail
+@{
+    ViewData["Title"] = "Privacy";
+    ViewData["MetaDescription"] =
+        "What Echo Lifestyle collects, why, and who it is shared with.";
+}
+
+<div class="container py-4 py-lg-5">
+    <div class="shop-prose mx-auto">
+
+        <h1 class="shop-display h2">Privacy</h1>
+
+        <p class="lead text-muted">
+            Short version: we keep what we need to deliver your order, we give the courier
+            what they need to find you, and we sell your details to nobody.
+        </p>
+
+        <h2>What we collect</h2>
+
+        <p>When you place an order we keep:</p>
+
+        <ul>
+            <li>Your name and the name the parcel is going to.</li>
+            <li>Your phone number. This is how we confirm orders and how the courier
+                reaches you, and it is how we recognise you next time.</li>
+            <li>The delivery address, and any note you leave with it.</li>
+            <li>What you ordered and what it cost.</li>
+        </ul>
+
+        <p>
+            You do not need an account to shop with us, and we do not ask for one. We do
+            not collect your date of birth, your national ID, or any payment card details
+            &mdash; there is nothing to collect, because you pay the courier in cash.
+        </p>
+
+        <h2>Who else sees it</h2>
+
+        <p>
+            The courier delivering your parcel gets your name, phone number and address.
+            They need all three to deliver it, and nothing beyond that.
+        </p>
+
+        <p>
+            Nobody else gets your name, number or address. We do not sell, rent or trade
+            customer details.
+        </p>
+
+        <h2>The basket</h2>
+
+        <p>
+            Your basket is remembered with a small cookie that holds nothing but a random
+            identifier. It is not tied to you until you place an order, and it expires by
+            itself after two weeks.
+        </p>
+
+        @* Written because the site actually does this, and a privacy page that
+           did not mention it would be false. If the tracking ids are ever
+           cleared in Administration this section stops being true - hence the
+           condition rather than a paragraph that is always printed. *@
+        @if (!string.IsNullOrWhiteSpace(Model.MetaPixelId)
+             || !string.IsNullOrWhiteSpace(Model.GoogleAnalyticsId))
+        {
+            <h2>Measuring the website</h2>
+
+            <p>
+                We advertise on Facebook and Instagram, and we need to know which of those
+                adverts actually lead to orders &mdash; otherwise we are spending money
+                blind. So this website reports anonymous activity to
+                @if (!string.IsNullOrWhiteSpace(Model.MetaPixelId)
+                     && !string.IsNullOrWhiteSpace(Model.GoogleAnalyticsId))
+                {
+                    <text>Meta (Facebook) and Google Analytics</text>
+                }
+                else if (!string.IsNullOrWhiteSpace(Model.MetaPixelId))
+                {
+                    <text>Meta (Facebook)</text>
+                }
+                else
+                {
+                    <text>Google Analytics</text>
+                }:
+                which pages were viewed, what was added to a basket, and the value of an
+                order once it is placed.
+            </p>
+
+            <p>
+                <strong>Your name, phone number and address are never sent to them.</strong>
+                What they receive is page activity and order values, tied to a browser
+                rather than to a person by us. These companies do their own tracking across
+                the web, which is outside our control &mdash; a browser set to block
+                trackers, or an ad-blocker, stops this and does not affect your ability to
+                order.
+            </p>
+        }
+
+        <h2>How long we keep it</h2>
+
+        <p>
+            Order records are kept as long as we are required to keep business records,
+            and because they are how we answer questions about past orders and honour
+            anything that turns out to be our fault.
+        </p>
+
+        <h2>Asking us to change or remove something</h2>
+
+        <p>
+            Message or call us and we will correct anything that is wrong. If you want us
+            to stop contacting you, say so and we will. We cannot delete the record of an
+            order that has already been placed and delivered, because that is an accounting
+            record, but nothing obliges us to keep contacting you about it.
+        </p>
+
+        <h2>Getting hold of us</h2>
+
+        <p>
+            @Model.Name@(string.IsNullOrWhiteSpace(Model.Phone) ? "" : $", {Model.Phone}")@(string.IsNullOrWhiteSpace(Model.Email) ? "" : $", {Model.Email}").
+            Details are on the <a asp-route="storefront-contact">contact page</a>.
+        </p>
+
+        <p class="text-muted small">
+            We will update this page if what we do changes. It is written to describe what
+            the shop actually does rather than to cover every eventuality, which is the
+            only kind of privacy notice worth reading.
+        </p>
+    </div>
+</div>

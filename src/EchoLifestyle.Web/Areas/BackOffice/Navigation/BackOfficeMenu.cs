@@ -104,6 +104,26 @@ public class BackOfficeMenu
             ],
         },
 
+        // Separate from Catalog on purpose: deciding what the shop advertises
+        // and deciding what a product costs are different jobs, and they carry
+        // different permissions.
+        new NavItem
+        {
+            Text = "Website",
+            Icon = "box",
+            Children =
+            [
+                new NavItem
+                {
+                    Text = "Home banner",
+                    Icon = "dot",
+                    Controller = "Banners",
+                    Action = "Index",
+                    Permission = Permissions.Marketing.BannerView,
+                },
+            ],
+        },
+
         new NavItem
         {
             Text = "Procurement",
@@ -306,9 +326,38 @@ public class BackOfficeMenu
             Icon = "chart",
             Children =
             [
-                new NavItem { Text = "Sales reports", Icon = "dot", Permission = Permissions.Reporting.SalesReportsView, ComingInPhase = "4" },
-                new NavItem { Text = "Inventory reports", Icon = "dot", Permission = Permissions.Reporting.InventoryReportsView, ComingInPhase = "3" },
-                new NavItem { Text = "Financial reports", Icon = "dot", Permission = Permissions.Reporting.FinancialReportsView, ComingInPhase = "5" },
+                new NavItem
+                {
+                    Text = "Sales",
+                    Icon = "dot",
+                    Controller = "Reports",
+                    Action = "Sales",
+                    Permission = Permissions.Reporting.SalesReportsView,
+                },
+                new NavItem
+                {
+                    Text = "Money owed",
+                    Icon = "dot",
+                    Controller = "Reports",
+                    Action = "Outstanding",
+                    Permission = Permissions.Reporting.FinancialReportsView,
+                },
+                new NavItem
+                {
+                    Text = "Money out",
+                    Icon = "dot",
+                    Controller = "Reports",
+                    Action = "Spending",
+                    Permission = Permissions.Reporting.FinancialReportsView,
+                },
+                new NavItem
+                {
+                    Text = "Stock",
+                    Icon = "dot",
+                    Controller = "Reports",
+                    Action = "Stock",
+                    Permission = Permissions.Reporting.InventoryReportsView,
+                },
             ],
         },
 

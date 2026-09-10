@@ -33,6 +33,29 @@
             Payment is cash to the courier when it arrives.
         </p>
 
-        <a class="btn btn-shop mt-2" asp-route="storefront-home">Keep shopping</a>
+        <div class="d-flex gap-2 justify-content-center mt-2 flex-wrap">
+            <a class="btn btn-shop" asp-route="storefront-home">Keep shopping</a>
+
+            @* Prefilled with the order number, so the one moment somebody has
+               it in front of them is the moment they can reach - and bookmark -
+               the page that needs it. The phone stays for them to type. *@
+            <a class="btn btn-outline-secondary"
+               href="@Url.RouteUrl("storefront-track", new { order = Model.Number })">
+                Track this order
+            </a>
+        </div>
+
+        @* The conversion. This fires exactly once per order without any guard,
+           because the page is built from TempData: a refresh finds it gone and
+           redirects home rather than re-rendering. Worth knowing, because the
+           usual way this goes wrong is a customer refreshing their receipt and
+           inflating the conversion count the ad budget is judged on. *@
+        <script>
+            window.echo.track("Purchase", {
+                currency: "BDT",
+                value: @Model.GrandTotal.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                transaction_id: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Number))
+            });
+        </script>
     </div>
 </div>

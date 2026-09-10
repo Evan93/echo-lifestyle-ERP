@@ -1,17 +1,61 @@
+@inject CompanyAdminService Company
 @model ShopHome
 @{
     ViewData["Title"] = null;
     ViewData["MetaDescription"] =
         "Genuine skincare, haircare and cosmetics, delivered across Bangladesh. Cash on delivery.";
+
+    var profile = await Company.GetAsync(Context.RequestAborted);
+    var homeOrigin = $"{Context.Request.Scheme}://{Context.Request.Host}";
+
+    var organisation = profile is null
+        ? null
+        : ProductStructuredData.BuildOrganization(
+            profile.Name,
+            homeOrigin,
+            homeOrigin + Url.Content("~/img/echo-logo.png"),
+            profile.Phone,
+            new[] { profile.FacebookUrl, profile.InstagramUrl }
+                .Where(url => !string.IsNullOrWhiteSpace(url))
+                .Select(url => url!));
 }
 
-<section class="shop-hero py-5">
+@* The home page only. Repeating an Organization block on every page says the
+   same thing over and over; here it tells a search engine which name, logo and
+   social accounts belong to this site rather than leaving it to infer them. *@
+@section Head {
+    @if (organisation is not null)
+    {
+        <script type="application/ld+json">@Html.Raw(organisation)</script>
+    }
+}
+
+@{
+    var slides = ViewData["Banners"] as IReadOnlyList<ShopBanner> ?? [];
+    var banner = slides.FirstOrDefault();
+}
+
+<partial name="_BannerSlides" model="slides" />
+
+<section class="shop-hero @(banner is null ? "py-5" : "py-4")">
     <div class="container">
         <div class="row align-items-center g-4">
             <div class="col-12 col-lg-7">
-                <h1 class="shop-display display-6 mb-3">
-                    Skincare and haircare,<br />sourced genuine.
-                </h1>
+                @* Demoted to an h2 only when the banner is carrying a headline
+                   of its own, so the page always has exactly one h1 - never
+                   two, and never none when the banner is a wordless image. *@
+                @if (banner?.HasOverlay != true)
+                {
+                    <h1 class="shop-display display-6 mb-3">
+                        Skincare and haircare,<br />sourced genuine.
+                    </h1>
+                }
+                else
+                {
+                    <h2 class="shop-display h3 mb-3">
+                        Skincare and haircare, sourced genuine.
+                    </h2>
+                }
                 <p class="text-muted mb-4" style="max-width: 46ch;">
                     A small, edited range &mdash; nothing on this site is here to fill a shelf.
                     Cash on delivery anywhere in Bangladesh, and every order confirmed by phone
@@ -137,4 +181,85 @@
             </p>
         </div>
     </section>
+}
+
+@* Drives the banner carousel. Declared here rather than in the partial for
+   two reasons: a partial cannot declare a section, and this has to run after
+   Bootstrap has loaded at the foot of the page.
+
+   The section itself is unconditional - Razor will not allow one inside an if -
+   and the guard is inside it. A single banner is a plain image and gets none of
+   this. *@
+@section Scripts {
+    @if (slides.Count > 1)
+    {
+        <script>
+            (function () {
+                var root = document.getElementById("shopBanner");
+                var pause = document.getElementById("shopBannerPause");
+                var glyph = pause ? pause.querySelector("span") : null;
+
+                if (!root || !window.bootstrap) { return; }
+
+                // A system setting, not a preference to be weighed against a
+                // marketing one: people who turn motion down have usually done
+                // so because moving content makes them unwell.
+                var still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+                var carousel = new bootstrap.Carousel(root, {
+                    // Six seconds, not the usual three. Three is less time than
+                    // it takes to read a headline and decide whether to care.
+                    interval: still ? false : 6000,
+                    ride: still ? false : "carousel",
+                    pause: "hover",
+                    wrap: true,
+                    keyboard: true
+                });
+
+                var running = !still;
+
+                if (still && pause) {
+                    pause.hidden = true;
+                }
+
+                function stop() {
+                    if (!running) { return; }
+
+                    carousel.pause();
+                    running = false;
+
+                    if (pause) {
+                        pause.setAttribute("aria-label", "Play the banner");
+                        pause.classList.add("is-paused");
+
+                        // The control names the action, not the state.
+                        if (glyph) { glyph.textContent = "\u25B6"; }
+                    }
+                }
+
+                // Somebody working the arrows has said what they want to look
+                // at. Continuing to advance is arguing with them.
+                root.querySelectorAll("[data-bs-slide], [data-bs-slide-to]")
+                    .forEach(function (control) {
+                        control.addEventListener("click", stop);
+                    });
+
+                if (pause) {
+                    pause.addEventListener("click", function () {
+                        if (running) {
+                            stop();
+                            return;
+                        }
+
+                        carousel.cycle();
+                        running = true;
+                        pause.setAttribute("aria-label", "Pause the banner");
+                        pause.classList.remove("is-paused");
+
+                        if (glyph) { glyph.textContent = "\u275A\u275A"; }
+                    });
+                }
+            })();
+        </script>
+    }
 }

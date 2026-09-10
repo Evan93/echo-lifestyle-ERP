@@ -107,6 +107,110 @@ public class CatalogController : StorefrontControllerBase
         });
     }
 
+    /// <summary>
+    /// The fixed menu entries: everything new, and everything on offer.
+    ///
+    /// Both render through the category view, because a listing is a listing -
+    /// a near-identical second view is how one of them quietly stops matching
+    /// the other. Only the heading and the starting sort differ.
+    /// </summary>
+    [HttpGet]
+    public Task<IActionResult> New(
+        string? sort,
+        int? page,
+        [FromQuery(Name = "brand")] long[]? brands,
+        [FromQuery(Name = "min")] decimal? minPrice,
+        [FromQuery(Name = "max")] decimal? maxPrice,
+        [FromQuery(Name = "stock")] string? inStock,
+        CancellationToken cancellationToken) =>
+        ListingAsync(
+            heading: "New in",
+            description: "The most recent additions to the shop.",
+            routeName: "storefront-new",
+            forceOffers: false,
+            sort: sort,
+            page: page,
+            brands: brands,
+            minPrice: minPrice,
+            maxPrice: maxPrice,
+            inStock: inStock,
+            cancellationToken: cancellationToken);
+
+    [HttpGet]
+    public Task<IActionResult> Offers(
+        string? sort,
+        int? page,
+        [FromQuery(Name = "brand")] long[]? brands,
+        [FromQuery(Name = "min")] decimal? minPrice,
+        [FromQuery(Name = "max")] decimal? maxPrice,
+        [FromQuery(Name = "stock")] string? inStock,
+        CancellationToken cancellationToken) =>
+        ListingAsync(
+            heading: "On offer",
+            description: "Everything currently marked down. Prices shown are what you pay.",
+            routeName: "storefront-offers",
+
+            // Not a filter the visitor can untick here: an offers page that can
+            // be switched to show non-offers is just the shop with a misleading
+            // heading on it.
+            forceOffers: true,
+            sort: sort,
+            page: page,
+            brands: brands,
+            minPrice: minPrice,
+            maxPrice: maxPrice,
+            inStock: inStock,
+            cancellationToken: cancellationToken);
+
+    private async Task<IActionResult> ListingAsync(
+        string heading,
+        string description,
+        string routeName,
+        bool forceOffers,
+        string? sort,
+        int? page,
+        long[]? brands,
+        decimal? minPrice,
+        decimal? maxPrice,
+        string? inStock,
+        CancellationToken cancellationToken)
+    {
+        var order = ParseSort(sort);
+        var filters = ParseFilters(brands, minPrice, maxPrice, inStock, forceOffers ? "1" : null);
+
+        var (products, facets) = await _catalog.GetAllAsync(
+            order, ParsePage(page), filters, cancellationToken);
+
+        ViewData["Title"] = heading;
+        ViewData["MetaDescription"] = description;
+
+        return View("Category", new ShopListingViewModel
+        {
+            Heading = heading,
+            Description = description,
+            Products = products,
+            Sort = order,
+            Filters = filters,
+            Facets = facets,
+            RouteName = routeName,
+            ShowOfferFilter = !forceOffers,
+        });
+    }
+
+    /// <summary>
+    /// The brand index. A flat A-to-Z, because a shopper who arrives looking
+    /// for a brand knows its name and wants to find it, not to browse.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Brands(CancellationToken cancellationToken)
+    {
+        ViewData["Title"] = "Brands";
+        ViewData["MetaDescription"] =
+            "Every brand stocked at Echo Lifestyle, sourced genuine and delivered across Bangladesh.";
+
+        return View(await _catalog.GetBrandIndexAsync(cancellationToken));
+    }
+
     [HttpGet]
     public async Task<IActionResult> Search(
         string? q,

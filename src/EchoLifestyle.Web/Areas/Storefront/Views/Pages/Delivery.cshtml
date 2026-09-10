@@ -1,0 +1,82 @@
+@using EchoLifestyle.Application.Administration.CompanyProfile
+@model CompanyDetail
+@{
+    ViewData["Title"] = "Delivery";
+    ViewData["MetaDescription"] =
+        "How Echo Lifestyle delivers across Bangladesh: charges, timing and cash on delivery.";
+}
+
+<div class="container py-4 py-lg-5">
+    <div class="shop-prose mx-auto">
+
+        <h1 class="shop-display h2">Delivery</h1>
+
+        <p class="lead text-muted">
+            We deliver anywhere in Bangladesh by courier, and you pay when the parcel
+            reaches you.
+        </p>
+
+        <h2>What it costs</h2>
+
+        @* Read from the company record, never written into this page. The day
+           the courier changes its rates, this page changes with the setting. *@
+        <table class="table shop-table">
+            <tbody>
+                <tr>
+                    <th scope="row" class="fw-normal">Inside Dhaka city</th>
+                    <td class="text-end">&#2547; @Model.DeliveryChargeInsideCity.ToString("N0")</td>
+                </tr>
+                <tr>
+                    <th scope="row" class="fw-normal">Anywhere else in Bangladesh</th>
+                    <td class="text-end">&#2547; @Model.DeliveryChargeOutsideCity.ToString("N0")</td>
+                </tr>
+                @if (Model.FreeDeliveryOverAmount is { } threshold)
+                {
+                    <tr>
+                        <th scope="row" class="fw-normal">Orders over &#2547; @threshold.ToString("N0")</th>
+                        <td class="text-end fw-semibold">Free</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <h2>How long it takes</h2>
+
+        <p>
+            Most Dhaka addresses receive their parcel within one to two working days of
+            the order being confirmed. Elsewhere in the country it is usually two to four.
+            Orders confirmed on a Friday or a public holiday go out the next working day.
+        </p>
+
+        <p>
+            We confirm every order by phone before it ships, so the clock starts from that
+            call rather than from the moment you press the button.
+        </p>
+
+        <h2>Paying</h2>
+
+        <p>
+            Cash on delivery, everywhere. You hand the money to the courier when the parcel
+            arrives &mdash; nothing is charged before then, and we never ask for payment in
+            advance to hold an order.
+        </p>
+
+        <p>
+            Please have the exact amount ready if you can. Couriers rarely carry change.
+        </p>
+
+        <h2>If nobody is home</h2>
+
+        <p>
+            The courier will call before delivering. If they cannot reach you they will
+            usually try again the next day, and after that the parcel comes back to us.
+            Keeping the number you gave us reachable is the single thing that most
+            reliably gets a parcel delivered first time.
+        </p>
+
+        <p class="text-muted">
+            Something not covered here? <a asp-route="storefront-contact">Get in touch</a>
+            &mdash; or <a asp-route="storefront-track">track an order you have already placed</a>.
+        </p>
+    </div>
+</div>

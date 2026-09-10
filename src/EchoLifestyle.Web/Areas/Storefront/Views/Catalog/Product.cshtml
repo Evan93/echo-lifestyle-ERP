@@ -27,6 +27,25 @@
         path = Url.Content("~/" + i.Path.TrimStart('/')),
         alt = i.AltText,
     }));
+
+    // What puts a price and "in stock" under the link in a search result, which
+    // for a shop is most of the value of appearing there at all.
+    var pageOrigin = $"{Context.Request.Scheme}://{Context.Request.Host}";
+    var primaryImage = Model.Images.FirstOrDefault();
+
+    var structuredData = ProductStructuredData.Build(
+        Model,
+        pageOrigin + Url.RouteUrl("storefront-product", new { slug = Model.Slug }),
+        primaryImage is null
+            ? null
+            : pageOrigin + Url.Content("~/" + primaryImage.Path.TrimStart('/')),
+        pageOrigin + Url.RouteUrl("storefront-brand", new { slug = Model.Brand.Slug }));
+}
+
+@section Head {
+    @* Serialised by System.Text.Json with its HTML-safe encoder, so a product
+       name containing a quote or an angle bracket cannot break out of here. *@
+    <script type="application/ld+json">@Html.Raw(structuredData)</script>
 }
 
 <div class="container py-4 py-lg-5">
@@ -417,6 +436,44 @@
             }
 
             render();
+
+            // --- what the ad platforms are told ---------------------------
+            //
+            // Reported after render(), so the price and sku sent are the ones
+            // actually on screen for the shade the page opened on rather than
+            // the product's first variant.
+            var chosen = document.getElementById("chosenVariantId");
+
+            function current() {
+                var id = chosen ? parseInt(chosen.value, 10) : null;
+
+                return variants.find(function (v) { return v.id === id; }) || null;
+            }
+
+            function payload(v, quantity) {
+                return {
+                    content_type: "product",
+                    content_ids: [v ? v.sku : @Html.Raw(JsonSerializer.Serialize(Model.Slug))],
+                    content_name: @Html.Raw(JsonSerializer.Serialize(Model.Name)),
+                    currency: "BDT",
+                    value: v && v.price ? v.price * (quantity || 1) : 0
+                };
+            }
+
+            window.echo.track("ViewContent", payload(current(), 1));
+
+            // On submit rather than on click: a disabled or blocked button
+            // would otherwise report an add to basket that never happened.
+            var addForm = document.querySelector('form[action*="cart/add"]');
+
+            if (addForm) {
+                addForm.addEventListener("submit", function () {
+                    var quantity = parseInt(
+                        (document.getElementById("addQuantity") || {}).value, 10) || 1;
+
+                    window.echo.track("AddToCart", payload(current(), quantity));
+                });
+            }
         })();
     </script>
 }

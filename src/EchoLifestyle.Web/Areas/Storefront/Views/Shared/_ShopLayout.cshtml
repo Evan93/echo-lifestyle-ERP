@@ -1,6 +1,13 @@
 @inject StorefrontCatalogService Catalog
 @inject CartService Carts
+@inject CompanyAdminService Company
 @{
+    @* One small query per page, alongside the menu and the basket count. The
+       contact details belong in configuration rather than in this markup, and
+       that is worth a lookup - though this is the first thing to put behind a
+       cache if page rendering ever needs trimming. *@
+    var company = await Company.GetAsync(Context.RequestAborted);
+
     var title = ViewData["Title"] as string;
     var metaDescription = ViewData["MetaDescription"] as string;
     var noIndex = ViewData["NoIndex"] as bool? ?? false;
@@ -11,6 +18,22 @@
     var origin = $"{Context.Request.Scheme}://{Context.Request.Host}";
     var absoluteUrl = origin + Context.Request.Path + Context.Request.QueryString;
     var socialImage = origin + Url.Content("~/img/og-default.jpg");
+
+    @* The canonical URL. This matters more here than on most sites: the
+       filters build a distinct URL for every combination of brand, price band
+       and sort order, so one category can be reached at hundreds of addresses
+       showing largely the same products. Left alone, a search engine has to
+       guess which one is the real page, and it splits the ranking of all of
+       them while it decides.
+
+       So the canonical is the bare path, with the page number kept and
+       everything else dropped: page two is a genuinely different set of
+       products and points at itself, while ?brand=3&sort=price-asc points at
+       the category. A view that knows better sets ViewData["Canonical"]. *@
+    var pageNumber = int.TryParse(Context.Request.Query["page"], out var parsed) ? parsed : 1;
+
+    var canonical = ViewData["Canonical"] as string
+        ?? origin + Context.Request.Path + (pageNumber > 1 ? $"?page={pageNumber}" : string.Empty);
 
     var cartCount = await Carts.CountAsync(Context.Request.Cookies["echo.cart"],
                                            Context.RequestAborted);
@@ -31,6 +54,12 @@
     @if (noIndex)
     {
         <meta name="robots" content="noindex,follow" />
+    }
+    else
+    {
+        @* Only on pages that may be indexed. A canonical tag on a noindex page
+           is a contradiction, and search engines resolve it unpredictably. *@
+        <link rel="canonical" href="@canonical" />
     }
 
     <link rel="icon" href="~/favicon.ico" sizes="any" />
@@ -55,6 +84,23 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/shop.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
+
+    @* Structured data, mostly. Anything a page needs in the head that is not a
+       stylesheet - it has to be here rather than in the body, because a
+       ld+json block in the body is valid but harder for anybody reading the
+       page source to find. *@
+    @await RenderSectionAsync("Head", required: false)
+
+    @* In the head, not at the end of the body, for two reasons: it is where
+       both vendors want their snippet, and it means window.echo.track exists
+       before any page script runs - including the inline one on the
+       order-received page, which is the single most important event on the
+       site to not lose.
+
+       Storefront only. The back office has its own layout and never loads
+       this, which is deliberate: staff clicking round the admin all day would
+       otherwise be counted as shop traffic, and their order edits as sales. *@
+    <partial name="_Analytics" model="company" />
 </head>
 <body>
 
@@ -112,6 +158,26 @@
                    traps somebody who just wants to click the heading - and on a
                    phone, where there is no hover, that is the only behaviour. *@
                 <nav class="shop-nav__list" aria-label="Categories">
+                    @{
+                        var currentPath = Context.Request.Path.Value ?? string.Empty;
+                    }
+
+                    @* Fixed entries first, and deliberately not categories.
+                       A category menu is only ever as good as the tree behind
+                       it, and a young catalogue has a shallow one - these three
+                       work on day one with nothing configured at all. New in
+                       and On offer answer the two questions a returning shopper
+                       actually arrives with. *@
+                    <div class="shop-nav__item">
+                        <a class="shop-nav__link @(currentPath == "/new" ? "is-active" : null)"
+                           asp-route="storefront-new">New in</a>
+                    </div>
+
+                    <div class="shop-nav__item">
+                        <a class="shop-nav__link shop-nav__link--offer @(currentPath == "/offers" ? "is-active" : null)"
+                           asp-route="storefront-offers">Offers</a>
+                    </div>
+
                     @foreach (var category in menu)
                     {
                         var isActive = category.Slug == activeSlug
@@ -192,6 +258,13 @@
                             }
                         </div>
                     }
+
+                    @* Last, because it is a way in for somebody who already
+                       knows what they want rather than something to browse. *@
+                    <div class="shop-nav__item">
+                        <a class="shop-nav__link @(currentPath == "/brands" ? "is-active" : null)"
+                           asp-route="storefront-brands">Brands</a>
+                    </div>
                 </nav>
 
                 <form class="shop-search d-md-none pb-3" asp-route="storefront-search"
@@ -242,18 +315,47 @@
                 </ul>
             </div>
 
-            <div class="col-6 col-md-4">
+            <div class="col-6 col-md-2">
+                <div class="shop-footer__title">Help</div>
+                <ul class="list-unstyled small mb-0">
+                    <li class="mb-1"><a asp-route="storefront-track">Track your order</a></li>
+                    <li class="mb-1"><a asp-route="storefront-delivery-page">Delivery</a></li>
+                    <li class="mb-1"><a asp-route="storefront-returns">Returns</a></li>
+                    <li class="mb-1"><a asp-route="storefront-contact">Contact us</a></li>
+                </ul>
+            </div>
+
+            <div class="col-12 col-md-2">
                 <div class="shop-footer__title">Ordering</div>
                 <p class="small mb-2">
-                    Order here, or message us on Facebook or Instagram. We confirm every order
-                    by phone before it ships.
+                    Order here, or message us. We confirm every order by phone before
+                    it ships.
                 </p>
-                <p class="small mb-0">Cash on delivery only, for now.</p>
+                <p class="small mb-2">Cash on delivery only, for now.</p>
+
+                @* Read from the company record and validated to be an http(s)
+                   URL when it is saved, so an unset link is simply absent
+                   rather than a dead one. *@
+                @if (company is { } contact)
+                {
+                    <div class="d-flex gap-3 small">
+                        @if (!string.IsNullOrWhiteSpace(contact.FacebookUrl))
+                        {
+                            <a href="@contact.FacebookUrl" rel="noopener" target="_blank">Facebook</a>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(contact.InstagramUrl))
+                        {
+                            <a href="@contact.InstagramUrl" rel="noopener" target="_blank">Instagram</a>
+                        }
+                    </div>
+                }
             </div>
         </div>
 
-        <div class="border-top border-secondary-subtle mt-4 pt-3 small opacity-75">
-            &copy; @DateTime.UtcNow.Year Echo Lifestyle
+        <div class="border-top border-secondary-subtle mt-4 pt-3 small opacity-75
+                    d-flex justify-content-between flex-wrap gap-2">
+            <span>&copy; @DateTime.UtcNow.Year Echo Lifestyle</span>
+            <a asp-route="storefront-privacy">Privacy</a>
         </div>
     </div>
 </footer>

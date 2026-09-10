@@ -1,0 +1,21 @@
+@model ShopBanner
+@{
+    // The first slide is different in two ways that both matter and neither is
+    // decoration, so one flag carries both.
+    var isFirst = ViewData["First"] as bool? ?? true;
+}
+
+@* Wrapped in a link only when there is somewhere to go. An <a> around a banner
+   that leads nowhere is a trap for anybody tabbing through the page. *@
+@if (!string.IsNullOrWhiteSpace(Model.LinkUrl))
+{
+    <a class="shop-banner__link" href="@Model.LinkUrl">
+        <partial name="_BannerSlideBody" model="Model"
+                 view-data='new ViewDataDictionary(ViewData) { ["First"] = isFirst }' />
+    </a>
+}
+else
+{
+    <partial name="_BannerSlideBody" model="Model"
+             view-data='new ViewDataDictionary(ViewData) { ["First"] = isFirst }' />
+}

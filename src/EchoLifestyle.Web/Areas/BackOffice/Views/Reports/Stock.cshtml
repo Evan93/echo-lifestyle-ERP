@@ -1,0 +1,226 @@
+@using EchoLifestyle.Application.Reporting
+@model StockReport
+@{
+    ViewData["Subtitle"] = "What is on the shelves";
+
+    var expired = Model.Expiring.Where(e => e.HasExpired).ToList();
+    var soon = Model.Expiring.Where(e => !e.HasExpired).ToList();
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small">Stock at cost</div>
+                <div class="fs-3 fw-semibold">&#2547; @Model.TotalValue.ToString("N0")</div>
+                <div class="text-muted small">@Model.TotalUnits.ToString("N0") unit(s)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-4">
+        <div class="card h-100 @(Model.LowStock.Count > 0 ? "border-warning" : null)">
+            <div class="card-body">
+                <div class="text-muted small">Running out</div>
+                <div class="fs-3 fw-semibold">@Model.LowStock.Count</div>
+                <div class="text-muted small">
+                    at or under @InventoryReportService.LowStockThreshold.ToString("N0") available
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+        <div class="card h-100 @(expired.Count > 0 ? "border-danger" : null)">
+            <div class="card-body">
+                <div class="text-muted small">Expiring or expired</div>
+                <div class="fs-3 fw-semibold">@Model.Expiring.Count</div>
+                <div class="text-muted small">
+                    @if (Model.ExpiredValue > 0m)
+                    {
+                        <span class="text-danger">
+                            &#2547; @Model.ExpiredValue.ToString("N0") already past date
+                        </span>
+                    }
+                    else
+                    {
+                        <text>within @InventoryReportService.ExpiryHorizonDays days</text>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Expiry first, and not further down the page. Everything else here is a
+   question about trading; this is money already spent that turns into rubbish
+   on a known date, and the window to discount it closes quietly. *@
+@if (Model.Expiring.Count > 0)
+{
+    <div class="card mb-4">
+        <div class="card-header fw-semibold">Expiry</div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Batch</th>
+                        <th>Where</th>
+                        <th>Expires</th>
+                        <th class="text-end">Days</th>
+                        <th class="text-end">On hand</th>
+                        <th class="text-end">At cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in expired.Concat(soon))
+                    {
+                        <tr class="@(row.HasExpired ? "table-danger" : null)">
+                            <td>
+                                @row.ProductName
+                                @if (!string.IsNullOrWhiteSpace(row.VariantName)
+                                     && row.VariantName != row.ProductName)
+                                {
+                                    <text> &mdash; @row.VariantName</text>
+                                }
+                                <span class="text-muted small d-block">@row.Sku</span>
+                            </td>
+                            <td class="small"><code>@row.BatchNumber</code></td>
+                            <td class="small">@row.WarehouseName</td>
+                            <td class="text-nowrap">@row.ExpiryDate.ToString("d MMM yyyy")</td>
+                            <td class="text-end">
+                                @if (row.HasExpired)
+                                {
+                                    <span class="text-danger fw-semibold">
+                                        @Math.Abs(row.DaysRemaining) ago
+                                    </span>
+                                }
+                                else
+                                {
+                                    @row.DaysRemaining
+                                }
+                            </td>
+                            <td class="text-end">@row.QuantityOnHand.ToString("N0")</td>
+                            <td class="text-end">@row.ValueAtRisk.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (expired.Count > 0)
+        {
+            <div class="card-footer small">
+                Anything already past its date should come off the shelf and be written
+                off through Inventory &rarr; Adjustments, so the stock figure stops
+                counting it.
+            </div>
+        }
+    </div>
+}
+
+@if (Model.LowStock.Count > 0)
+{
+    <div class="card mb-4">
+        <div class="card-header fw-semibold">Running out</div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th class="text-end">Available</th>
+                        <th>On the website</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.LowStock)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-controller="Products" asp-action="Edit"
+                                   asp-route-id="@row.ProductId">@row.ProductName</a>
+                                @if (row.ShowVariantName)
+                                {
+                                    <text> &mdash; @row.VariantName</text>
+                                }
+                                <span class="text-muted small d-block">@row.Sku</span>
+                            </td>
+                            <td class="text-end fw-semibold @(row.Available <= 0m ? "text-danger" : null)">
+                                @row.Available.ToString("N0")
+                            </td>
+                            <td>
+                                @* A published product at zero is worse than an
+                                   unpublished one: somebody is being shown a
+                                   thing that cannot be bought. *@
+                                @if (row.IsPublished && row.Available <= 0m)
+                                {
+                                    <span class="badge text-bg-danger">Published, sold out</span>
+                                }
+                                else if (row.IsPublished)
+                                {
+                                    <span class="badge text-bg-light border">Published</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Not published</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header fw-semibold">Valuation, most valuable first</div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Brand</th>
+                    <th class="text-end">On hand</th>
+                    <th class="text-end">Reserved</th>
+                    <th class="text-end">Available</th>
+                    <th class="text-end">At cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr>
+                        <td>
+                            @row.ProductName
+                            @if (row.ShowVariantName)
+                            {
+                                <text> &mdash; @row.VariantName</text>
+                            }
+                            <span class="text-muted small d-block">@row.Sku</span>
+                        </td>
+                        <td class="small">@row.BrandName</td>
+                        <td class="text-end">@row.QuantityOnHand.ToString("N0")</td>
+                        <td class="text-end">
+                            @(row.QuantityReserved == 0m ? "" : row.QuantityReserved.ToString("N0"))
+                        </td>
+                        <td class="text-end">@row.QuantityAvailable.ToString("N0")</td>
+                        <td class="text-end">@row.Value.ToString("N0")</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot class="table-light fw-semibold">
+                <tr>
+                    <td colspan="2">Total</td>
+                    <td class="text-end">@Model.TotalUnits.ToString("N0")</td>
+                    <td></td>
+                    <td></td>
+                    <td class="text-end">&#2547; @Model.TotalValue.ToString("N0")</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    <div class="card-footer small text-muted">
+        Valued at what it cost, from the batch each unit sits in &mdash; never at what
+        it sells for. Valuing stock at retail books a profit that has not been earned.
+    </div>
+</div>

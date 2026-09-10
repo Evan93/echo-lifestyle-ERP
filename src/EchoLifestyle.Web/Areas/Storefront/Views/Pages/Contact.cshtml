@@ -1,0 +1,85 @@
+@using EchoLifestyle.Application.Administration.CompanyProfile
+@model CompanyDetail
+@{
+    ViewData["Title"] = "Contact";
+    ViewData["MetaDescription"] = $"How to reach {Model.Name}.";
+
+    var address = new[] { Model.AddressLine1, Model.AddressLine2, Model.City, Model.PostalCode }
+        .Where(part => !string.IsNullOrWhiteSpace(part))
+        .ToList();
+}
+
+<div class="container py-4 py-lg-5">
+    <div class="shop-prose mx-auto">
+
+        <h1 class="shop-display h2">Contact us</h1>
+
+        <p class="lead text-muted">
+            A real person answers. Messenger and Instagram are usually fastest.
+        </p>
+
+        <dl class="shop-contact">
+            @if (!string.IsNullOrWhiteSpace(Model.Phone))
+            {
+                <dt>Phone</dt>
+                <dd><a href="tel:@Model.Phone">@Model.Phone</a></dd>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.Email))
+            {
+                <dt>Email</dt>
+                <dd><a href="mailto:@Model.Email">@Model.Email</a></dd>
+            }
+
+            @* Validated as an absolute http(s) URL when it is saved, so it is
+               safe to put straight into an href here. *@
+            @if (!string.IsNullOrWhiteSpace(Model.FacebookUrl))
+            {
+                <dt>Facebook</dt>
+                <dd>
+                    <a href="@Model.FacebookUrl" rel="noopener" target="_blank">
+                        Message us on Facebook
+                    </a>
+                </dd>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.InstagramUrl))
+            {
+                <dt>Instagram</dt>
+                <dd>
+                    <a href="@Model.InstagramUrl" rel="noopener" target="_blank">
+                        Message us on Instagram
+                    </a>
+                </dd>
+            }
+
+            @if (address.Count > 0)
+            {
+                <dt>Address</dt>
+                <dd>@string.Join(", ", address)</dd>
+            }
+        </dl>
+
+        <h2>About an order you have placed</h2>
+
+        <p>
+            Quote your order number and we can answer straight away. If you do not have it
+            to hand you can <a asp-route="storefront-track">look it up</a> with your phone
+            number.
+        </p>
+
+        <h2>Before you order</h2>
+
+        <p>
+            Ask us. Whether something suits your skin or hair type, whether a shade will
+            work, whether we can get a product we do not currently list &mdash; all fair
+            questions, and we would rather answer them than have you order something that
+            turns out to be wrong.
+        </p>
+
+        <p class="text-muted">
+            See also: <a asp-route="storefront-delivery-page">delivery</a> and
+            <a asp-route="storefront-returns">returns</a>.
+        </p>
+    </div>
+</div>

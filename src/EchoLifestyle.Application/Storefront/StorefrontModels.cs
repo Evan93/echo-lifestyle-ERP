@@ -143,6 +143,33 @@ public class BrandFacet
     public int Count { get; set; }
 }
 
+/// <summary>
+/// What belongs in sitemap.xml: only what the catalogue would show anyway, and
+/// only categories and brands that actually have something under them.
+/// </summary>
+public class ShopSitemap
+{
+    public IReadOnlyList<SitemapEntry> Products { get; set; } = [];
+
+    public IReadOnlyList<SitemapEntry> Categories { get; set; } = [];
+
+    public IReadOnlyList<SitemapEntry> Brands { get; set; } = [];
+
+    public int Count => Products.Count + Categories.Count + Brands.Count;
+}
+
+public class SitemapEntry
+{
+    public string Slug { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Honest, or absent. A lastmod of "today" on every URL is worse than none:
+    /// once a crawler learns the date means nothing it stops reading it, and
+    /// the one time something really did change goes unnoticed.
+    /// </summary>
+    public DateTime LastModifiedUtc { get; set; }
+}
+
 /// <summary>How a listing is ordered. Bound from the query string, so unknown values fall back.</summary>
 public enum ShopSort
 {
@@ -201,6 +228,41 @@ public class ShopBrand
     public string? LogoPath { get; set; }
 
     public string? BannerPath { get; set; }
+}
+
+/// <summary>
+/// The banner across the top of the home page, as a customer sees it.
+///
+/// Here with the other Shop* models rather than in Marketing, because this is
+/// the customer's view of a banner and those are the back office's. They are
+/// allowed to diverge - the admin one carries a name and a schedule that no
+/// visitor should ever see.
+/// </summary>
+public class ShopBanner
+{
+    public string ImagePath { get; set; } = string.Empty;
+
+    /// <summary>A taller crop for phones. Null means the wide one serves both.</summary>
+    public string? MobileImagePath { get; set; }
+
+    public string AltText { get; set; } = string.Empty;
+
+    public string? Headline { get; set; }
+
+    public string? Subheading { get; set; }
+
+    public string? LinkUrl { get; set; }
+
+    public string? ButtonText { get; set; }
+
+    /// <summary>
+    /// True when there is text to lay over the image. A banner whose artwork
+    /// already carries its own words gets no overlay and no scrim, because
+    /// darkening a picture to make room for text that is not there just makes
+    /// the picture worse.
+    /// </summary>
+    public bool HasOverlay =>
+        !string.IsNullOrWhiteSpace(Headline) || !string.IsNullOrWhiteSpace(Subheading);
 }
 
 /// <summary>What the home page needs, in one call.</summary>

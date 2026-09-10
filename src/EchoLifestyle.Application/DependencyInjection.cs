@@ -66,6 +66,16 @@ public static class DependencyInjection
         services.AddScoped<StorefrontCatalogService>();
         services.AddScoped<CartService>();
         services.AddScoped<CheckoutService>();
+        services.AddScoped<StorefrontTrackingService>();
+        services.AddScoped<StorefrontBannerService>();
+        services.AddScoped<Marketing.BannerAdminService>();
+
+        // Read-only, and built from the orders themselves rather than from a
+        // kept-up-to-date summary table. A stored total is a total that can
+        // drift from the rows it claims to summarise.
+        services.AddScoped<Reporting.SalesReportService>();
+        services.AddScoped<Reporting.InventoryReportService>();
+        services.AddScoped<Reporting.SpendReportService>();
 
         return services;
     }

@@ -73,6 +73,58 @@
                             <input asp-for="Email" class="form-control" disabled="@(!canEdit)" />
                             <span asp-validation-for="Email" class="text-danger small"></span>
                         </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="FacebookUrl" class="form-label"></label>
+                            <input asp-for="FacebookUrl" class="form-control" type="url"
+                                   placeholder="https://facebook.com/..." disabled="@(!canEdit)" />
+                            <span asp-validation-for="FacebookUrl" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="InstagramUrl" class="form-label"></label>
+                            <input asp-for="InstagramUrl" class="form-control" type="url"
+                                   placeholder="https://instagram.com/..." disabled="@(!canEdit)" />
+                            <span asp-validation-for="InstagramUrl" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-text">
+                                The phone, email and social links above are what the website shows on
+                                its contact page and in its footer. Changing them here changes them
+                                everywhere &mdash; no page needs editing.
+                            </div>
+                        </div>
+
+                        <div class="col-12"><hr class="my-2" /></div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="MetaPixelId" class="form-label"></label>
+                            <input asp-for="MetaPixelId" class="form-control"
+                                   inputmode="numeric" placeholder="1234567890123456"
+                                   disabled="@(!canEdit)" />
+                            <span asp-validation-for="MetaPixelId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="GoogleAnalyticsId" class="form-label"></label>
+                            <input asp-for="GoogleAnalyticsId" class="form-control"
+                                   placeholder="G-XXXXXXXXXX" disabled="@(!canEdit)" />
+                            <span asp-validation-for="GoogleAnalyticsId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="alert alert-light border small mb-0">
+                                <strong>Leave both empty while testing.</strong>
+                                Filling them in switches tracking on for the public website only
+                                &mdash; never for these admin pages. Entering them on a development
+                                machine puts your own clicking about into the conversion figures you
+                                will be setting an ad budget from.
+                                <br />
+                                Adding either one also adds a section to the website's privacy page
+                                explaining it, which appears automatically.
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

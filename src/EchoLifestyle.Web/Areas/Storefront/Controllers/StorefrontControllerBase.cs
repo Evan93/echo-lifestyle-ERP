@@ -118,4 +118,13 @@ public static class RateLimits
     public const string Cart = "storefront-cart";
 
     public const string Checkout = "storefront-checkout";
+
+    /// <summary>
+    /// Order tracking. Not a write endpoint, but the one place on the site
+    /// where guessing pays: order numbers run in sequence, so the phone number
+    /// is all that stands between a script and somebody's delivery address. A
+    /// ceiling turns that from a weekend's work into an impossibility, and it
+    /// is the only reason a guest-checkout lookup is defensible at all.
+    /// </summary>
+    public const string Tracking = "storefront-tracking";
 }

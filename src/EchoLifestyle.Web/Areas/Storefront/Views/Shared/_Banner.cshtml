@@ -1,0 +1,48 @@
+@model ShopBanner
+
+@* A <picture> rather than one <img> with CSS cropping. The phone gets the
+   phone-shaped file and never downloads the wide one, which on a Bangladeshi
+   mobile connection is the difference between a banner and a delay. When no
+   phone crop was uploaded the same file serves both, and nothing here changes. *@
+<picture>
+    @if (!string.IsNullOrWhiteSpace(Model.MobileImagePath))
+    {
+        <source media="(max-width: 767px)"
+                srcset="@Url.Content("~/" + Model.MobileImagePath.TrimStart('/'))" />
+    }
+
+    @* Eager, and not lazy: this is the first thing on the page, and a lazily
+       loaded banner is a banner that visibly pops in after the page settles. *@
+    <img class="shop-banner__image"
+         src="@Url.Content("~/" + Model.ImagePath.TrimStart('/'))"
+         alt="@Model.AltText"
+         fetchpriority="high" decoding="async" />
+</picture>
+
+@if (Model.HasOverlay)
+{
+    <div class="shop-banner__overlay">
+        <div class="container">
+            <div class="shop-banner__text">
+                @if (!string.IsNullOrWhiteSpace(Model.Headline))
+                {
+                    <h1 class="shop-display shop-banner__headline">@Model.Headline</h1>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.Subheading))
+                {
+                    <p class="shop-banner__sub">@Model.Subheading</p>
+                }
+
+                @* Styled as a button but rendered as a span: the whole banner is
+                   already inside one link when a destination is set, and a link
+                   inside a link is invalid HTML that browsers resolve by
+                   guessing. *@
+                @if (!string.IsNullOrWhiteSpace(Model.ButtonText))
+                {
+                    <span class="shop-banner__button">@Model.ButtonText</span>
+                }
+            </div>
+        </div>
+    </div>
+}

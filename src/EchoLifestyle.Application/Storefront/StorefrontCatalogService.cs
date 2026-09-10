@@ -204,6 +204,66 @@ public class StorefrontCatalogService
         };
     }
 
+    /// <summary>
+    /// Everything a search engine should be told about, in one query each.
+    ///
+    /// Deliberately on this class rather than in a sitemap service of its own,
+    /// for the same reason the filters are: <see cref="SellableProducts"/> is
+    /// the single definition of what the public may see, and a sitemap
+    /// generated from a second, similar-looking query is exactly how an
+    /// unpublished product ends up submitted to Google. A sitemap is a listing.
+    /// It narrows; it does not open a door.
+    /// </summary>
+    public async Task<ShopSitemap> GetSitemapAsync(CancellationToken cancellationToken = default)
+    {
+        // Hoisted into a local, not called inside the lambdas below. EF can
+        // compose a captured IQueryable into the query it is building; it
+        // cannot translate a method call sitting in an expression tree, and
+        // the failure is a runtime exception rather than a compile error.
+        var sellable = SellableProducts();
+
+        var products = await sellable
+            .OrderByDescending(p => p.PublishedAtUtc ?? p.CreatedAtUtc)
+            .Select(p => new SitemapEntry
+            {
+                Slug = p.Slug,
+                LastModifiedUtc = p.ModifiedAtUtc ?? p.PublishedAtUtc ?? p.CreatedAtUtc,
+            })
+            .ToListAsync(cancellationToken);
+
+        // Categories and brands earn a place only where something sellable sits
+        // under them. An empty category page is a thin page, and submitting a
+        // pile of them is how a small site looks like a large bad one.
+        var categories = await _db.Categories
+            .AsNoTracking()
+            .Where(c => c.IsActive && _db.ProductCategories
+                .Any(pc => pc.CategoryId == c.Id
+                           && sellable.Any(p => p.Id == pc.ProductId)))
+            .Select(c => new SitemapEntry
+            {
+                Slug = c.Slug,
+                LastModifiedUtc = c.ModifiedAtUtc ?? c.CreatedAtUtc,
+            })
+            .ToListAsync(cancellationToken);
+
+        var brands = await _db.Brands
+            .AsNoTracking()
+            .Where(b => b.IsActive && sellable.Any(p => p.BrandId == b.Id))
+            .Select(b => new SitemapEntry
+            {
+                Slug = b.Slug,
+                LastModifiedUtc = b.ModifiedAtUtc ?? b.CreatedAtUtc,
+            })
+            .ToListAsync(cancellationToken);
+
+        return new ShopSitemap
+        {
+            Products = products,
+            Categories = categories,
+            Brands = brands,
+        };
+    }
+
     // -----------------------------------------------------------------------
     // Listings
     // -----------------------------------------------------------------------
@@ -265,6 +325,57 @@ public class StorefrontCatalogService
         var products = await ListAsync(query, sort, page, PageSize, cancellationToken, filters);
 
         return (category, products, facets);
+    }
+
+    /// <summary>
+    /// Everything sellable, for the fixed menu entries - new arrivals, and
+    /// what is on offer.
+    ///
+    /// These exist because a category menu is only as good as the category tree
+    /// behind it, and a young catalogue has a shallow one. "New in" and "Offers"
+    /// work on day one with no setup at all, which is exactly when a shop most
+    /// needs somewhere to send people.
+    /// </summary>
+    public async Task<(ShopProductPage Page, ShopFacets Facets)> GetAllAsync(
+        ShopSort sort,
+        int page,
+        ShopFilters? filters = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = SellableProducts();
+
+        var facets = await FacetsAsync(query, cancellationToken);
+        var products = await ListAsync(query, sort, page, PageSize, cancellationToken, filters);
+
+        return (products, facets);
+    }
+
+    /// <summary>
+    /// Every brand with something sellable behind it, for the brand index.
+    ///
+    /// Brands with nothing in stock are left out rather than listed and left to
+    /// disappoint: a brand page that opens empty is worse than a brand the
+    /// shopper never knew was missing.
+    /// </summary>
+    public async Task<IReadOnlyList<BrandFacet>> GetBrandIndexAsync(
+        CancellationToken cancellationToken = default)
+    {
+        // Hoisted, not called inside the lambda: EF composes a captured
+        // IQueryable and cannot translate a method call in an expression tree.
+        var sellable = SellableProducts();
+
+        return await _db.Brands
+            .AsNoTracking()
+            .Where(b => b.IsActive && sellable.Any(p => p.BrandId == b.Id))
+            .OrderBy(b => b.Name)
+            .Select(b => new BrandFacet
+            {
+                Id = b.Id,
+                Name = b.Name,
+                Slug = b.Slug,
+                Count = sellable.Count(p => p.BrandId == b.Id),
+            })
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<(ShopBrand? Brand, ShopProductPage Page, ShopFacets Facets)> GetBrandAsync(

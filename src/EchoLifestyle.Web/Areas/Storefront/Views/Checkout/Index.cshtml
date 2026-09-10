@@ -171,6 +171,14 @@
                     })
                     .catch(function () { /* leave the server-rendered figures alone */ });
             });
+
+            // Reaching the checkout form is the signal worth reporting - not
+            // submitting it, which is the Purchase event on the next page.
+            window.echo.track("InitiateCheckout", {
+                currency: "BDT",
+                value: @Model.Cart.Subtotal.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                num_items: @Model.Cart.Lines.Count
+            });
         })();
     </script>
 }
